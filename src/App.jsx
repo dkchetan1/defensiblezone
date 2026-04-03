@@ -497,7 +497,7 @@ export default function App() {
         body: JSON.stringify({ model:"claude-sonnet-4-6", max_tokens:1000, messages:[{role:"user",content:prompt}] })
       });
       var data = await res.json();
-      if (!data.content) throw new Error(data.error || data.error_description || "API error: " + JSON.stringify(data));
+      if (!data.content) throw new Error(typeof data.error === "object" ? JSON.stringify(data) : (data.error || JSON.stringify(data)));
       var raw = data.content.map(function(b) { return b.text||""; }).join("");
       var m = raw.match(/\{[\s\S]*\}/);
       if (!m) throw new Error("No JSON in response");
@@ -531,7 +531,7 @@ export default function App() {
         body: JSON.stringify({ model:"claude-sonnet-4-6", max_tokens:2000, messages:[{role:"user",content:prompt}] })
       });
       var data = await res.json();
-      if (!data.content) throw new Error(data.error || data.error_description || "API error: " + JSON.stringify(data));
+      if (!data.content) throw new Error(typeof data.error === "object" ? JSON.stringify(data) : (data.error || JSON.stringify(data)));
       var raw = data.content.map(function(b) { return b.text||""; }).join("");
       var m = raw.match(/\{[\s\S]*\}/);
       if (!m) throw new Error("No JSON in response");
