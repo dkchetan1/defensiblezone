@@ -497,7 +497,7 @@ export default function App() {
         body: JSON.stringify({ model:"claude-sonnet-4-6", max_tokens:1000, messages:[{role:"user",content:prompt}] })
       });
       var data = await res.json();
-      if (!data.content) throw new Error(typeof data.error === "object" ? JSON.stringify(data) : (data.error || JSON.stringify(data)));
+      if (!data.content) throw new Error(data.error || data.error_description || "API error: " + JSON.stringify(data));
       var raw = data.content.map(function(b) { return b.text||""; }).join("");
       var m = raw.match(/\{[\s\S]*\}/);
       if (!m) throw new Error("No JSON in response");
@@ -508,7 +508,26 @@ export default function App() {
       setAffinities(Object.fromEntries(loaded.map(function(s) { return [s.id,5]; })));
       setInvestments(Object.fromEntries(loaded.map(function(s) { return [s.id,5]; })));
       setStep(1);
-    } catch(e) { setError("Something went wrong — " + e.message); }
+    } catch(e) {
+      if (e.message && e.message.indexOf("overloaded") !== -1) {
+        await new Promise(function(r) { setTimeout(r, 2000); });
+        try {
+          var res2 = await fetch("/api/generate", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ model:"claude-sonnet-4-6", max_tokens:1000, messages:[{role:"user",content:prompt}] }) });
+          var data2 = await res2.json();
+          if (!data2.content) throw new Error(typeof data2.error === "object" ? JSON.stringify(data2) : (data2.error || JSON.stringify(data2)));
+          var raw2 = data2.content.map(function(b) { return b.text||""; }).join("");
+          var m2 = raw2.match(/\{[\s\S]*\}/);
+          if (!m2) throw new Error("No JSON in response");
+          var parsed2 = JSON.parse(m2[0]);
+          var loaded2 = parsed2.skills.map(function(text, i) { return {id:"s"+i,text:text,editing:false}; });
+          setLandscape(parsed2.landscape);
+          setSkills(loaded2);
+          setAffinities(Object.fromEntries(loaded2.map(function(s) { return [s.id,5]; })));
+          setInvestments(Object.fromEntries(loaded2.map(function(s) { return [s.id,5]; })));
+          setStep(1);
+        } catch(e2) { setError("Something went wrong — " + e2.message); }
+      } else { setError("Something went wrong — " + e.message); }
+    }
     finally { setLoading(false); }
   }
 
@@ -531,7 +550,7 @@ export default function App() {
         body: JSON.stringify({ model:"claude-sonnet-4-6", max_tokens:2000, messages:[{role:"user",content:prompt}] })
       });
       var data = await res.json();
-      if (!data.content) throw new Error(typeof data.error === "object" ? JSON.stringify(data) : (data.error || JSON.stringify(data)));
+      if (!data.content) throw new Error(data.error || data.error_description || "API error: " + JSON.stringify(data));
       var raw = data.content.map(function(b) { return b.text||""; }).join("");
       var m = raw.match(/\{[\s\S]*\}/);
       if (!m) throw new Error("No JSON in response");
@@ -548,7 +567,32 @@ export default function App() {
       setBenchmark(parsed.benchmark);
       setResults(enriched);
       setStep(3);
-    } catch(e) { setError("Analysis failed — " + e.message); }
+    } catch(e) {
+      if (e.message && e.message.indexOf("overloaded") !== -1) {
+        await new Promise(function(r) { setTimeout(r, 2000); });
+        try {
+          var res2 = await fetch("/api/generate", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ model:"claude-sonnet-4-6", max_tokens:2000, messages:[{role:"user",content:prompt}] }) });
+          var data2 = await res2.json();
+          if (!data2.content) throw new Error(typeof data2.error === "object" ? JSON.stringify(data2) : (data2.error || JSON.stringify(data2)));
+          var raw2 = data2.content.map(function(b) { return b.text||""; }).join("");
+          var m2 = raw2.match(/\{[\s\S]*\}/);
+          if (!m2) throw new Error("No JSON in response");
+          var parsed2 = JSON.parse(m2[0]);
+          var enriched2 = parsed2.skills.map(function(skill) {
+            var found2 = skills.find(function(s) { return s.text===skill.name; }) || skills.find(function(s) { return skill.name.indexOf(s.text.slice(0,20))!==-1; });
+            var id2 = found2 ? found2.id : null;
+            var na2  = id2 && affinities[id2]!=null  ? affinities[id2]  : 5;
+            var inv2 = id2 && investments[id2]!=null ? investments[id2] : 5;
+            var aff2 = compAffinity(na2, inv2);
+            var dz2  = calcDZ(aff2, skill.ai_replaceability, skill.market_demand, skill.interface_span);
+            return Object.assign({}, skill, { naturalAffinity:na2, investment:inv2, affinity:aff2, dz:dz2 });
+          });
+          setBenchmark(parsed2.benchmark);
+          setResults(enriched2);
+          setStep(3);
+        } catch(e2) { setError("Analysis failed — " + e2.message); }
+      } else { setError("Analysis failed — " + e.message); }
+    }
     finally { setLoading(false); }
   }
 
