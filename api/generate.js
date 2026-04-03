@@ -13,6 +13,7 @@ export default async function handler(req, res) {
       body: JSON.stringify(req.body),
     });
     const data = await response.json();
+    console.log("Anthropic response:", JSON.stringify(data));
     res.status(response.status).json(data);
   } catch (error) {
     res.status(500).json({ error: error.message });
