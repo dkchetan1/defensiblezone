@@ -124,7 +124,7 @@ var ALGO_NOTES = [
 // ── DESIGN TOKENS ──────────────────────────────────────────────────────
 var S = {
   bg:"#f8f9fc", card:"#ffffff", card2:"#f2f4f8",
-  border:"#d0d7e8", text:"#0d1117", muted:"#3d4a6b", dim:"#7a88a8",
+  border:"#d0d7e8", text:"#0d1117", muted:"#1e2a42", dim:"#4a5568",
   accent:"#1a1d2e", purple:"#7c3aed", gold:"#d97706",
   green:"#059669", red:"#dc2626", blue:"#2563eb", orange:"#ea580c",
   font:"system-ui,-apple-system,sans-serif",
@@ -337,47 +337,143 @@ function buildRecs(skills, profile, benchmark) {
   var iface         = skills.filter(function(s) { return s.interface_span; });
   var goldenCage    = skills.filter(function(s) { return (s.naturalAffinity != null ? s.naturalAffinity : s.affinity) >= 6 && (s.investment != null ? s.investment : 5) <= 3; });
 
-  if (defensible.length) recs.push({ icon:"💎", color:S.gold, title:"Protect & Deepen These Skills",
+  if (defensible.length) recs.push({ icon:"■", color:S.gold, title:"Protect & Deepen These Skills",
     names: defensible.map(function(s) { return s.name; }),
     actions:["These sit in your Defend quadrant — high natural affinity, low AI risk. This is where you build your reputation and your floor.",
              "Build systems and write publicly about your approach. Own the output layer, not just the execution.",
              "Seek roles and projects where these skills touch architecture, strategy, or irreplaceable organizational judgment."]});
-  if (highRisk.length) recs.push({ icon:"⚡", color:S.red, title:"High AI Risk — Change Your Relationship With These",
+  if (highRisk.length) recs.push({ icon:"■", color:S.red, title:"High AI Risk — Change Your Relationship With These",
     names: highRisk.map(function(s) { return s.name; }),
     actions:["AI is already doing the bulk of this work. Your job is to own the review, direction, and judgment — not the generation.",
              "The engineer who wields AI on these tasks is more valuable than the one who avoids it. Learn the orchestration layer.",
              "Reinvest the time AI saves you here into your Defend quadrant before the market reprices your role."]});
-  if (goldenCage.length) recs.push({ icon:"🔒", color:S.gold, title:"The Golden Cage — Wake Up Before AI Does",
+  if (goldenCage.length) recs.push({ icon:"■", color:S.gold, title:"The Golden Cage — Wake Up Before AI Does",
     names: goldenCage.map(function(s) { return s.name; }),
     actions:["You feel wired for this but you're not investing in it. That gap is exactly where AI is catching up.",
              "Coasting on expertise built 3+ years ago in a fast-moving technical field is especially dangerous in this cycle.",
              "Treat this like your most endangered asset: side projects, new patterns, public output, obsessive attention."]});
-  if (highAffLowMkt.length) recs.push({ icon:"📡", color:S.purple, title:"High Affinity, Low Market — Make Yourself Legible",
+  if (highAffLowMkt.length) recs.push({ icon:"■", color:S.purple, title:"High Affinity, Low Market — Make Yourself Legible",
     names: highAffLowMkt.map(function(s) { return s.name; }),
     actions:["The gap here is framing, not capability. Most hiring managers don't know how to value what you have.",
              "Find the industries, company stages, or domains where this skill is on the critical path, not a nice-to-have.",
              "Write about it, build in public, create the artifact that makes the skill visible and priceable."]});
-  if (lowAffHighMkt.length) recs.push({ icon:"🔄", color:S.blue, title:"High Market, Low Affinity — Plan Your Migration",
+  if (lowAffHighMkt.length) recs.push({ icon:"■", color:S.blue, title:"High Market, Low Affinity — Plan Your Migration",
     names: lowAffHighMkt.map(function(s) { return s.name; }),
     actions:["These are paying your bills now but won't define your career. Use them for leverage while building toward your zone.",
              "AI will commoditize high-market, low-affinity skills faster than skills you actually care about deepening.",
              "Find the intersection: a team or domain where this skill overlaps with something you genuinely want to do."]});
-  if (iface.length) recs.push({ icon:"🌉", color:S.green, title:"Interface Advantage — This Is Rare",
+  if (iface.length) recs.push({ icon:"■", color:S.green, title:"Interface Advantage — This Is Rare",
     names: iface.map(function(s) { return s.name; }),
     actions:["Engineers fluent across two disciplines are genuinely rare. AI can't replicate lived cross-domain experience.",
              "Actively seek roles that sit at the seam: eng + product, eng + security, eng + ML research, eng + design systems.",
              "Make the cross-domain fluency visible. It's invisible on a resume and only apparent in the right conversations."]});
-  if (benchmark) recs.push({ icon:"📊", color:"#0891b2", title:"How You Compare to Peers at Your Level",
+  if (benchmark) recs.push({ icon:"■", color:"#0891b2", title:"How You Compare to Peers at Your Level",
     names:[],
     actions: benchmark.insights || ["Your Defensible Zone™ profile has been estimated vs other engineers at your level and role type.",
              "Scores above 70 indicate genuine defensibility vs AI at your seniority band.",
              "The most defensible engineers at any level are those whose work requires sustained judgment under ambiguity."]});
-  recs.push({ icon:"🏗️", color:S.dim, title:"Always: Build Trust Capital",
+  recs.push({ icon:"■", color:S.dim, title:"Always: Build Trust Capital",
     names:[],
     actions:["The engineer trusted with the ambiguous, high-stakes problem is the last one replaced — by AI or by reorgs.",
              "Reputation for judgment compounds: every hard call you own well is future career capital.",
              "Your network of people who trust your technical judgment is a moat that no model can replicate."]});
   return recs;
+}
+
+// ── PROMO CODES ────────────────────────────────────────────────────────
+// To add/remove bypass codes, edit this array.
+// Remove the array entirely (set to []) when going fully live.
+var PROMO_CODES = ["DZFRIEND", "DZPREVIEW", "DZTEST"];
+
+// ── PAYWALL GATE ───────────────────────────────────────────────────────
+function PaywallGate({ tier, onUnlock }) {
+  var [input, setInput]   = useState("");
+  var [error, setError]   = useState("");
+  var [shake, setShake]   = useState(false);
+
+  function tryPromo() {
+    if (PROMO_CODES.map(function(c){return c.toLowerCase();}).indexOf(input.trim().toLowerCase()) !== -1) {
+      onUnlock(3, true); // promo unlocks everything, flag as promo
+    } else {
+      setError("Invalid code. Try again or purchase below.");
+      setShake(true);
+      setTimeout(function(){ setShake(false); }, 500);
+    }
+  }
+
+  var shakeStyle = shake ? {animation:"shake 0.4s ease"} : {};
+
+  return (
+    <div style={{background:S.card,border:"1px solid "+S.border,borderRadius:16,padding:28,marginBottom:10}}>
+      <style dangerouslySetInnerHTML={{__html:"@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}"}} />
+
+      {/* Header */}
+      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:20}}>
+        <div style={{width:36,height:36,background:S.gold,borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+          <span style={{fontSize:18}}>🔒</span>
+        </div>
+        <div>
+          <div style={{fontFamily:S.mono,fontSize:12,color:S.muted,fontWeight:700,letterSpacing:"0.08em"}}>UNLOCK YOUR FULL REPORT</div>
+          <div style={{fontSize:13,color:S.dim,marginTop:2}}>Your DZ score is above. Go deeper with actionable next steps.</div>
+        </div>
+      </div>
+
+      {/* Tier cards */}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:22}}>
+
+        {/* Tier 2 */}
+        <div style={{background:S.bg,border:"2px solid "+S.gold,borderRadius:12,padding:16,position:"relative"}}>
+          <div style={{fontFamily:S.mono,fontSize:10,fontWeight:700,color:S.gold,letterSpacing:"0.1em",marginBottom:6}}>RECOMMENDATIONS</div>
+          <div style={{fontFamily:S.serif,fontSize:28,color:S.text,fontWeight:700,lineHeight:1,marginBottom:4}}>$29<span style={{fontSize:13,fontWeight:400,color:S.dim}}> one-time</span></div>
+          <ul style={{margin:"10px 0 14px",padding:0,listStyle:"none"}}>
+            {["Personalized action plan","Steps ranked by impact & effort","Skills to protect vs deprioritize","AI-threat timeline for your profile"].map(function(item){
+              return <li key={item} style={{display:"flex",gap:7,alignItems:"flex-start",marginBottom:5}}><span style={{color:S.gold,fontWeight:700,flexShrink:0,marginTop:1}}>✓</span><span style={{color:S.muted,fontSize:12,lineHeight:1.5}}>{item}</span></li>;
+            })}
+          </ul>
+          <button
+            onClick={function(){ window.open("https://buy.stripe.com/00waEXbZobnl0D3bc2dQQ02","_blank"); }}
+            style={{width:"100%",background:S.gold,color:"white",border:"none",borderRadius:8,padding:"11px 0",fontSize:13,fontFamily:S.mono,fontWeight:700,cursor:"pointer",letterSpacing:"0.06em"}}
+          >GET RECOMMENDATIONS →</button>
+        </div>
+
+        {/* Tier 3 */}
+        <div style={{background:S.bg,border:"2px solid "+S.accent,borderRadius:12,padding:16,position:"relative"}}>
+          <div style={{position:"absolute",top:-11,left:"50%",transform:"translateX(-50%)",background:S.accent,color:"white",fontFamily:S.mono,fontSize:9,fontWeight:700,padding:"3px 10px",borderRadius:20,letterSpacing:"0.1em",whiteSpace:"nowrap"}}>BEST VALUE</div>
+          <div style={{fontFamily:S.mono,fontSize:10,fontWeight:700,color:S.accent,letterSpacing:"0.1em",marginBottom:6}}>RECOMMENDATIONS + PDF</div>
+          <div style={{fontFamily:S.serif,fontSize:28,color:S.text,fontWeight:700,lineHeight:1,marginBottom:4}}>$34<span style={{fontSize:13,fontWeight:400,color:S.dim}}> one-time</span></div>
+          <ul style={{margin:"10px 0 14px",padding:0,listStyle:"none"}}>
+            {["Everything in Recommendations","Branded PDF you can save & share","Ready for career coaches & managers","Permanent record of your assessment"].map(function(item){
+              return <li key={item} style={{display:"flex",gap:7,alignItems:"flex-start",marginBottom:5}}><span style={{color:S.accent,fontWeight:700,flexShrink:0,marginTop:1}}>✓</span><span style={{color:S.muted,fontSize:12,lineHeight:1.5}}>{item}</span></li>;
+            })}
+          </ul>
+          {/* TODO: Replace onClick with Stripe checkout for $34 */}
+          <button
+            onClick={function(){ window.open("https://buy.stripe.com/00wdR93sSgHFadD5RIdQQ03","_blank"); }}
+            style={{width:"100%",background:S.accent,color:"white",border:"none",borderRadius:8,padding:"11px 0",fontSize:13,fontFamily:S.mono,fontWeight:700,cursor:"pointer",letterSpacing:"0.06em"}}
+          >GET PDF REPORT →</button>
+        </div>
+      </div>
+
+      {/* Promo code */}
+      <div style={{borderTop:"1px solid "+S.border,paddingTop:16}}>
+        <div style={{fontFamily:S.mono,fontSize:10,color:S.dim,fontWeight:700,letterSpacing:"0.08em",marginBottom:8}}>HAVE A PROMO CODE?</div>
+        <div style={Object.assign({display:"flex",gap:8},shakeStyle)}>
+          <input
+            value={input}
+            onChange={function(e){setInput(e.target.value);setError("");}}
+            onKeyDown={function(e){if(e.key==="Enter")tryPromo();}}
+            placeholder="Enter code"
+            style={{flex:1,background:S.bg,border:"1px solid "+(error?S.red:S.border),borderRadius:8,padding:"10px 14px",fontSize:13,fontFamily:S.mono,color:S.text,outline:"none"}}
+          />
+          <button
+            onClick={tryPromo}
+            style={{background:S.card2,border:"1px solid "+S.border,borderRadius:8,padding:"10px 18px",fontSize:12,fontFamily:S.mono,fontWeight:700,color:S.muted,cursor:"pointer",letterSpacing:"0.06em"}}
+          >APPLY</button>
+        </div>
+        {error && <div style={{fontFamily:S.mono,fontSize:11,color:S.red,marginTop:6,fontWeight:600}}>{error}</div>}
+      </div>
+    </div>
+  );
 }
 
 // ── MAIN APP ───────────────────────────────────────────────────────────
@@ -405,6 +501,64 @@ export default function Engineer() {
   var [showRecs, setShowRecs]             = useState(true);
   var [showAlgo, setShowAlgo]             = useState(false);
   var [showSources, setShowSources]       = useState(false);
+  var [tier, setTier]                     = useState(0); // 0=free, 2=recs, 3=pdf
+  var [promoUsed, setPromoUsed]           = useState(false);
+
+  function handleUnlock(t, isPromo) { setTier(t); if (isPromo) setPromoUsed(true); }
+
+  // ── Payment verification ────────────────────────────────────────────────
+  // On mount: (1) check localStorage for existing valid token,
+  //           (2) if ?session_id= in URL, verify with backend and store token.
+  useEffect(function() {
+    // Helper: decode JWT payload without verifying signature (verification is done server-side)
+    function decodeJwt(token) {
+      try {
+        var payload = token.split(".")[1];
+        var padded = payload + "===".slice((payload.length + 3) % 4);
+        return JSON.parse(atob(padded));
+      } catch (e) { return null; }
+    }
+
+    function applyToken(token) {
+      var decoded = decodeJwt(token);
+      if (!decoded) return false;
+      // Check expiry
+      if (decoded.exp && Date.now() / 1000 > decoded.exp) return false;
+      // Check product matches
+      if (decoded.product && decoded.product !== "engineer") return false;
+      if (decoded.tier === 2 || decoded.tier === 3) {
+        setTier(decoded.tier);
+        return true;
+      }
+      return false;
+    }
+
+    // 1. Try existing token from localStorage
+    var stored = localStorage.getItem("dz_token_engineer");
+    if (stored && applyToken(stored)) {
+      return; // already unlocked from previous purchase
+    }
+
+    // 2. Fresh redirect from Stripe — verify session_id with backend
+    var params = new URLSearchParams(window.location.search);
+    var sessionId = params.get("session_id");
+    if (sessionId) {
+      window.history.replaceState({}, "", window.location.pathname); // clean URL immediately
+      fetch("/api/verify-payment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ session_id: sessionId, product: "engineer" }),
+      })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.token) {
+            localStorage.setItem("dz_token_engineer", data.token);
+            applyToken(data.token);
+          }
+        })
+        .catch(function(err) { console.error("Payment verification failed:", err); });
+    }
+  }, []);
 
   useEffect(function() {
     var link = document.createElement("link");
@@ -417,7 +571,7 @@ export default function Engineer() {
 
   var inputStyle = {
     width:"100%", background:"#f2f4f8", border:"1px solid " + S.border,
-    borderRadius:8, padding:"12px 16px", color:S.text, fontSize:15,
+    borderRadius:8, padding:"12px 16px", color:S.text, fontSize:16,
     fontFamily:S.font, outline:"none", boxSizing:"border-box",
   };
 
@@ -445,9 +599,23 @@ export default function Engineer() {
   }
 
   function addCustomCtx() {
-    var t = customCtxInput.trim();
-    if (!t || t.length === 0) return;
-    setCustomContexts(function(prev) { return prev.concat([t]); });
+    var raw = customCtxInput.trim();
+    if (!raw) return;
+    // Split on commas, clean each piece
+    var parts = raw.split(",").map(function(p) { return p.trim(); }).filter(function(p) {
+      return p.length >= 5 &&           // at least 5 chars — filters "bla", "xyz" etc
+             p.length <= 60 &&          // not absurdly long
+             /[a-zA-Z]{3,}/.test(p);    // must contain a real word (3+ consecutive letters)
+    });
+    if (parts.length === 0) {
+      setCustomCtxInput("");
+      return;
+    }
+    setCustomContexts(function(prev) {
+      var existing = prev.map(function(x) { return x.toLowerCase(); });
+      var toAdd = parts.filter(function(p) { return existing.indexOf(p.toLowerCase()) === -1; });
+      return prev.concat(toAdd);
+    });
     setCustomCtxInput("");
   }
 
@@ -460,7 +628,7 @@ export default function Engineer() {
     setWorkContexts([]); setCustomContexts([]); setCustomCtxInput(""); setShowAllCtx(false);
     setCompanyType(""); setLandscape(""); setSkills([]); setCustomInput("");
     setAffinities({}); setInvestments({}); setResults(null); setBenchmark(null);
-    setHovered(null); setError(null); setShowRecs(true); setShowAlgo(false); setShowSources(false);
+    setHovered(null); setError(null); setShowRecs(true); setShowAlgo(false); setShowSources(false); setTier(0); setPromoUsed(false);
   }
 
   function startEditing(id) { setSkills(function(p) { return p.map(function(s) { return s.id===id ? Object.assign({},s,{editing:true}) : s; }); }); }
@@ -525,8 +693,8 @@ export default function Engineer() {
           setAffinities(Object.fromEntries(loaded2.map(function(s) { return [s.id,5]; })));
           setInvestments(Object.fromEntries(loaded2.map(function(s) { return [s.id,5]; })));
           setStep(1);
-        } catch(e2) { setError("Something went wrong — " + e2.message); }
-      } else { setError("Something went wrong — " + e.message); }
+        } catch(e2) { setError("Something went wrong — please try again in a moment."); }
+      } else { setError("Something went wrong — please try again in a moment."); }
     }
     finally { setLoading(false); }
   }
@@ -590,8 +758,8 @@ export default function Engineer() {
           setBenchmark(parsed2.benchmark);
           setResults(enriched2);
           setStep(3);
-        } catch(e2) { setError("Analysis failed — " + e2.message); }
-      } else { setError("Analysis failed — " + e.message); }
+        } catch(e2) { setError("Analysis failed — please try again in a moment."); }
+      } else { setError("Analysis failed — please try again in a moment."); }
     }
     finally { setLoading(false); }
   }
@@ -631,7 +799,7 @@ export default function Engineer() {
           <div style={{marginBottom:32}}>
             <div style={{fontFamily:S.mono,fontSize:11,color:S.gold,letterSpacing:"0.12em",marginBottom:10,fontWeight:600}}>RECURSIO LAB · DEFENSIBLE ZONE™ · SOFTWARE ENGINEER EDITION</div>
             <h1 style={{fontFamily:S.serif,fontSize:40,color:S.text,margin:"0 0 12px",lineHeight:1.1}}>Find Your<br /><em>Defensible Zone<sup style={{fontSize:"0.45em",verticalAlign:"super",fontStyle:"normal"}}>™</sup></em></h1>
-            <p style={{color:S.muted,fontSize:16,lineHeight:1.75,margin:0,maxWidth:540}}>
+            <p style={{color:S.muted,fontSize:18,lineHeight:1.75,margin:0,maxWidth:540}}>
               The AI threat to software engineering is not uniform. Where you sit, what you build, and how senior you are changes everything. This assessment is calibrated to your exact profile.
             </p>
           </div>
@@ -652,7 +820,7 @@ export default function Engineer() {
                       <span style={{fontSize:16}}>{dt.icon}</span>
                       <div>
                         <div style={{fontWeight:700,fontSize:13}}>{dt.label}</div>
-                        <div style={{fontSize:11,opacity:0.65,marginTop:1}}>{dt.desc}</div>
+                        <div style={{fontSize:13,opacity:0.75,marginTop:1}}>{dt.desc}</div>
                       </div>
                     </div>
                   </SelBtn>
@@ -680,8 +848,8 @@ export default function Engineer() {
                   return (
                     <SelBtn key={sl.id} active={seniority===sl.id} onClick={function(){setSeniority(sl.id);}}>
                       <div style={{fontWeight:700,fontSize:13,marginBottom:2}}>{sl.label}</div>
-                      <div style={{fontSize:11,opacity:0.65}}>{sl.sub}</div>
-                      <div style={{fontSize:10,opacity:0.5,marginTop:2}}>{sl.note}</div>
+                      <div style={{fontSize:13,opacity:0.75}}>{sl.sub}</div>
+                      <div style={{fontSize:12,opacity:0.6,marginTop:2}}>{sl.note}</div>
                     </SelBtn>
                   );
                 })}
@@ -698,7 +866,7 @@ export default function Engineer() {
                   {workContexts.length+customContexts.length > 0 ? (workContexts.length+customContexts.length)+" selected" : "select all that apply"}
                 </span>
               </div>
-              <p style={{color:S.muted,fontSize:13,margin:"0 0 14px",lineHeight:1.6}}>
+              <p style={{color:S.muted,fontSize:15,margin:"0 0 14px",lineHeight:1.7}}>
                 This is the most important input — it's what changes your scores the most.
                 {devType && devType !== "other" && !showAllCtx && hiddenCount > 0 && (
                   <span style={{color:S.dim}}> Showing the {visibleCtx.length} most relevant contexts for {DEV_TYPES.find(function(d){return d.id===devType;})?.label} engineers.</span>
@@ -749,7 +917,7 @@ export default function Engineer() {
                   return (
                     <SelBtn key={ct.id} active={companyType===ct.id} onClick={function(){setCompanyType(companyType===ct.id?"":ct.id);}}>
                       <div style={{fontWeight:700,fontSize:13}}>{ct.label}</div>
-                      <div style={{fontSize:11,opacity:0.6,marginTop:2}}>{ct.sub}</div>
+                      <div style={{fontSize:13,opacity:0.75,marginTop:2}}>{ct.sub}</div>
                     </SelBtn>
                   );
                 })}
@@ -795,7 +963,7 @@ export default function Engineer() {
           <div style={{background:"linear-gradient(135deg,rgba(26,29,46,.97),rgba(26,29,46,.92))",borderRadius:14,padding:22,marginBottom:18,position:"relative",overflow:"hidden"}}>
             <div style={{position:"absolute",top:0,right:0,width:160,height:160,background:"radial-gradient(circle,rgba(217,119,6,.15) 0%,transparent 70%)",pointerEvents:"none"}} />
             <div style={{fontFamily:S.mono,fontSize:11,color:"rgba(217,119,6,.8)",letterSpacing:"0.1em",marginBottom:8,fontWeight:600}}>AI LANDSCAPE · {profile1.devLabel.toUpperCase()} ENGINEER · {profile1.seniorityLabel.toUpperCase()}</div>
-            <p style={{color:"rgba(240,242,248,.9)",fontSize:15,lineHeight:1.75,margin:0,fontStyle:"italic"}}>{landscape}</p>
+            <p style={{color:"rgba(240,242,248,.9)",fontSize:17,lineHeight:1.75,margin:0,fontStyle:"italic"}}>{landscape}</p>
           </div>
           <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:18}}>
             {profile1.workContextLabels.map(function(wc) {
@@ -936,13 +1104,13 @@ export default function Engineer() {
                   {na<=3 && inv<=3 && (
                     <div style={{marginTop:14,background:"rgba(220,38,38,0.06)",border:"1px solid rgba(220,38,38,0.15)",borderRadius:8,padding:"9px 14px",display:"flex",gap:10}}>
                       <span style={{fontSize:13,flexShrink:0}}>⚠️</span>
-                      <p style={{color:S.red,fontSize:12,margin:0,lineHeight:1.5,fontWeight:500}}>Low affinity + low investment. You won't fight to keep this skill, and AI is advancing on it.</p>
+                      <p style={{color:S.red,fontSize:14,margin:0,lineHeight:1.5,fontWeight:500}}>Low affinity + low investment. You won't fight to keep this skill, and AI is advancing on it.</p>
                     </div>
                   )}
                   {na>=6 && inv<=2 && (
                     <div style={{marginTop:14,background:"rgba(217,119,6,0.06)",border:"1px solid rgba(217,119,6,0.2)",borderRadius:8,padding:"9px 14px",display:"flex",gap:10}}>
                       <span style={{fontSize:13,flexShrink:0}}>🔒</span>
-                      <p style={{color:S.gold,fontSize:12,margin:0,lineHeight:1.5,fontWeight:500}}>Golden cage. You feel wired for this but aren't investing — that gap is where AI catches up.</p>
+                      <p style={{color:S.gold,fontSize:14,margin:0,lineHeight:1.5,fontWeight:500}}>Golden cage. You feel wired for this but aren't investing — that gap is where AI catches up.</p>
                     </div>
                   )}
                 </Card>
@@ -1026,8 +1194,8 @@ export default function Engineer() {
                   return (
                     <div key={s.name} onMouseEnter={function(){setHovered(s.name);}} onMouseLeave={function(){setHovered(null);}} style={{borderLeft:"3px solid "+dzColor(s.dz),paddingLeft:12,paddingTop:10,paddingBottom:10,cursor:"pointer",borderRadius:"0 8px 8px 0",background:hovered===s.name?S.card2:"transparent"}}>
                       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
-                        <span style={{color:S.text,fontSize:13,fontWeight:700,paddingRight:8,lineHeight:1.3}}>{s.name}</span>
-                        <span style={{fontFamily:S.mono,fontSize:10,padding:"2px 8px",borderRadius:20,flexShrink:0,color:dzColor(s.dz),background:dzColor(s.dz)+"18",fontWeight:700}}>{dzLabel(s.dz)}</span>
+                        <span style={{color:S.text,fontSize:15,fontWeight:700,paddingRight:8,lineHeight:1.3}}>{s.name}</span>
+                        <span style={{fontFamily:S.mono,fontSize:11,padding:"2px 8px",borderRadius:20,flexShrink:0,color:dzColor(s.dz),background:dzColor(s.dz)+"18",fontWeight:700}}>{dzLabel(s.dz)}</span>
                       </div>
                       <div style={{height:3,background:"#e8ecf5",borderRadius:2,marginBottom:8,overflow:"hidden"}}>
                         <div className="bar-anim" style={{height:"100%",width:s.dz+"%",background:"linear-gradient(90deg,"+dzColor(s.dz)+"99,"+dzColor(s.dz)+")",borderRadius:2}} />
@@ -1036,14 +1204,14 @@ export default function Engineer() {
                         {[["NA",s.naturalAffinity,S.purple],["Inv",s.investment,"#0891b2"],["Comp",s.affinity,S.accent],["AIR",s.ai_replaceability,S.red],["Mkt",s.market_demand,S.green]].map(function(item) {
                           return (
                             <div key={item[0]}>
-                              <div style={{fontFamily:S.mono,fontSize:9,color:S.dim}}>{item[0]}</div>
-                              <div style={{fontFamily:S.mono,fontSize:11,color:item[2],fontWeight:700}}>{item[1]}/10</div>
+                              <div style={{fontFamily:S.mono,fontSize:10,color:S.dim}}>{item[0]}</div>
+                              <div style={{fontFamily:S.mono,fontSize:13,color:item[2],fontWeight:700}}>{item[1]}/10</div>
                             </div>
                           );
                         })}
                       </div>
-                      {s.interface_span && <div style={{fontFamily:S.mono,fontSize:10,color:S.green,marginTop:4,fontWeight:700}}>🌉 Interface span +15</div>}
-                      <p style={{color:S.muted,fontSize:11,margin:"6px 0 0",fontStyle:"italic",lineHeight:1.5}}>{s.rationale}</p>
+                      {s.interface_span && <div style={{fontFamily:S.mono,fontSize:11,color:S.green,marginTop:4,fontWeight:700}}>+ Interface span bonus</div>}
+                      <p style={{color:S.muted,fontSize:13,margin:"8px 0 0",fontStyle:"italic",lineHeight:1.6}}>{s.rationale}</p>
                     </div>
                   );
                 })}
@@ -1051,41 +1219,83 @@ export default function Engineer() {
             </Card>
           </div>
 
-          <Card style={{padding:22,marginBottom:10}}>
-            <button onClick={function(){setShowRecs(!showRecs);}} style={{background:"none",border:"none",cursor:"pointer",width:"100%",display:"flex",justifyContent:"space-between",alignItems:"center",padding:0}}>
-              <Label style={{marginBottom:0}}>STRATEGIC RECOMMENDATIONS · {profile3.seniorityLabel.toUpperCase()} {profile3.devLabel.toUpperCase()} ENGINEER</Label>
-              <span style={{color:S.muted,fontSize:11,fontFamily:S.mono,fontWeight:600}}>{showRecs?"▲ COLLAPSE":"▼ EXPAND"}</span>
-            </button>
+          {/* ── TIER 1: Free — Recommendations teaser or full content ── */}
+          {tier < 2 ? (
+            <PaywallGate tier={tier} onUnlock={handleUnlock} />
+          ) : (
+            <Card style={{padding:22,marginBottom:10}}>
+              <style dangerouslySetInnerHTML={{__html:`
+                @media print {
+                  body * { visibility: hidden; }
+                  #dz-print-region, #dz-print-region * { visibility: visible; }
+                  #dz-print-region { position: absolute; left: 0; top: 0; width: 100%; }
+                  .no-print { display: none !important; }
+                }
+              `}} />
+              <div id="dz-print-region">
+              {tier >= 3 && !promoUsed && (
+                <div style={{display:"flex",justifyContent:"flex-end",marginBottom:12}}>
+                  <button
+                    onClick={function(){ window.open("https://buy.stripe.com/00wdR93sSgHFadD5RIdQQ03","_blank"); }}
+                    style={{background:S.gold,color:"white",border:"none",borderRadius:8,padding:"8px 18px",fontSize:12,fontFamily:S.mono,fontWeight:700,cursor:"pointer",letterSpacing:"0.06em",display:"flex",alignItems:"center",gap:6}}
+                  >⬇ DOWNLOAD PDF REPORT</button>
+                </div>
+              )}
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+                <button onClick={function(){setShowRecs(!showRecs);}} className="no-print" style={{background:"none",border:"none",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center",padding:0,flex:1}}>
+                  <Label style={{marginBottom:0}}>STRATEGIC RECOMMENDATIONS · {profile3.seniorityLabel.toUpperCase()} {profile3.devLabel.toUpperCase()} ENGINEER</Label>
+                  <span style={{color:S.muted,fontSize:11,fontFamily:S.mono,fontWeight:600,marginLeft:12}}>{showRecs?"▲ COLLAPSE":"▼ EXPAND"}</span>
+                </button>
+                {showRecs && (
+                  <button
+                    className="no-print"
+                    onClick={function(){ window.print(); }}
+                    style={{background:S.bg,border:"1px solid "+S.border,borderRadius:8,padding:"7px 14px",fontSize:12,fontFamily:S.mono,fontWeight:700,color:S.muted,cursor:"pointer",letterSpacing:"0.06em",marginLeft:12,flexShrink:0,display:"flex",alignItems:"center",gap:5}}
+                  >⎙ Save as PDF</button>
+                )}
+              </div>
             {showRecs && (
-              <div style={{marginTop:20,display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:18}}>
+              <div style={{marginTop:20,display:"flex",flexDirection:"column",gap:0}}>
                 {recs.map(function(rec, i) {
                   return (
-                    <div key={i} style={{borderTop:"3px solid "+rec.color+"33",paddingTop:14}}>
-                      <div style={{display:"flex",alignItems:"flex-start",gap:8,marginBottom:6}}>
-                        <span style={{fontSize:16}}>{rec.icon}</span>
-                        <span style={{color:S.text,fontSize:14,fontWeight:700,lineHeight:1.3}}>{rec.title}</span>
+                    <div key={i} style={{
+                      borderLeft:"4px solid "+rec.color,
+                      paddingLeft:20, paddingTop:16, paddingBottom:16,
+                      marginBottom:4,
+                      borderRadius:"0 8px 8px 0",
+                      background: i%2===0 ? "transparent" : S.bg
+                    }}>
+                      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:rec.names.length>0?6:10}}>
+                        <span style={{display:"inline-block",width:8,height:8,borderRadius:2,background:rec.color,flexShrink:0}} />
+                        <span style={{color:S.text,fontSize:16,fontWeight:700,lineHeight:1.3}}>{rec.title}</span>
                       </div>
-                      {rec.names.length>0 && <div style={{fontFamily:S.mono,fontSize:10,color:rec.color,marginBottom:10,fontWeight:700}}>RE: {rec.names.join(" · ")}</div>}
-                      <ul style={{margin:0,padding:0,listStyle:"none"}}>
+                      {rec.names.length>0 && (
+                        <div style={{fontFamily:S.mono,fontSize:11,color:rec.color,marginBottom:12,fontWeight:700,paddingLeft:18}}>
+                          {rec.names.join(" · ")}
+                        </div>
+                      )}
+                      <div style={{display:"flex",flexDirection:"column",gap:8,paddingLeft:18}}>
                         {rec.actions.map(function(a,j) {
                           return (
-                            <li key={j} style={{display:"flex",gap:8,marginBottom:8,alignItems:"flex-start"}}>
-                              <span style={{color:rec.color,flexShrink:0,fontSize:12,fontWeight:700,marginTop:2}}>→</span>
-                              <span style={{color:S.muted,fontSize:13,lineHeight:1.6}}>{a}</span>
-                            </li>
+                            <div key={j} style={{display:"flex",gap:10,alignItems:"flex-start"}}>
+                              <span style={{color:rec.color,flexShrink:0,fontSize:13,fontWeight:700,marginTop:2,lineHeight:1}}>→</span>
+                              <span style={{color:S.muted,fontSize:15,lineHeight:1.65}}>{a}</span>
+                            </div>
                           );
                         })}
-                      </ul>
+                      </div>
                     </div>
                   );
                 })}
               </div>
             )}
+            </div> {/* end dz-print-region */}
           </Card>
+          )} {/* end tier >= 2 conditional */}
 
           <Card style={{padding:22,marginBottom:10}}>
             <button onClick={function(){setShowAlgo(!showAlgo);}} style={{background:"none",border:"none",cursor:"pointer",width:"100%",display:"flex",justifyContent:"space-between",alignItems:"center",padding:0}}>
-              <Label style={{marginBottom:0}}>🔧 ALGORITHM ASSUMPTIONS & KNOWN LIMITATIONS</Label>
+              <Label style={{marginBottom:0}}>ALGORITHM ASSUMPTIONS & KNOWN LIMITATIONS</Label>
               <span style={{color:S.muted,fontSize:11,fontFamily:S.mono,fontWeight:600}}>{showAlgo?"▲ COLLAPSE":"▼ SHOW WORK"}</span>
             </button>
             {showAlgo && (
@@ -1107,12 +1317,12 @@ export default function Engineer() {
 
           <Card style={{padding:22,marginBottom:16}}>
             <button onClick={function(){setShowSources(!showSources);}} style={{background:"none",border:"none",cursor:"pointer",width:"100%",display:"flex",justifyContent:"space-between",alignItems:"center",padding:0}}>
-              <Label style={{marginBottom:0}}>📚 METHODOLOGY & SOURCES</Label>
+              <Label style={{marginBottom:0}}>METHODOLOGY & SOURCES</Label>
               <span style={{color:S.muted,fontSize:11,fontFamily:S.mono,fontWeight:600}}>{showSources?"▲ COLLAPSE":"▼ VIEW SOURCES"}</span>
             </button>
             {showSources && (
               <div style={{marginTop:16}}>
-                <p style={{color:S.muted,fontSize:13,margin:"0 0 14px",lineHeight:1.65}}>
+                <p style={{color:S.muted,fontSize:15,margin:"0 0 14px",lineHeight:1.75}}>
                   AI replaceability scores are calibrated using the sources below, combined with role-specific knowledge and LLM estimation. Market demand scores are grounded in BLS data and WEF projections. No score should be treated as definitive — this tool is designed for reflection and career planning, not as an employment assessment.
                 </p>
                 <div style={{display:"flex",flexDirection:"column",gap:10}}>
@@ -1134,10 +1344,16 @@ export default function Engineer() {
 
           <button onClick={resetAll} style={{width:"100%",background:"transparent",border:"1px solid "+S.border,color:S.muted,borderRadius:12,padding:"15px 0",fontSize:13,fontFamily:S.mono,cursor:"pointer",letterSpacing:"0.08em",fontWeight:600,marginBottom:28}}>← START OVER</button>
 
-          <div style={{paddingTop:18,borderTop:"1px solid "+S.border,textAlign:"center"}}>
-            <span style={{fontFamily:S.mono,fontSize:10,color:S.dim,display:"block",marginBottom:5}}>DEFENSIBLE ZONE&#8482; is a trademark of its creator. All rights reserved.</span>
-            <span style={{fontFamily:S.mono,fontSize:10,color:S.dim,display:"block",marginBottom:5}}>This tool is for professional reflection and educational purposes only. It does not constitute career advice or any professional assessment.</span>
-            <span style={{fontFamily:S.mono,fontSize:10,color:S.dim,display:"block"}}>&copy; 2026</span>
+          <div style={{background:"#fef9ec",border:"1px solid #f0c060",borderRadius:12,padding:"16px 20px",marginBottom:16,textAlign:"center"}}>
+            <div style={{fontFamily:S.mono,fontSize:12,color:"#92400e",fontWeight:700,marginBottom:4,letterSpacing:"0.06em"}}>IMPORTANT — PLEASE READ</div>
+            <div style={{fontFamily:S.mono,fontSize:12,color:"#78350f",lineHeight:1.7}}>
+              This tool is for professional reflection and educational purposes only. It does not constitute career advice or any professional assessment. Scores are estimates based on publicly available research and LLM calibration — not a definitive evaluation of your skills or employability.
+            </div>
+          </div>
+
+          <div style={{paddingTop:14,textAlign:"center"}}>
+            <span style={{fontFamily:S.mono,fontSize:11,color:S.dim,display:"block",marginBottom:4}}>DEFENSIBLE ZONE&#8482; is a trademark of its creator. All rights reserved.</span>
+            <span style={{fontFamily:S.mono,fontSize:11,color:S.dim,display:"block"}}>&copy; 2026</span>
           </div>
         </div>
       </div>
