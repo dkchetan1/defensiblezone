@@ -771,7 +771,7 @@ function PaywallGateMedical({ onUnlock }) {
             ))}
           </ul>
           {/* TODO: Replace onClick with Stripe checkout for $29 */}
-          <MBtn onClick={() => window.open("https://buy.stripe.com/00waEXbZobnl0D3bc2dQQ02","_blank")} style={{width:"100%"}}>
+          <MBtn onClick={() => window.open("https://buy.stripe.com/4gM3cv4wWbnldpP2FwdQQ04","_blank")} style={{width:"100%"}}>
             Get Recommendations →
           </MBtn>
         </div>
@@ -791,7 +791,7 @@ function PaywallGateMedical({ onUnlock }) {
           </ul>
           {/* TODO: Replace onClick with Stripe checkout for $34 */}
           <button
-            onClick={() => window.open("https://buy.stripe.com/00wdR93sSgHFadD5RIdQQ03","_blank")}
+            onClick={() => window.open("https://buy.stripe.com/00waEX4wWdvtdpP7ZQdQQ05","_blank")}
             style={{width:"100%",background:"#1a1d2e",color:"white",border:"none",borderRadius:8,padding:"11px 0",fontFamily:T.mono,fontSize:12,fontWeight:700,cursor:"pointer",letterSpacing:"0.06em"}}
           >Get PDF Report →</button>
         </div>
@@ -1156,7 +1156,7 @@ export default function DefensibleZoneMedical(){
               {tier >= 3 && !promoUsed && (
                 <div style={{display:"flex",justifyContent:"flex-end",marginBottom:12}}>
                   <button
-                    onClick={()=>window.open("https://buy.stripe.com/00wdR93sSgHFadD5RIdQQ03","_blank")}
+                    onClick={()=>window.open("https://buy.stripe.com/00waEX4wWdvtdpP7ZQdQQ05","_blank")}
                     style={{background:T.amb,color:"white",border:"none",borderRadius:8,padding:"8px 18px",fontSize:12,fontFamily:T.mono,fontWeight:700,cursor:"pointer",letterSpacing:"0.06em",display:"flex",alignItems:"center",gap:6}}
                   >⬇ Download PDF Report</button>
                 </div>
