@@ -481,7 +481,7 @@ const THREAT = {
 
 const T = {
   bg:"#f8f9fb", surf:"#ffffff", card:"#ffffff",
-  bdr:"#dde1ea", txt:"#0d1117", mut:"#4a5568", dim:"#9aa3b2",
+  bdr:"#dde1ea", txt:"#0d1117", mut:"#1e2a42", dim:"#4a5568",
   amb:"#d97706", blu:"#2563eb", grn:"#059669", org:"#ea580c", red:"#dc2626",
   font:"'DM Sans',system-ui,sans-serif",
   mono:"'DM Mono','Courier New',monospace",
@@ -722,6 +722,103 @@ function buildRecs(results, specialty, level, degree) {
   return recs;
 }
 
+// ── PROMO CODES ────────────────────────────────────────────────────────
+const PROMO_CODES_MED = ["DZFRIEND", "DZPREVIEW", "DZTEST"];
+
+function PaywallGateMedical({ onUnlock }) {
+  const [input, setInput]   = React.useState("");
+  const [error, setError]   = React.useState("");
+  const [shake, setShake]   = React.useState(false);
+
+  function tryPromo() {
+    if (PROMO_CODES_MED.map(c => c.toLowerCase()).includes(input.trim().toLowerCase())) {
+      onUnlock(3, true);
+    } else {
+      setError("Invalid code. Try again or purchase below.");
+      setShake(true);
+      setTimeout(() => setShake(false), 500);
+    }
+  }
+
+  return (
+    <MCard style={{marginBottom:14}}>
+      <style>{`@keyframes dzShake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}`}</style>
+
+      {/* Header */}
+      <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:20}}>
+        <div style={{width:36,height:36,background:T.amb,borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+          <span style={{fontSize:18}}>🔒</span>
+        </div>
+        <div>
+          <MLbl style={{marginBottom:2}}>Unlock Your Full Report</MLbl>
+          <MMono style={{color:T.mut,fontSize:11}}>Your DZ score is above. Go deeper with a personalized action plan.</MMono>
+        </div>
+      </div>
+
+      {/* Tier cards */}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:20}}>
+
+        {/* Tier 2 — $29 */}
+        <div style={{background:T.bg,border:"2px solid "+T.amb,borderRadius:12,padding:16}}>
+          <MLbl style={{marginBottom:6}}>Recommendations</MLbl>
+          <div style={{fontFamily:T.disp,fontSize:28,color:T.txt,lineHeight:1,marginBottom:4}}>$29<span style={{fontFamily:T.mono,fontSize:13,fontWeight:400,color:T.dim}}> one-time</span></div>
+          <ul style={{margin:"10px 0 14px",padding:0,listStyle:"none"}}>
+            {["Personalized action plan","Steps ranked by impact & effort","Skills to protect vs deprioritize","AI-threat timeline for your specialty"].map(item=>(
+              <li key={item} style={{display:"flex",gap:7,alignItems:"flex-start",marginBottom:5}}>
+                <span style={{color:T.amb,fontWeight:700,flexShrink:0,marginTop:1}}>✓</span>
+                <MMono style={{color:T.mut,fontSize:11,lineHeight:1.5}}>{item}</MMono>
+              </li>
+            ))}
+          </ul>
+          {/* TODO: Replace onClick with Stripe checkout for $29 */}
+          <MBtn onClick={() => window.open("https://buy.stripe.com/00waEXbZobnl0D3bc2dQQ02","_blank")} style={{width:"100%"}}>
+            Get Recommendations →
+          </MBtn>
+        </div>
+
+        {/* Tier 3 — $34 */}
+        <div style={{background:T.bg,border:"2px solid #1a1d2e",borderRadius:12,padding:16,position:"relative"}}>
+          <div style={{position:"absolute",top:-11,left:"50%",transform:"translateX(-50%)",background:"#1a1d2e",color:"white",fontFamily:T.mono,fontSize:9,fontWeight:700,padding:"3px 10px",borderRadius:20,letterSpacing:"0.1em",whiteSpace:"nowrap"}}>BEST VALUE</div>
+          <MLbl col="#1a1d2e" style={{marginBottom:6}}>Recommendations + PDF</MLbl>
+          <div style={{fontFamily:T.disp,fontSize:28,color:T.txt,lineHeight:1,marginBottom:4}}>$34<span style={{fontFamily:T.mono,fontSize:13,fontWeight:400,color:T.dim}}> one-time</span></div>
+          <ul style={{margin:"10px 0 14px",padding:0,listStyle:"none"}}>
+            {["Everything in Recommendations","Branded PDF you can save & share","Ready for career coaches & advisors","Permanent record of your assessment"].map(item=>(
+              <li key={item} style={{display:"flex",gap:7,alignItems:"flex-start",marginBottom:5}}>
+                <span style={{color:"#1a1d2e",fontWeight:700,flexShrink:0,marginTop:1}}>✓</span>
+                <MMono style={{color:T.mut,fontSize:11,lineHeight:1.5}}>{item}</MMono>
+              </li>
+            ))}
+          </ul>
+          {/* TODO: Replace onClick with Stripe checkout for $34 */}
+          <button
+            onClick={() => window.open("https://buy.stripe.com/00wdR93sSgHFadD5RIdQQ03","_blank")}
+            style={{width:"100%",background:"#1a1d2e",color:"white",border:"none",borderRadius:8,padding:"11px 0",fontFamily:T.mono,fontSize:12,fontWeight:700,cursor:"pointer",letterSpacing:"0.06em"}}
+          >Get PDF Report →</button>
+        </div>
+      </div>
+
+      {/* Promo code */}
+      <div style={{borderTop:"1px solid "+T.bdr,paddingTop:16}}>
+        <MMono style={{color:T.dim,fontWeight:700,letterSpacing:"0.08em",display:"block",marginBottom:8,fontSize:10}}>HAVE A PROMO CODE?</MMono>
+        <div style={{display:"flex",gap:8,animation:shake?"dzShake 0.4s ease":"none"}}>
+          <input
+            value={input}
+            onChange={e=>{setInput(e.target.value);setError("");}}
+            onKeyDown={e=>{if(e.key==="Enter")tryPromo();}}
+            placeholder="Enter code"
+            style={{flex:1,background:T.bg,border:"1px solid "+(error?T.red:T.bdr),borderRadius:8,padding:"10px 14px",fontSize:13,fontFamily:T.mono,color:T.txt,outline:"none"}}
+          />
+          <button
+            onClick={tryPromo}
+            style={{background:T.surf,border:"1px solid "+T.bdr,borderRadius:8,padding:"10px 18px",fontSize:12,fontFamily:T.mono,fontWeight:700,color:T.mut,cursor:"pointer",letterSpacing:"0.06em"}}
+          >APPLY</button>
+        </div>
+        {error && <MMono style={{color:T.red,display:"block",marginTop:6,fontWeight:600,fontSize:11}}>{error}</MMono>}
+      </div>
+    </MCard>
+  );
+}
+
 export default function DefensibleZoneMedical(){
   const [step,        setStep]        = useState(0);
   const [degree,      setDegree]      = useState("");
@@ -735,6 +832,57 @@ export default function DefensibleZoneMedical(){
   const [showDO,      setShowDO]      = useState(false);
   const [showCite,    setShowCite]    = useState(false);
   const [showRecs,    setShowRecs]    = useState(true);
+  const [tier,        setTier]        = useState(0); // 0=free, 2=recs, 3=pdf
+  const [promoUsed,   setPromoUsed]   = useState(false);
+
+  function handleUnlock(t, isPromo) { setTier(t); if (isPromo) setPromoUsed(true); }
+
+  // ── Payment verification ────────────────────────────────────────────────
+  useEffect(() => {
+    function decodeJwt(token) {
+      try {
+        const payload = token.split(".")[1];
+        const padded = payload + "===".slice((payload.length + 3) % 4);
+        return JSON.parse(atob(padded));
+      } catch (e) { return null; }
+    }
+
+    function applyToken(token) {
+      const decoded = decodeJwt(token);
+      if (!decoded) return false;
+      if (decoded.exp && Date.now() / 1000 > decoded.exp) return false;
+      if (decoded.product && decoded.product !== "doctor") return false;
+      if (decoded.tier === 2 || decoded.tier === 3) {
+        setTier(decoded.tier);
+        return true;
+      }
+      return false;
+    }
+
+    // 1. Try existing token from localStorage
+    const stored = localStorage.getItem("dz_token_doctor");
+    if (stored && applyToken(stored)) return;
+
+    // 2. Fresh redirect from Stripe — verify session_id with backend
+    const params = new URLSearchParams(window.location.search);
+    const sessionId = params.get("session_id");
+    if (sessionId) {
+      window.history.replaceState({}, "", window.location.pathname);
+      fetch("/api/verify-payment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ session_id: sessionId, product: "doctor" }),
+      })
+        .then(r => r.json())
+        .then(data => {
+          if (data.token) {
+            localStorage.setItem("dz_token_doctor", data.token);
+            applyToken(data.token);
+          }
+        })
+        .catch(err => console.error("Payment verification failed:", err));
+    }
+  }, []);
 
   function loadSkills(spec){
     const data = SD[spec];
@@ -760,7 +908,7 @@ export default function DefensibleZoneMedical(){
 
   function reset(){
     setStep(0); setDegree(""); setLevel(""); setSpecialty(""); setSkills([]);
-    setAffinities({}); setInvestments({}); setResults(null);
+    setAffinities({}); setInvestments({}); setResults(null); setTier(0); setPromoUsed(false);
   }
 
   // ── Step 0 ──────────────────────────────────────────────────────
@@ -999,29 +1147,57 @@ export default function DefensibleZoneMedical(){
           </MCard>
 
 
-          <MCard style={{marginBottom:14}}>
-            <button onClick={()=>setShowRecs(v=>!v)} style={{width:"100%",display:"flex",justifyContent:"space-between",alignItems:"center",background:"none",border:"none",cursor:"pointer",padding:0}}>
-              <MLbl style={{marginBottom:0}}>What To Do &mdash; Strengthening Your Defensible Zone&#8482;</MLbl>
-              <MMono style={{color:T.dim}}>{showRecs?"▲ Collapse":"▼ Expand"}</MMono>
-            </button>
+          {tier < 2 ? (
+            <PaywallGateMedical onUnlock={handleUnlock} />
+          ) : (
+            <MCard style={{marginBottom:14}}>
+              <style>{`@media print{body *{visibility:hidden}#dz-med-print,#dz-med-print *{visibility:visible}#dz-med-print{position:absolute;left:0;top:0;width:100%}.no-print{display:none!important}}`}</style>
+              <div id="dz-med-print">
+              {tier >= 3 && !promoUsed && (
+                <div style={{display:"flex",justifyContent:"flex-end",marginBottom:12}}>
+                  <button
+                    onClick={()=>window.open("https://buy.stripe.com/00wdR93sSgHFadD5RIdQQ03","_blank")}
+                    style={{background:T.amb,color:"white",border:"none",borderRadius:8,padding:"8px 18px",fontSize:12,fontFamily:T.mono,fontWeight:700,cursor:"pointer",letterSpacing:"0.06em",display:"flex",alignItems:"center",gap:6}}
+                  >⬇ Download PDF Report</button>
+                </div>
+              )}
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+                <button onClick={()=>setShowRecs(v=>!v)} className="no-print" style={{background:"none",border:"none",cursor:"pointer",padding:0,flex:1,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <MLbl style={{marginBottom:0}}>What To Do &mdash; Strengthening Your Defensible Zone&#8482;</MLbl>
+                  <MMono style={{color:T.dim}}>{showRecs?"▲ Collapse":"▼ Expand"}</MMono>
+                </button>
+                {showRecs && (
+                  <button
+                    className="no-print"
+                    onClick={()=>window.print()}
+                    style={{background:T.bg,border:"1px solid "+T.bdr,borderRadius:8,padding:"7px 14px",fontSize:12,fontFamily:T.mono,fontWeight:700,color:T.dim,cursor:"pointer",letterSpacing:"0.06em",marginLeft:12,flexShrink:0,display:"flex",alignItems:"center",gap:5}}
+                  >⎙ Save as PDF</button>
+                )}
+              </div>
             {showRecs&&(
-              <div style={{marginTop:18,display:"flex",flexDirection:"column",gap:20}}>
+              <div style={{marginTop:16,display:"flex",flexDirection:"column",gap:0}}>
                 {buildRecs(results,specialty,level,degree).map((rec,ri)=>(
-                  <div key={ri} style={{borderTop:"3px solid "+rec.col+"33",paddingTop:16}}>
-                    <div style={{display:"flex",alignItems:"flex-start",gap:10,marginBottom:rec.skills.length>0?8:12}}>
-                      <span style={{fontSize:18,color:rec.col,flexShrink:0,lineHeight:1.3}}>{rec.icon}</span>
-                      <span style={{fontSize:15,fontWeight:700,color:T.txt,lineHeight:1.3}}>{rec.title}</span>
+                  <div key={ri} style={{
+                    borderLeft:"4px solid "+rec.col,
+                    paddingLeft:20, paddingTop:16, paddingBottom:16,
+                    marginBottom:4,
+                    borderRadius:"0 8px 8px 0",
+                    background: ri%2===0 ? "transparent" : T.bg
+                  }}>
+                    <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:rec.skills.length>0?6:10}}>
+                      <span style={{display:"inline-block",width:8,height:8,borderRadius:2,background:rec.col,flexShrink:0}} />
+                      <span style={{fontSize:16,fontWeight:700,color:T.txt,lineHeight:1.3}}>{rec.title}</span>
                     </div>
                     {rec.skills.length>0&&(
-                      <div style={{fontFamily:T.mono,fontSize:11,color:rec.col,marginBottom:12,fontWeight:700,paddingLeft:28}}>
+                      <div style={{fontFamily:T.mono,fontSize:11,color:rec.col,marginBottom:12,fontWeight:700,paddingLeft:18}}>
                         {rec.skills.join(" · ")}
                       </div>
                     )}
-                    <div style={{display:"flex",flexDirection:"column",gap:8,paddingLeft:28}}>
+                    <div style={{display:"flex",flexDirection:"column",gap:8,paddingLeft:18}}>
                       {rec.actions.map((action,ai)=>(
                         <div key={ai} style={{display:"flex",gap:10,alignItems:"flex-start"}}>
-                          <span style={{color:rec.col,flexShrink:0,fontWeight:700,marginTop:1}}>→</span>
-                          <span style={{color:T.mut,fontSize:14,lineHeight:1.7}}>{action}</span>
+                          <span style={{color:rec.col,flexShrink:0,fontWeight:700,marginTop:2,fontSize:13,lineHeight:1}}>→</span>
+                          <span style={{color:T.mut,fontSize:15,lineHeight:1.7}}>{action}</span>
                         </div>
                       ))}
                     </div>
@@ -1029,8 +1205,9 @@ export default function DefensibleZoneMedical(){
                 ))}
               </div>
             )}
+            </div> {/* end dz-med-print */}
           </MCard>
-
+          )} {/* end tier >= 2 conditional */}
 
           {degree==="DO"&&(
             <MCard style={{marginBottom:14,borderLeft:"4px solid "+T.grn}}>
@@ -1069,13 +1246,16 @@ export default function DefensibleZoneMedical(){
 
           <MGhost onClick={reset} style={{width:"100%"}}>Start New Assessment</MGhost>
 
-          <div style={{marginTop:32,paddingTop:20,borderTop:"1px solid "+T.bdr,textAlign:"center"}}>
-            <MMono style={{color:T.dim,display:"block",marginBottom:6,fontSize:11}}>
+          <div style={{background:"#fef9ec",border:"1px solid #f0c060",borderRadius:12,padding:"16px 20px",marginBottom:16,textAlign:"center"}}>
+            <div style={{fontFamily:T.mono,fontSize:12,color:"#92400e",fontWeight:700,marginBottom:4,letterSpacing:"0.06em"}}>IMPORTANT — PLEASE READ</div>
+            <div style={{fontFamily:T.mono,fontSize:12,color:"#78350f",lineHeight:1.7}}>
+              This tool is for professional reflection and educational purposes only. It does not constitute medical career advice or any professional assessment. Scores are estimates grounded in ACGME Milestones 2.0, CanMEDS 2015, and peer-reviewed clinical AI literature — not a definitive evaluation of your clinical skills or employability.
+            </div>
+          </div>
+
+          <div style={{paddingTop:14,textAlign:"center"}}>
+            <MMono style={{color:T.dim,display:"block",marginBottom:4,fontSize:11}}>
               DEFENSIBLE ZONE&#8482; is a trademark of its creator. All rights reserved.
-            </MMono>
-            <MMono style={{color:T.dim,display:"block",marginBottom:6,fontSize:11}}>
-              This tool is for professional reflection and educational purposes only.
-              It does not constitute medical career advice or any professional assessment.
             </MMono>
             <MMono style={{color:T.dim,display:"block",fontSize:11}}>
               &copy; 2026 &nbsp;&middot;&nbsp; Grounded in ACGME Milestones 2.0, CanMEDS 2015, and peer-reviewed clinical AI literature.
