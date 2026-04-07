@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import Landing from "./Landing.jsx";
 import Engineer from "./Engineer.jsx";
 import Doctor from "./Doctor.jsx";
+import About from "./About.jsx";
 
 export default function App() {
   var [path, setPath] = useState(window.location.pathname);
@@ -14,5 +15,6 @@ export default function App() {
 
   if (path === "/doctor" || path === "/doctor/") return <Doctor />;
   if (path === "/engineer" || path === "/engineer/") return <Engineer />;
+  if (path === "/about" || path === "/about/") return <About />;
   return <Landing />;
 }
