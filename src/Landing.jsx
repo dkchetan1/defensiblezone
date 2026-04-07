@@ -1,3 +1,4 @@
+import Navbar from "./Navbar.jsx";
 import { useEffect } from "react";
 
 var LS = {
@@ -53,6 +54,7 @@ export default function Landing() {
 
   return (
     <div style={{ background: LS.bg, minHeight: "100vh", fontFamily: LS.font, color: LS.text }}>
+      <Navbar />
 
       {/* ── HERO ─────────────────────────────────────────────── */}
       <div style={{ textAlign: "center", padding: "80px 24px 60px", maxWidth: 760, margin: "0 auto" }}>
