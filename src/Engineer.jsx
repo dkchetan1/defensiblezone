@@ -1162,9 +1162,18 @@ export default function Engineer() {
             placeholder="your@email.com"
             value={emailInput}
             onChange={function(e){setEmailInput(e.target.value);}}
-            style={{width:"100%",boxSizing:"border-box",padding:"14px 16px",fontSize:15,border:"1px solid "+S.border,borderRadius:10,fontFamily:S.font,color:S.text,background:S.bg,marginBottom:12,outline:"none"}}
+            style={{width:"100%",boxSizing:"border-box",padding:"14px 16px",fontSize:15,border:"1px solid "+(emailInput && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailInput) ? S.red : S.border),borderRadius:10,fontFamily:S.font,color:S.text,background:S.bg,marginBottom:4,outline:"none"}}
           />
-          <PrimaryBtn onClick={handleEmailAndContinue} disabled={emailSubmitting} style={{width:"100%",marginBottom:12}}>
+          {emailInput && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailInput) && (
+            <p style={{color:S.red,fontSize:12,fontFamily:S.mono,margin:"0 0 10px",textAlign:"left"}}>Please enter a valid email address.</p>
+          )}
+          {!emailInput && (
+            <p style={{color:S.muted,fontSize:12,fontFamily:S.mono,margin:"0 0 10px",textAlign:"left"}}>&nbsp;</p>
+          )}
+          {emailInput && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailInput) && (
+            <p style={{margin:"0 0 10px"}}>&nbsp;</p>
+          )}
+          <PrimaryBtn onClick={handleEmailAndContinue} disabled={emailSubmitting || !emailInput || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailInput)} style={{width:"100%",marginBottom:12,opacity:(!emailInput || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailInput)) ? 0.4 : 1}}>
             {emailSubmitting ? "SENDING…" : "GET MY RESULTS →"}
           </PrimaryBtn>
         </div>
