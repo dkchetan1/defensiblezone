@@ -1167,9 +1167,6 @@ export default function Engineer() {
           <PrimaryBtn onClick={handleEmailAndContinue} disabled={emailSubmitting} style={{width:"100%",marginBottom:12}}>
             {emailSubmitting ? "SENDING…" : "GET MY RESULTS →"}
           </PrimaryBtn>
-          <button onClick={runAnalysis} style={{background:"none",border:"none",color:S.muted,fontSize:13,fontFamily:S.mono,cursor:"pointer",letterSpacing:"0.06em",textDecoration:"underline"}}>
-            Skip, show my results
-          </button>
         </div>
       </div>
     );
