@@ -1106,9 +1106,6 @@ export default function DefensibleZoneMedical(){
           <MBtn onClick={handleEmailAndContinue} disabled={emailSubmitting} style={{width:"100%",marginBottom:12}}>
             {emailSubmitting ? "SENDING…" : "GET MY RESULTS →"}
           </MBtn>
-          <button onClick={runAnalysis} style={{background:"none",border:"none",color:T.dim,fontSize:13,fontFamily:T.mono,cursor:"pointer",letterSpacing:"0.06em",textDecoration:"underline"}}>
-            Skip, show my results
-          </button>
         </div>
       </div>
     );
