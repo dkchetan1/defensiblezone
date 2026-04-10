@@ -498,6 +498,8 @@ export default function Engineer() {
   var [loading, setLoading]               = useState(false);
   var [loadingMsg, setLoadingMsg]         = useState("");
   var [error, setError]                   = useState(null);
+  var [emailInput, setEmailInput]         = useState("");
+  var [emailSubmitting, setEmailSubmitting] = useState(false);
   var [showRecs, setShowRecs]             = useState(true);
   var [showAlgo, setShowAlgo]             = useState(false);
   var [showSources, setShowSources]       = useState(false);
@@ -697,6 +699,26 @@ export default function Engineer() {
       } else { setError("Something went wrong — please try again in a moment."); }
     }
     finally { setLoading(false); }
+  }
+
+  // ── EMAIL CAPTURE ─────────────────────────────────────────────────────
+  async function submitEmailToKit(email) {
+    try {
+      await fetch("https://api.convertkit.com/v3/forms/9309751/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ api_key: "OtIv3L3SPCCcxped1fYkLw", email: email })
+      });
+    } catch(e) { /* silent fail — never block the user */ }
+  }
+
+  async function handleEmailAndContinue() {
+    setEmailSubmitting(true);
+    if (emailInput && emailInput.indexOf("@") > -1) {
+      await submitEmailToKit(emailInput);
+    }
+    setEmailSubmitting(false);
+    runAnalysis();
   }
 
   // ── API CALL 2 ────────────────────────────────────────────────────────
@@ -1119,9 +1141,35 @@ export default function Engineer() {
           </div>
           <div style={{display:"flex",gap:12,marginBottom:12}}>
             <button onClick={function(){setStep(1);}} style={{flex:1,background:"transparent",border:"1px solid "+S.border,color:S.muted,borderRadius:12,padding:"15px 0",fontSize:14,fontFamily:S.mono,cursor:"pointer",letterSpacing:"0.06em",fontWeight:600}}>← BACK</button>
-            <PrimaryBtn onClick={runAnalysis} style={{flex:3}}>ANALYZE MY DEFENSIBLE ZONE™ →</PrimaryBtn>
+            <PrimaryBtn onClick={function(){setStep(2.5);}} style={{flex:3}}>ANALYZE MY DEFENSIBLE ZONE™ →</PrimaryBtn>
           </div>
           {error && <p style={{color:S.red,fontSize:14,marginTop:10,textAlign:"center",fontFamily:S.mono,fontWeight:600}}>{error}</p>}
+        </div>
+      </div>
+    );
+  }
+
+  // ── STEP 2.5: EMAIL CAPTURE ───────────────────────────────────────────
+  if (step === 2.5) {
+    return (
+      <div style={{background:S.bg,minHeight:"100vh",fontFamily:S.font,display:"flex",alignItems:"center",justifyContent:"center",padding:"24px"}}>
+        <div style={{maxWidth:480,width:"100%",background:S.card,border:"1px solid "+S.border,borderRadius:16,padding:"40px 36px",textAlign:"center"}}>
+          <div style={{fontFamily:S.mono,fontSize:11,color:S.gold,letterSpacing:"0.14em",fontWeight:600,marginBottom:16}}>ONE LAST THING</div>
+          <h2 style={{fontFamily:S.serif,fontSize:26,color:S.text,margin:"0 0 12px",lineHeight:1.2}}>Want to save your results?</h2>
+          <p style={{color:S.muted,fontSize:15,lineHeight:1.7,margin:"0 0 28px"}}>Drop your email and we'll send you a copy. You'll also get occasional updates when the AI threat landscape shifts for your role. No spam.</p>
+          <input
+            type="email"
+            placeholder="your@email.com"
+            value={emailInput}
+            onChange={function(e){setEmailInput(e.target.value);}}
+            style={{width:"100%",boxSizing:"border-box",padding:"14px 16px",fontSize:15,border:"1px solid "+S.border,borderRadius:10,fontFamily:S.font,color:S.text,background:S.bg,marginBottom:12,outline:"none"}}
+          />
+          <PrimaryBtn onClick={handleEmailAndContinue} disabled={emailSubmitting} style={{width:"100%",marginBottom:12}}>
+            {emailSubmitting ? "SENDING…" : "GET MY RESULTS →"}
+          </PrimaryBtn>
+          <button onClick={runAnalysis} style={{background:"none",border:"none",color:S.muted,fontSize:13,fontFamily:S.mono,cursor:"pointer",letterSpacing:"0.06em",textDecoration:"underline"}}>
+            Skip, show my results
+          </button>
         </div>
       </div>
     );
