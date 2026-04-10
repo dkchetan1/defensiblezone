@@ -834,6 +834,27 @@ export default function DefensibleZoneMedical(){
   const [showRecs,    setShowRecs]    = useState(true);
   const [tier,        setTier]        = useState(0); // 0=free, 2=recs, 3=pdf
   const [promoUsed,   setPromoUsed]   = useState(false);
+  const [emailInput,  setEmailInput]  = useState("");
+  const [emailSubmitting, setEmailSubmitting] = useState(false);
+
+  async function submitEmailToKit(email) {
+    try {
+      await fetch("https://api.convertkit.com/v3/forms/9309751/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ api_key: "OtIv3L3SPCCcxped1fYkLw", email: email })
+      });
+    } catch(e) { /* silent fail */ }
+  }
+
+  async function handleEmailAndContinue() {
+    setEmailSubmitting(true);
+    if (emailInput && emailInput.indexOf("@") > -1) {
+      await submitEmailToKit(emailInput);
+    }
+    setEmailSubmitting(false);
+    runAnalysis();
+  }
 
   function handleUnlock(t, isPromo) { setTier(t); if (isPromo) setPromoUsed(true); }
 
@@ -1061,7 +1082,33 @@ export default function DefensibleZoneMedical(){
               );
             })}
           </div>
-          <MBtn onClick={runAnalysis} disabled={skills.length===0} style={{width:"100%",marginTop:20}}>See My Defensible Zone&#8482;</MBtn>
+          <MBtn onClick={()=>setStep(2.5)} disabled={skills.length===0} style={{width:"100%",marginTop:20}}>See My Defensible Zone&#8482;</MBtn>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Step 2.5: EMAIL CAPTURE ─────────────────────────────────────────────
+  if(step===2.5){
+    return (
+      <div style={{background:T.bg,minHeight:"100vh",fontFamily:T.sans,display:"flex",alignItems:"center",justifyContent:"center",padding:"24px"}}>
+        <div style={{maxWidth:480,width:"100%",background:T.surf,border:"1px solid "+T.bdr,borderRadius:16,padding:"40px 36px",textAlign:"center"}}>
+          <MMono style={{color:T.amb,fontSize:11,letterSpacing:"0.14em",fontWeight:600,display:"block",marginBottom:16}}>ONE LAST THING</MMono>
+          <h2 style={{fontFamily:T.serif,fontSize:26,color:T.txt,margin:"0 0 12px",lineHeight:1.2}}>Want to save your results?</h2>
+          <p style={{color:T.mut,fontSize:15,lineHeight:1.7,margin:"0 0 28px"}}>Drop your email and we'll send you a copy. You'll also get occasional updates when the AI threat landscape shifts for your specialty. No spam.</p>
+          <input
+            type="email"
+            placeholder="your@email.com"
+            value={emailInput}
+            onChange={e=>setEmailInput(e.target.value)}
+            style={{width:"100%",boxSizing:"border-box",padding:"14px 16px",fontSize:15,border:"1px solid "+T.bdr,borderRadius:10,fontFamily:T.sans,color:T.txt,background:T.bg,marginBottom:12,outline:"none"}}
+          />
+          <MBtn onClick={handleEmailAndContinue} disabled={emailSubmitting} style={{width:"100%",marginBottom:12}}>
+            {emailSubmitting ? "SENDING…" : "GET MY RESULTS →"}
+          </MBtn>
+          <button onClick={runAnalysis} style={{background:"none",border:"none",color:T.dim,fontSize:13,fontFamily:T.mono,cursor:"pointer",letterSpacing:"0.06em",textDecoration:"underline"}}>
+            Skip, show my results
+          </button>
         </div>
       </div>
     );
