@@ -380,7 +380,7 @@ export default function Designer() {
               </span>
             </div>
             <p style={{ fontSize: 16, fontStyle: "italic", color: "#3d4a6b", lineHeight: 1.6, marginBottom: 6, marginTop: 0 }}>
-              When your design work falls short of your own standard — not a client&apos;s, not a manager&apos;s — how does that sit with you?
+              When your work falls short of your own standard — a research study that felt rushed, a product that felt compromised — how does that sit with you?
             </p>
             <p style={{ fontSize: 13, color: "#7a88a8", lineHeight: 1.5, marginBottom: 20, marginTop: 0 }}>
               This tells us whether you genuinely care about quality in your work, independent of whether anyone else notices.
@@ -443,7 +443,7 @@ export default function Designer() {
               </span>
             </div>
             <p style={{ fontSize: 16, fontStyle: "italic", color: "#3d4a6b", lineHeight: 1.6, marginBottom: 6, marginTop: 0 }}>
-              Outside of work, with no deadlines and no one asking, how often does your mind drift toward design problems?
+              Outside of work, with no deadlines and no one asking, how often does your mind drift toward user problems — why people behave the way they do, what frustrates them, how things could work better?
             </p>
             <p style={{ fontSize: 13, color: "#7a88a8", lineHeight: 1.5, marginBottom: 20, marginTop: 0 }}>
               This tells us whether design is something you&apos;re naturally drawn to, or something you do primarily because it pays well.
@@ -580,18 +580,7 @@ export default function Designer() {
                   }}
                 >
                   <span style={{ fontFamily: S.mono, fontSize: 11, color: "#7a88a8" }}>AFFINITY SCORE</span>
-                  <span style={{ fontSize: 20, fontWeight: 700, color: affinityColor }}>{affinityScore}</span>
-                </div>
-                <div style={{ background: "#f0f0f0", borderRadius: 3, height: 5, width: "100%", marginTop: 6 }}>
-                  <div
-                    style={{
-                      width: (affinityScore / 10) * 100 + "%",
-                      background: affinityColor,
-                      borderRadius: 3,
-                      height: 5,
-                      transition: "width 0.3s, background 0.3s",
-                    }}
-                  />
+                  <span style={{ fontSize: 22, fontWeight: 700, color: affinityColor }}>{affinityScore}</span>
                 </div>
               </div>
             );
