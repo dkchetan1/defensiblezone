@@ -78,6 +78,8 @@ export default function Designer() {
   var [loading, setLoading] = useState(false);
   var [loadingMsg, setLoadingMsg] = useState("");
   var [error, setError] = useState(null);
+  var [conscience, setConscience] = useState(5);
+  var [pull, setPull] = useState(5);
 
   useEffect(function () {
     var link = document.createElement("link");
@@ -90,6 +92,13 @@ export default function Designer() {
       document.body.style.background = "";
     };
   }, []);
+
+  function snapToStop(val) {
+    var stops = [0, 3, 5, 7, 10];
+    return stops.reduce(function (prev, curr) {
+      return Math.abs(curr - val) < Math.abs(prev - val) ? curr : prev;
+    });
+  }
 
   async function fetchSkills() {
     setLoading(true);
@@ -232,21 +241,255 @@ export default function Designer() {
   }
 
   if (step === 3) {
+    var affinityStops = [0, 3, 5, 7, 10];
+    var conscienceLabelTexts = [
+      "Relieved to move on",
+      "Mildly bothered",
+      "Somewhat unsettled",
+      "Want to fix it",
+      "Can't let it go",
+    ];
+    var pullLabelTexts = ["Almost never", "Occasionally", "Sometimes", "Regularly", "Constantly"];
+    return (
+      <div style={{ background: "#f8f9fc", minHeight: "100vh", padding: "32px 20px", fontFamily: S.font }}>
+        <style
+          dangerouslySetInnerHTML={{
+            __html:
+              "input[type=range].dz-slider { -webkit-appearance: none; appearance: none; width: 100%; height: 6px; border-radius: 3px; outline: none; cursor: pointer; border: none; } input[type=range].dz-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 24px; height: 24px; border-radius: 50%; border: 3px solid white; cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,0.18); } input[type=range].conscience-sl::-webkit-slider-thumb { background: #7c3aed; } input[type=range].pull-sl::-webkit-slider-thumb { background: #0891b2; }",
+          }}
+        />
+        <div style={{ maxWidth: 680, margin: "0 auto" }}>
+          <button
+            type="button"
+            onClick={function () {
+              setStep(2);
+            }}
+            style={{
+              fontFamily: S.mono,
+              fontSize: 12,
+              color: "#7a88a8",
+              background: "none",
+              border: "none",
+              padding: 0,
+              cursor: "pointer",
+              marginBottom: 8,
+              display: "block",
+              textAlign: "left",
+            }}
+          >
+            ← back
+          </button>
+          <div style={{ fontFamily: S.mono, fontSize: 11, color: "#d97706", letterSpacing: "0.1em" }}>
+            DEFENSIBLE ZONE™ · DESIGNER EDITION
+          </div>
+          <div style={{ marginTop: 16, marginBottom: 32 }}>
+            {[0, 1, 2, 3].map(function (i) {
+              return (
+                <span
+                  key={i}
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: "50%",
+                    display: "inline-block",
+                    marginRight: 6,
+                    background: i === 2 ? "#d97706" : "#d0d7e8",
+                  }}
+                />
+              );
+            })}
+          </div>
+          <h1
+            style={{
+              fontSize: 34,
+              fontFamily: S.serif,
+              color: "#0d1117",
+              marginBottom: 12,
+              marginTop: 0,
+              fontWeight: 600,
+              lineHeight: 1.15,
+            }}
+          >
+            How does this work feel?
+          </h1>
+          <p style={{ fontSize: 16, color: "#6b7280", lineHeight: 1.7, marginBottom: 32, marginTop: 0 }}>
+            These questions aren&apos;t about how skilled you are. They&apos;re about whether this type of work genuinely fits you. Be honest — there are no wrong answers.
+          </p>
+          <div style={{ fontFamily: S.mono, fontSize: 11, textTransform: "uppercase", color: "#7a88a8", marginBottom: 6 }}>
+            PART 1 — ABOUT YOU IN GENERAL
+          </div>
+          <div style={{ fontSize: 14, color: "#7a88a8", marginBottom: 24 }}>
+            Answer these once. They apply across all your skills.
+          </div>
+          <div
+            style={{
+              background: "white",
+              border: "1px solid #d0d7e8",
+              borderRadius: 14,
+              padding: "24px 28px",
+              marginBottom: 16,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+              <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#7c3aed", flexShrink: 0 }} />
+              <span
+                style={{
+                  fontFamily: S.mono,
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: "#7c3aed",
+                  letterSpacing: "0.08em",
+                }}
+              >
+                CRAFT CONSCIENCE
+              </span>
+            </div>
+            <p style={{ fontSize: 16, fontStyle: "italic", color: "#3d4a6b", lineHeight: 1.6, marginBottom: 6, marginTop: 0 }}>
+              When your design work falls short of your own standard — not a client&apos;s, not a manager&apos;s — how does that sit with you?
+            </p>
+            <p style={{ fontSize: 13, color: "#7a88a8", lineHeight: 1.5, marginBottom: 20, marginTop: 0 }}>
+              This tells us whether you genuinely care about quality in your work, independent of whether anyone else notices.
+            </p>
+            <input
+              className="dz-slider conscience-sl"
+              type="range"
+              min={0}
+              max={10}
+              step={1}
+              value={conscience}
+              onChange={function (e) {
+                setConscience(snapToStop(Number(e.target.value)));
+              }}
+              style={{
+                background: "linear-gradient(to right, #7c3aed " + (conscience / 10) * 100 + "%, #d0d7e8 " + (conscience / 10) * 100 + "%)",
+              }}
+            />
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10 }}>
+              {affinityStops.map(function (stopValue, idx) {
+                return (
+                  <div
+                    key={stopValue}
+                    style={{
+                      width: "20%",
+                      textAlign: "center",
+                      fontSize: 11,
+                      color: "#7c3aed",
+                      opacity: Math.abs(conscience - stopValue) <= 1 ? 1 : 0.25,
+                      fontWeight: Math.abs(conscience - stopValue) <= 1 ? 700 : 400,
+                    }}
+                  >
+                    {conscienceLabelTexts[idx]}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+          <div
+            style={{
+              background: "white",
+              border: "1px solid #d0d7e8",
+              borderRadius: 14,
+              padding: "24px 28px",
+              marginBottom: 16,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+              <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#0891b2", flexShrink: 0 }} />
+              <span
+                style={{
+                  fontFamily: S.mono,
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: "#0891b2",
+                  letterSpacing: "0.08em",
+                }}
+              >
+                INTRINSIC PULL
+              </span>
+            </div>
+            <p style={{ fontSize: 16, fontStyle: "italic", color: "#3d4a6b", lineHeight: 1.6, marginBottom: 6, marginTop: 0 }}>
+              Outside of work, with no deadlines and no one asking, how often does your mind drift toward design problems?
+            </p>
+            <p style={{ fontSize: 13, color: "#7a88a8", lineHeight: 1.5, marginBottom: 20, marginTop: 0 }}>
+              This tells us whether design is something you&apos;re naturally drawn to, or something you do primarily because it pays well.
+            </p>
+            <input
+              className="dz-slider pull-sl"
+              type="range"
+              min={0}
+              max={10}
+              step={1}
+              value={pull}
+              onChange={function (e) {
+                setPull(snapToStop(Number(e.target.value)));
+              }}
+              style={{
+                background: "linear-gradient(to right, #0891b2 " + (pull / 10) * 100 + "%, #d0d7e8 " + (pull / 10) * 100 + "%)",
+              }}
+            />
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10 }}>
+              {affinityStops.map(function (stopValue, idx) {
+                return (
+                  <div
+                    key={stopValue}
+                    style={{
+                      width: "20%",
+                      textAlign: "center",
+                      fontSize: 11,
+                      color: "#0891b2",
+                      opacity: Math.abs(pull - stopValue) <= 1 ? 1 : 0.25,
+                      fontWeight: Math.abs(pull - stopValue) <= 1 ? 700 : 400,
+                    }}
+                  >
+                    {pullLabelTexts[idx]}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={function () {
+              setStep(4);
+            }}
+            style={{
+              background: "#d97706",
+              color: "white",
+              border: "none",
+              borderRadius: 10,
+              padding: "16px 32px",
+              fontSize: 16,
+              cursor: "pointer",
+              marginTop: 32,
+              display: "block",
+              marginLeft: "auto",
+              marginRight: "auto",
+              fontFamily: S.font,
+            }}
+          >
+            Continue →
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (step === 4) {
     return (
       <div
         style={{
           background: S.bg,
           minHeight: "100vh",
-          fontFamily: S.font,
+          fontFamily: S.mono,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           padding: "32px 20px",
+          color: S.dim,
+          fontSize: 14,
         }}
       >
-        <div style={{ fontFamily: S.mono, fontSize: 14, color: S.dim, textAlign: "center" }}>
-          Step 3 — affinity sliders coming next.
-        </div>
+        Step 4 coming next.
       </div>
     );
   }
