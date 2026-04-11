@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 // ── DESIGNER TYPES ─────────────────────────────────────────────────────
 var DESIGNER_TYPES = [
@@ -80,6 +80,9 @@ export default function Designer() {
   var [error, setError] = useState(null);
   var [conscience, setConscience] = useState(5);
   var [pull, setPull] = useState(5);
+  var [fluencies, setFluencies] = useState({});
+  var [adjustedSkills, setAdjustedSkills] = useState(new Set());
+  var adjustedSkillsRef = useRef(new Set());
 
   useEffect(function () {
     var link = document.createElement("link");
@@ -99,6 +102,38 @@ export default function Designer() {
       return Math.abs(curr - val) < Math.abs(prev - val) ? curr : prev;
     });
   }
+
+  function computeAffinity(c, p, f) {
+    return Math.round((c * 0.35 + p * 0.35 + f * 0.3) * 10) / 10;
+  }
+
+  function getSeed(c, p) {
+    var stops = [0, 3, 5, 7, 10];
+    var raw = Math.round((c * 0.5 + p * 0.5) * 10) / 10;
+    return stops.reduce(function (prev, curr) {
+      return Math.abs(curr - raw) < Math.abs(prev - raw) ? curr : prev;
+    });
+  }
+
+  function markAdjusted(id) {
+    adjustedSkillsRef.current.add(id);
+    setAdjustedSkills(new Set(adjustedSkillsRef.current));
+  }
+
+  useEffect(
+    function () {
+      setFluencies(function (prev) {
+        var next = Object.assign({}, prev);
+        skills.forEach(function (skill) {
+          if (!adjustedSkillsRef.current.has(skill.id)) {
+            next[skill.id] = getSeed(conscience, pull);
+          }
+        });
+        return next;
+      });
+    },
+    [conscience, pull, skills]
+  );
 
   async function fetchSkills() {
     setLoading(true);
@@ -255,7 +290,7 @@ export default function Designer() {
         <style
           dangerouslySetInnerHTML={{
             __html:
-              "input[type=range].dz-slider { -webkit-appearance: none; appearance: none; width: 100%; height: 6px; border-radius: 3px; outline: none; cursor: pointer; border: none; } input[type=range].dz-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 24px; height: 24px; border-radius: 50%; border: 3px solid white; cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,0.18); } input[type=range].conscience-sl::-webkit-slider-thumb { background: #7c3aed; } input[type=range].pull-sl::-webkit-slider-thumb { background: #0891b2; }",
+              "input[type=range].dz-slider { -webkit-appearance: none; appearance: none; width: 100%; height: 6px; border-radius: 3px; outline: none; cursor: pointer; border: none; } input[type=range].dz-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 24px; height: 24px; border-radius: 50%; border: 3px solid white; cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,0.18); } input[type=range].conscience-sl::-webkit-slider-thumb { background: #7c3aed; } input[type=range].pull-sl::-webkit-slider-thumb { background: #0891b2; } input[type=range].fluency-sl::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%; background: #d97706; border: 2px solid white; cursor: pointer; }",
           }}
         />
         <div style={{ maxWidth: 680, margin: "0 auto" }}>
@@ -447,6 +482,120 @@ export default function Designer() {
               })}
             </div>
           </div>
+          <hr style={{ border: "none", borderTop: "1px solid #d0d7e8", margin: "32px 0" }} />
+          <div style={{ fontFamily: S.mono, fontSize: 11, textTransform: "uppercase", color: "#7a88a8", marginBottom: 6 }}>
+            PART 2 — SKILL BY SKILL
+          </div>
+          <div style={{ fontSize: 14, color: "#7a88a8", lineHeight: 1.6, marginBottom: 8 }}>
+            For each skill — does doing this work feel natural and easy, or does it take real effort?
+          </div>
+          <div style={{ fontSize: 13, color: "#9ca3af", marginBottom: 24 }}>
+            Sliders are pre-set based on your answers above. Only move one if a skill feels noticeably different from your usual pattern.
+          </div>
+          {skills.map(function (skill) {
+            var fluencyVal =
+              fluencies[skill.id] !== undefined ? fluencies[skill.id] : getSeed(conscience, pull);
+            var affinityScore = computeAffinity(conscience, pull, fluencyVal);
+            var affinityColor =
+              affinityScore >= 7 ? "#059669" : affinityScore >= 5 ? "#d97706" : "#dc2626";
+            return (
+              <div
+                key={skill.id}
+                style={{
+                  background: "white",
+                  border: "1px solid #d0d7e8",
+                  borderRadius: 12,
+                  padding: "18px 22px",
+                  marginBottom: 10,
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "flex-start",
+                    marginBottom: 12,
+                  }}
+                >
+                  <div style={{ fontSize: 16, fontWeight: 600, color: "#0d1117", flex: 1, paddingRight: 12 }}>
+                    {skill.text}
+                  </div>
+                  <span
+                    style={{
+                      fontSize: 10,
+                      padding: "2px 8px",
+                      borderRadius: 10,
+                      fontFamily: S.mono,
+                      flexShrink: 0,
+                      background: adjustedSkills.has(skill.id) ? "rgba(217,119,6,0.12)" : "rgba(5,150,105,0.10)",
+                      color: adjustedSkills.has(skill.id) ? "#d97706" : "#059669",
+                    }}
+                  >
+                    {adjustedSkills.has(skill.id) ? "adjusted" : "pre-seeded"}
+                  </span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                  <span style={{ fontFamily: S.mono, fontSize: 10, color: "#7a88a8" }}>FELT FLUENCY</span>
+                  <span style={{ fontFamily: S.mono, fontSize: 11, fontWeight: 700, color: "#d97706" }}>
+                    {(fluencies[skill.id] !== undefined ? fluencies[skill.id] : getSeed(conscience, pull)) + "/10"}
+                  </span>
+                </div>
+                <input
+                  className="dz-slider fluency-sl"
+                  type="range"
+                  min={0}
+                  max={10}
+                  step={1}
+                  value={fluencyVal}
+                  onChange={function (e) {
+                    var val = Number(e.target.value);
+                    setFluencies(function (prev) {
+                      return Object.assign({}, prev, { [skill.id]: val });
+                    });
+                    markAdjusted(skill.id);
+                  }}
+                  style={{
+                    background:
+                      "linear-gradient(to right, #d97706 " +
+                      ((fluencies[skill.id] !== undefined ? fluencies[skill.id] : getSeed(conscience, pull)) / 10) *
+                        100 +
+                      "%, #d0d7e8 " +
+                      ((fluencies[skill.id] !== undefined ? fluencies[skill.id] : getSeed(conscience, pull)) / 10) *
+                        100 +
+                      "%)",
+                  }}
+                />
+                <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}>
+                  <span style={{ fontSize: 11, color: "#9ca3af" }}>Effortful</span>
+                  <span style={{ fontSize: 11, color: "#9ca3af" }}>Frictionless</span>
+                </div>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginTop: 14,
+                    paddingTop: 12,
+                    borderTop: "1px solid #f0f0f0",
+                  }}
+                >
+                  <span style={{ fontFamily: S.mono, fontSize: 11, color: "#7a88a8" }}>AFFINITY SCORE</span>
+                  <span style={{ fontSize: 20, fontWeight: 700, color: affinityColor }}>{affinityScore}</span>
+                </div>
+                <div style={{ background: "#f0f0f0", borderRadius: 3, height: 5, width: "100%", marginTop: 6 }}>
+                  <div
+                    style={{
+                      width: (affinityScore / 10) * 100 + "%",
+                      background: affinityColor,
+                      borderRadius: 3,
+                      height: 5,
+                      transition: "width 0.3s, background 0.3s",
+                    }}
+                  />
+                </div>
+              </div>
+            );
+          })}
           <button
             type="button"
             onClick={function () {
@@ -467,7 +616,7 @@ export default function Designer() {
               fontFamily: S.font,
             }}
           >
-            Continue →
+            See my results →
           </button>
         </div>
       </div>
