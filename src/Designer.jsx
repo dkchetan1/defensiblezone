@@ -73,6 +73,11 @@ export default function Designer() {
   var [seniority, setSeniority] = useState("");
   var [companySize, setCompanySize] = useState("");
   var [workFocus, setWorkFocus] = useState([]);
+  var [landscape, setLandscape] = useState("");
+  var [skills, setSkills] = useState([]);
+  var [loading, setLoading] = useState(false);
+  var [loadingMsg, setLoadingMsg] = useState("");
+  var [error, setError] = useState(null);
 
   useEffect(function () {
     var link = document.createElement("link");
@@ -86,7 +91,147 @@ export default function Designer() {
     };
   }, []);
 
-  if (step === 2) {
+  async function fetchSkills() {
+    setLoading(true);
+    setLoadingMsg("Reading your design landscape…");
+    setError(null);
+
+    var designerTitle =
+      (DESIGNER_TYPES.find(function (dt) {
+        return dt.id === designerType;
+      }) || {}).title || designerType;
+
+    var prompt =
+      "You are a senior design career strategist specializing in AI labor market analysis for designers.\n\nDESIGNER PROFILE:\n- Type: " +
+      designerTitle +
+      "\n- Seniority: " +
+      seniority +
+      "\n- Company: " +
+      companySize +
+      "\n- Work focus: " +
+      workFocus.join(", ") +
+      "\n\nTask 1 — LANDSCAPE SNAPSHOT: Write 2-3 precise sentences about how AI is affecting this exact designer profile RIGHT NOW (April 2026). Name specific tools (Figma AI, Adobe Firefly, Galileo AI, Midjourney, Claude, Gemini). Be specific to this combination of role, seniority, and focus.\n\nTask 2 — SKILL SUGGESTIONS: Generate exactly 8 skills that are the most strategically important for a " +
+      seniority +
+      " " +
+      designerTitle +
+      " working on " +
+      workFocus.join(", ") +
+      " to assess for AI defensibility right now. Be precise and specific to this role level. Include a realistic mix: some defensible, some genuinely at risk.\n\nReturn ONLY valid JSON:\n{\"landscape\":\"...\",\"skills\":[\"skill1\",\"skill2\",\"skill3\",\"skill4\",\"skill5\",\"skill6\",\"skill7\",\"skill8\"]}";
+
+    try {
+      var res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-6",
+          max_tokens: 1000,
+          messages: [{ role: "user", content: prompt }],
+        }),
+      });
+      var data = await res.json();
+      if (!data.content) throw new Error(data.error || "API error");
+      var raw = data.content
+        .map(function (b) {
+          return b.text || "";
+        })
+        .join("");
+      var m = raw.match(/\{[\s\S]*\}/);
+      if (!m) throw new Error("No JSON in response");
+      var parsed = JSON.parse(m[0]);
+      var loaded = parsed.skills.map(function (text, i) {
+        return { id: "s" + i, text: text };
+      });
+      setLandscape(parsed.landscape);
+      setSkills(loaded);
+      setStep(2);
+    } catch (e) {
+      setError("Something went wrong — please try again.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (loading) {
+    return (
+      <div
+        style={{
+          background: S.bg,
+          minHeight: "100vh",
+          fontFamily: S.font,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "32px 20px",
+        }}
+      >
+        <style
+          dangerouslySetInnerHTML={{
+            __html: "@keyframes dzDesignerDots{0%,100%{opacity:0.25}50%{opacity:1}}",
+          }}
+        />
+        <div style={{ textAlign: "center", maxWidth: 420 }}>
+          <div style={{ fontFamily: S.mono, fontSize: 14, color: S.dim, letterSpacing: "0.04em" }}>{loadingMsg}</div>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              gap: 6,
+              marginTop: 18,
+              fontFamily: S.mono,
+              fontSize: 22,
+              color: S.dim,
+              lineHeight: 1,
+            }}
+          >
+            <span style={{ animation: "dzDesignerDots 1s ease-in-out infinite" }}>.</span>
+            <span style={{ animation: "dzDesignerDots 1s ease-in-out 0.2s infinite" }}>.</span>
+            <span style={{ animation: "dzDesignerDots 1s ease-in-out 0.4s infinite" }}>.</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div
+        style={{
+          background: S.bg,
+          minHeight: "100vh",
+          fontFamily: S.font,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "32px 20px",
+        }}
+      >
+        <div style={{ textAlign: "center", maxWidth: 400 }}>
+          <p style={{ color: S.red, fontSize: 15, margin: "0 0 20px", lineHeight: 1.5 }}>{error}</p>
+          <button
+            type="button"
+            onClick={function () {
+              fetchSkills();
+            }}
+            style={{
+              background: "#D97706",
+              color: "#ffffff",
+              border: "none",
+              borderRadius: 12,
+              padding: "14px 32px",
+              fontSize: 15,
+              fontFamily: S.font,
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+          >
+            Try again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (step === 3) {
     return (
       <div
         style={{
@@ -100,7 +245,143 @@ export default function Designer() {
         }}
       >
         <div style={{ fontFamily: S.mono, fontSize: 14, color: S.dim, textAlign: "center" }}>
-          Step 2 — skill sliders coming next.
+          Step 3 — affinity sliders coming next.
+        </div>
+      </div>
+    );
+  }
+
+  if (step === 2) {
+    return (
+      <div
+        style={{
+          background: S.bg,
+          minHeight: "100vh",
+          fontFamily: S.font,
+          display: "flex",
+          justifyContent: "center",
+          padding: "32px 20px",
+        }}
+      >
+        <div style={{ maxWidth: 680, width: "100%" }}>
+          <button
+            type="button"
+            onClick={function () {
+              setStep(1);
+            }}
+            style={{
+              fontFamily: S.mono,
+              fontSize: 12,
+              color: S.dim,
+              background: "none",
+              border: "none",
+              padding: 0,
+              cursor: "pointer",
+              textDecoration: "none",
+              marginBottom: 20,
+              display: "block",
+              textAlign: "left",
+            }}
+          >
+            ← back
+          </button>
+
+          <div
+            style={{
+              fontFamily: S.mono,
+              fontSize: 11,
+              color: S.gold,
+              letterSpacing: "0.12em",
+              marginBottom: 16,
+              fontWeight: 600,
+            }}
+          >
+            DEFENSIBLE ZONE™ · DESIGNER EDITION
+          </div>
+
+          <h1
+            style={{
+              fontFamily: S.serif,
+              fontSize: 32,
+              color: S.text,
+              margin: "0 0 20px",
+              lineHeight: 1.15,
+              fontWeight: 600,
+            }}
+          >
+            Your design landscape.
+          </h1>
+
+          <div
+            style={{
+              background: "#f2f4f8",
+              borderRadius: 10,
+              padding: "16px 20px",
+              fontSize: 15,
+              color: "#3d4a6b",
+              marginBottom: 28,
+              lineHeight: 1.65,
+            }}
+          >
+            {landscape}
+          </div>
+
+          <div
+            style={{
+              fontFamily: S.mono,
+              fontSize: 11,
+              textTransform: "uppercase",
+              letterSpacing: "0.06em",
+              color: S.dim,
+              marginBottom: 14,
+            }}
+          >
+            YOUR SKILLS TO ASSESS
+          </div>
+
+          <div style={{ marginBottom: 28 }}>
+            {skills.map(function (s, idx) {
+              return (
+                <div
+                  key={s.id}
+                  style={{
+                    background: "#ffffff",
+                    border: "1px solid #d0d7e8",
+                    borderRadius: 10,
+                    padding: "14px 18px",
+                    marginBottom: 8,
+                    fontSize: 15,
+                    color: S.text,
+                    lineHeight: 1.5,
+                  }}
+                >
+                  {idx + 1}. {s.text}
+                </div>
+              );
+            })}
+          </div>
+
+          <div style={{ textAlign: "center" }}>
+            <button
+              type="button"
+              onClick={function () {
+                setStep(3);
+              }}
+              style={{
+                background: "#D97706",
+                color: "#ffffff",
+                border: "none",
+                borderRadius: 12,
+                padding: "14px 32px",
+                fontSize: 15,
+                fontFamily: S.font,
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              Continue →
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -331,7 +612,7 @@ export default function Designer() {
               type="button"
               disabled={!canContinueStep1}
               onClick={function () {
-                setStep(2);
+                fetchSkills();
               }}
               style={{
                 background: canContinueStep1 ? "#D97706" : "#e5e7eb",
