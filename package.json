@@ -4,16 +4,17 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "build": "vite build"
+    "build": "vite build",
+    "dev": "vite"
   },
   "dependencies": {
+    "jsonwebtoken": "^9.0.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "stripe": "^14.0.0",
-    "jsonwebtoken": "^9.0.2"
+    "stripe": "^14.0.0"
   },
   "devDependencies": {
-    "vite": "^4.4.0",
-    "@vitejs/plugin-react": "^4.0.0"
+    "@vitejs/plugin-react": "^4.0.0",
+    "vite": "^4.4.0"
   }
 }
