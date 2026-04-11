@@ -907,7 +907,7 @@ export default function Designer() {
         </div>
 
         <h1 style={{ fontFamily: S.serif, fontSize: 34, color: S.text, margin: "0 0 14px", lineHeight: 1.15, fontWeight: 600 }}>
-          What kind of designer are you?
+          What kind of UX professional are you?
         </h1>
 
         <p style={{ color: "#6b7280", fontSize: 15, lineHeight: 1.65, margin: "0 0 28px", maxWidth: "100%" }}>
