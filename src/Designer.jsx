@@ -1391,16 +1391,103 @@ export default function Designer() {
           {recsLoading ? (
             <div
               style={{
-                textAlign: "center",
-                maxWidth: 420,
-                margin: "24px auto 28px",
-                fontFamily: S.mono,
-                fontSize: 15,
-                color: S.dim,
-                letterSpacing: "0.04em",
+                background: "#f8f9fc",
+                minHeight: "100vh",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: "40px 20px",
+                fontFamily: S.font,
               }}
             >
-              Building your personalized action plan…
+              <style
+                dangerouslySetInnerHTML={{
+                  __html: "@keyframes dzDesignerDots{0%,100%{opacity:0.25}50%{opacity:1}}",
+                }}
+              />
+              <div
+                style={{
+                  fontFamily: S.mono,
+                  fontSize: 12,
+                  letterSpacing: "0.12em",
+                  color: S.gold,
+                  marginBottom: 32,
+                }}
+              >
+                DEFENSIBLE ZONE™ · UX PROFESSIONAL EDITION
+              </div>
+              <h2
+                style={{
+                  fontFamily: S.serif,
+                  fontSize: 28,
+                  color: S.text,
+                  margin: 0,
+                  lineHeight: 1.2,
+                }}
+              >
+                Building your action plan.
+              </h2>
+              <p
+                style={{
+                  fontSize: 16,
+                  lineHeight: 1.7,
+                  color: "#6b7280",
+                  maxWidth: 380,
+                  textAlign: "center",
+                  marginTop: 12,
+                  marginBottom: 0,
+                }}
+              >
+                We're analyzing your scores against current AI labor market data and calibrating recommendations to your role and seniority. This takes a few
+                seconds.
+              </p>
+              <div style={{ display: "flex", gap: 10, marginTop: 32, alignItems: "center", justifyContent: "center" }}>
+                <span style={{ fontSize: 36, color: S.gold, animation: "dzDesignerDots 1s ease-in-out infinite" }}>.</span>
+                <span style={{ fontSize: 36, color: S.gold, animation: "dzDesignerDots 1s ease-in-out 0.2s infinite" }}>.</span>
+                <span style={{ fontSize: 36, color: S.gold, animation: "dzDesignerDots 1s ease-in-out 0.4s infinite" }}>.</span>
+              </div>
+              <div style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: "center", marginTop: 40 }}>
+                <span
+                  style={{
+                    background: "white",
+                    border: "1px solid #d0d7e8",
+                    borderRadius: 20,
+                    padding: "8px 16px",
+                    fontSize: 13,
+                    color: "#6b7280",
+                    fontFamily: S.font,
+                  }}
+                >
+                  8 skills assessed
+                </span>
+                <span
+                  style={{
+                    background: "white",
+                    border: "1px solid #d0d7e8",
+                    borderRadius: 20,
+                    padding: "8px 16px",
+                    fontSize: 13,
+                    color: "#6b7280",
+                    fontFamily: S.font,
+                  }}
+                >
+                  AI market data: April 2026
+                </span>
+                <span
+                  style={{
+                    background: "white",
+                    border: "1px solid #d0d7e8",
+                    borderRadius: 20,
+                    padding: "8px 16px",
+                    fontSize: 13,
+                    color: "#6b7280",
+                    fontFamily: S.font,
+                  }}
+                >
+                  Calibrated to your seniority
+                </span>
+              </div>
             </div>
           ) : recsError ? (
             <div style={{ textAlign: "center", maxWidth: 400, margin: "24px auto 28px" }}>
