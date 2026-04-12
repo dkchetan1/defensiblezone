@@ -130,6 +130,149 @@ var WORK_FOCUS_OPTIONS = [
   "Consulting & strategy",
 ];
 
+var AFFINITY_COPY = {
+  product: {
+    conscience: {
+      question:
+        "When a product ships with flows you know are confusing, or research that was skipped to hit a deadline — how does that sit with you?",
+      explanation:
+        "This tells us whether you genuinely care about the quality of the experience, independent of whether stakeholders notice.",
+    },
+    pull: {
+      question:
+        "Outside of work, with no deadlines and no brief, how often does your mind drift toward how products could work better — flows, decisions, moments of friction?",
+      explanation:
+        "This tells us whether product thinking is something you're naturally drawn to, or something you do primarily because it pays well.",
+    },
+  },
+  interaction: {
+    conscience: {
+      question:
+        "When an interaction you designed feels clunky in use — a transition that's off, a state that's confusing — how does that sit with you?",
+      explanation:
+        "This tells us whether you genuinely care about the craft of how things behave, independent of whether anyone else notices.",
+    },
+    pull: {
+      question:
+        "Outside of work, how often do you find yourself noticing and mentally redesigning interactions in apps, devices, or everyday objects?",
+      explanation:
+        "This tells us whether interaction design is a genuine obsession, or primarily a professional skill.",
+    },
+  },
+  visual_brand: {
+    conscience: {
+      question:
+        "When work goes out that doesn't meet your visual standard — wrong hierarchy, weak typography, compromised brand — how does that sit with you?",
+      explanation:
+        "This tells us whether visual quality genuinely matters to you, independent of whether the client or team notices.",
+    },
+    pull: {
+      question:
+        "Outside of work, how often does your eye catch and critique the visual design around you — logos, layouts, packaging, screens?",
+      explanation:
+        "This tells us whether visual thinking is wired into how you see the world, or something you switch on at work.",
+    },
+  },
+  ux_researcher: {
+    conscience: {
+      question:
+        "When research gets cut short, findings get misrepresented, or decisions get made without talking to users — how does that sit with you?",
+      explanation:
+        "This tells us whether you genuinely care about rigorous, honest research, independent of whether the team pushes back.",
+    },
+    pull: {
+      question:
+        "Outside of work, how often does your mind drift toward why people behave the way they do — decisions, habits, workarounds, irrational choices?",
+      explanation:
+        "This tells us whether human behavior is something you're genuinely curious about, or a professional tool you apply at work.",
+    },
+  },
+  content: {
+    conscience: {
+      question:
+        "When copy ships that's unclear, inconsistent, or doesn't respect the reader's intelligence — how does that sit with you?",
+      explanation:
+        "This tells us whether you genuinely care about the quality of language in products, independent of whether anyone audits it.",
+    },
+    pull: {
+      question:
+        "Outside of work, how often do you notice and mentally rewrite the words around you — interfaces, signs, emails, instructions?",
+      explanation:
+        "This tells us whether language and clarity are a natural obsession, or skills you apply professionally.",
+    },
+  },
+  design_ops: {
+    conscience: {
+      question:
+        "When design processes are inefficient, inconsistent, or slowing the team down and no one is fixing it — how does that sit with you?",
+      explanation:
+        "This tells us whether you genuinely care about how design teams operate, independent of whether it's your job to fix it.",
+    },
+    pull: {
+      question:
+        "Outside of work, how often do you think about how systems, processes, and teams could be better organized and run?",
+      explanation:
+        "This tells us whether operational thinking comes naturally to you, or is a role you've grown into.",
+    },
+  },
+  motion: {
+    conscience: {
+      question:
+        "When animation ships that feels mechanical, mistimed, or doesn't serve the experience — how does that sit with you?",
+      explanation:
+        "This tells us whether motion craft genuinely matters to you, independent of whether the product team notices the difference.",
+    },
+    pull: {
+      question:
+        "Outside of work, how often do you notice and mentally rework the motion and timing around you — in apps, film, physical objects?",
+      explanation:
+        "This tells us whether motion is a deep creative obsession, or a specialized skill you apply at work.",
+    },
+  },
+  service: {
+    conscience: {
+      question:
+        "When a service journey has obvious gaps — handoffs that break, touchpoints that contradict each other, people falling through the cracks — how does that sit with you?",
+      explanation:
+        "This tells us whether you genuinely care about the whole system, not just the digital screens.",
+    },
+    pull: {
+      question:
+        "Outside of work, how often does your mind map out the systems behind everyday experiences — why a service failed, where the breakdown happened, how it could be redesigned?",
+      explanation:
+        "This tells us whether systems thinking is how your mind naturally works, or a framework you apply professionally.",
+    },
+  },
+  strategist: {
+    conscience: {
+      question:
+        "When design decisions get made without strategic grounding — no vision, no principles, no long-term thinking — how does that sit with you?",
+      explanation:
+        "This tells us whether you genuinely care about design having organizational impact, not just delivering outputs.",
+    },
+    pull: {
+      question:
+        "Outside of work, how often do you find yourself thinking about the future — how industries will shift, how organizations need to change, what design's role in that looks like?",
+      explanation:
+        "This tells us whether strategic and futures thinking comes naturally to you, or is a professional mode you shift into.",
+    },
+  },
+  ux_analyst: {
+    conscience: {
+      question:
+        "When decisions get made on gut feel when the data says otherwise, or when metrics get cherry-picked to tell a convenient story — how does that sit with you?",
+      explanation:
+        "This tells us whether you genuinely care about honest, rigorous analysis, independent of whether stakeholders want to hear it.",
+    },
+    pull: {
+      question:
+        "Outside of work, how often does your mind reach for data to explain things — patterns in behavior, anomalies in outcomes, questions that need a number to answer?",
+      explanation:
+        "This tells us whether quantitative thinking is how your brain naturally works, or a skill you apply in a professional context.",
+    },
+  },
+};
+
 // ── DESIGN TOKENS ──────────────────────────────────────────────────────
 var S = {
   bg: "#f8f9fc",
@@ -590,10 +733,12 @@ export default function Designer() {
               </span>
             </div>
             <p style={{ fontSize: 16, fontStyle: "italic", color: "#3d4a6b", lineHeight: 1.6, marginBottom: 6, marginTop: 0 }}>
-              When your work falls short of your own standard — a research study that felt rushed, a product that felt compromised — how does that sit with you?
+              {AFFINITY_COPY[designerType]?.conscience?.question ??
+                "When your work falls short of your own standard — a research study that felt rushed, a product that felt compromised — how does that sit with you?"}
             </p>
             <p style={{ fontSize: 13, color: "#7a88a8", lineHeight: 1.5, marginBottom: 20, marginTop: 0 }}>
-              This tells us whether you genuinely care about quality in your work, independent of whether anyone else notices.
+              {AFFINITY_COPY[designerType]?.conscience?.explanation ??
+                "This tells us whether you genuinely care about quality in your work, independent of whether anyone else notices."}
             </p>
             <input
               className="dz-slider conscience-sl"
@@ -653,10 +798,12 @@ export default function Designer() {
               </span>
             </div>
             <p style={{ fontSize: 16, fontStyle: "italic", color: "#3d4a6b", lineHeight: 1.6, marginBottom: 6, marginTop: 0 }}>
-              Outside of work, with no deadlines and no one asking, how often does your mind drift toward user problems — why people behave the way they do, what frustrates them, how things could work better?
+              {AFFINITY_COPY[designerType]?.pull?.question ??
+                "Outside of work, with no deadlines and no one asking, how often does your mind drift toward user problems — why people behave the way they do, what frustrates them, how things could work better?"}
             </p>
             <p style={{ fontSize: 13, color: "#7a88a8", lineHeight: 1.5, marginBottom: 20, marginTop: 0 }}>
-              This tells us whether design is something you&apos;re naturally drawn to, or something you do primarily because it pays well.
+              {AFFINITY_COPY[designerType]?.pull?.explanation ??
+                "This tells us whether design is something you're naturally drawn to, or something you do primarily because it pays well."}
             </p>
             <input
               className="dz-slider pull-sl"
