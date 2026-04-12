@@ -381,6 +381,13 @@ export default function Designer() {
     [conscience, pull, skills]
   );
 
+  useEffect(
+    function () {
+      window.scrollTo(0, 0);
+    },
+    [step]
+  );
+
   async function fetchSkills() {
     setLoading(true);
     setLoadingMsg("Reading your design landscape…");
