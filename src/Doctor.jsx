@@ -501,7 +501,7 @@ const invLabels = [{v:0,l:"Letting it atrophy"},{v:3,l:"Maintaining baseline onl
 
 function getLabel(labels, val) { return ([...labels].reverse().find(l => val >= l.v) || {l:""}).l; }
 function compAff(na, inv) { return Math.round(((na*0.6)+(inv*0.4))*10)/10; }
-function calcDZ(aff, aiR, mkt) { return Math.min(100, Math.round((aff/10)*((10-aiR)/10)*(mkt/10)*100)); }
+function calcDZ(aff, aiR, mkt) { return Math.min(100, Math.round(100 * Math.pow(aff/10, 0.35) * Math.pow((10-aiR)/10, 0.40) * Math.pow(mkt/10, 0.25))); }
 function dzCol(s) { if(s>=70)return T.grn; if(s>=45)return T.amb; if(s>=25)return T.org; return T.red; }
 function dzLbl(s) { if(s>=70)return"Defensible"; if(s>=45)return"Moderate Risk"; if(s>=25)return"High Risk"; return"Critical Risk"; }
 
@@ -778,7 +778,7 @@ function PaywallGateMedical({ onUnlock }) {
 
         {/* Tier 3 — $34 */}
         <div style={{background:T.bg,border:"2px solid #1a1d2e",borderRadius:12,padding:16,position:"relative"}}>
-          <div style={{position:"absolute",top:-11,left:"50%",transform:"translateX(-50%)",background:"#1a1d2e",color:"white",fontFamily:T.mono,fontSize:9,fontWeight:700,padding:"3px 10px",borderRadius:20,letterSpacing:"0.1em",whiteSpace:"nowrap"}}>BEST VALUE</div>
+          <div style={{position:"absolute",top:-11,left:"50%",transform:"translateX(-50%)",background:"#1a1d2e",color:"white",fontFamily:T.mono,fontSize:11,fontWeight:700,padding:"3px 10px",borderRadius:20,letterSpacing:"0.1em",whiteSpace:"nowrap"}}>BEST VALUE</div>
           <MLbl col="#1a1d2e" style={{marginBottom:6}}>Recommendations + PDF</MLbl>
           <div style={{fontFamily:T.disp,fontSize:28,color:T.txt,lineHeight:1,marginBottom:4}}>$34<span style={{fontFamily:T.mono,fontSize:13,fontWeight:400,color:T.dim}}> one-time</span></div>
           <ul style={{margin:"10px 0 14px",padding:0,listStyle:"none"}}>
@@ -799,7 +799,7 @@ function PaywallGateMedical({ onUnlock }) {
 
       {/* Promo code */}
       <div style={{borderTop:"1px solid "+T.bdr,paddingTop:16}}>
-        <MMono style={{color:T.dim,fontWeight:700,letterSpacing:"0.08em",display:"block",marginBottom:8,fontSize:10}}>HAVE A PROMO CODE?</MMono>
+        <MMono style={{color:T.dim,fontWeight:700,letterSpacing:"0.08em",display:"block",marginBottom:8,fontSize:11}}>HAVE A PROMO CODE?</MMono>
         <div style={{display:"flex",gap:8,animation:shake?"dzShake 0.4s ease":"none"}}>
           <input
             value={input}
@@ -836,6 +836,7 @@ export default function DefensibleZoneMedical(){
   const [promoUsed,   setPromoUsed]   = useState(false);
   const [emailInput,  setEmailInput]  = useState("");
   const [emailSubmitting, setEmailSubmitting] = useState(false);
+  useEffect(() => { window.scrollTo(0, 0); }, [step]);
 
   async function submitEmailToKit(email) {
     try {
@@ -954,7 +955,7 @@ export default function DefensibleZoneMedical(){
               {["MD","DO"].map(d=>(
                 <button key={d} onClick={()=>setDegree(d)} style={{flex:1,padding:"18px 12px",borderRadius:10,fontFamily:T.mono,fontSize:15,fontWeight:700,cursor:"pointer",border:"2px solid "+(degree===d?T.amb:T.bdr),background:degree===d?T.amb+"12":T.surf,color:degree===d?T.amb:T.mut,transition:"all .15s"}}>
                   {d}
-                  <div style={{fontSize:10,fontWeight:400,marginTop:4,color:degree===d?T.amb:T.dim}}>{d==="DO"?"Osteopathic Medicine":"Allopathic Medicine"}</div>
+                  <div style={{fontSize:11,fontWeight:400,marginTop:4,color:degree===d?T.amb:T.dim}}>{d==="DO"?"Osteopathic Medicine":"Allopathic Medicine"}</div>
                 </button>
               ))}
             </div>
@@ -990,13 +991,13 @@ export default function DefensibleZoneMedical(){
             {Object.entries(THREAT).map(([k,v])=>(
               <div key={k} style={{display:"flex",alignItems:"center",gap:5}}>
                 <div style={{width:8,height:8,borderRadius:"50%",background:v.col}}/>
-                <MMono style={{color:T.dim,fontSize:10}}>{v.label.replace(" AI Threat","")}</MMono>
+                <MMono style={{color:T.dim,fontSize:11}}>{v.label.replace(" AI Threat","")}</MMono>
               </div>
             ))}
           </div>
           {Object.entries(GROUPS).map(([group,specs])=>(
             <div key={group} style={{marginBottom:20}}>
-              <MMono style={{color:T.dim,display:"block",marginBottom:8,letterSpacing:".06em",textTransform:"uppercase",fontSize:10}}>{group}</MMono>
+              <MMono style={{color:T.dim,display:"block",marginBottom:8,letterSpacing:".06em",textTransform:"uppercase",fontSize:11}}>{group}</MMono>
               <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
                 {[...new Set(specs)].filter(s=>SD[s]).map(spec=>{
                   const sd=SD[spec]; const tm=THREAT[sd.t]; const sel=specialty===spec;
@@ -1053,7 +1054,7 @@ export default function DefensibleZoneMedical(){
                     </div>
                     <div style={{marginLeft:12,flexShrink:0,textAlign:"center"}}>
                       <div style={{fontFamily:T.disp,fontSize:22,color:T.amb,lineHeight:1}}>{Math.round(compAff(na,inv)*10)}%</div>
-                      <MMono style={{color:T.dim,fontSize:9}}>AFFINITY</MMono>
+                      <MMono style={{color:T.dim,fontSize:11}}>AFFINITY</MMono>
                     </div>
                   </div>
                   <div style={{marginBottom:18}}>
@@ -1063,8 +1064,8 @@ export default function DefensibleZoneMedical(){
                     </div>
                     <input type="range" min={0} max={10} value={na} onChange={e=>setAffinities(prev=>({...prev,[i]:Number(e.target.value)}))}/>
                     <div style={{display:"flex",justifyContent:"space-between",marginTop:4}}>
-                      <MMono style={{color:T.dim,fontSize:10}}>Just checking a box</MMono>
-                      <MMono style={{color:T.dim,fontSize:10}}>This is why I went into medicine</MMono>
+                      <MMono style={{color:T.dim,fontSize:11}}>Just checking a box</MMono>
+                      <MMono style={{color:T.dim,fontSize:11}}>This is why I went into medicine</MMono>
                     </div>
                   </div>
                   <div>
@@ -1074,8 +1075,8 @@ export default function DefensibleZoneMedical(){
                     </div>
                     <input type="range" min={0} max={10} value={inv} onChange={e=>setInvestments(prev=>({...prev,[i]:Number(e.target.value)}))}/>
                     <div style={{display:"flex",justifyContent:"space-between",marginTop:4}}>
-                      <MMono style={{color:T.dim,fontSize:10}}>Letting it atrophy</MMono>
-                      <MMono style={{color:T.dim,fontSize:10}}>Obsessively building this</MMono>
+                      <MMono style={{color:T.dim,fontSize:11}}>Letting it atrophy</MMono>
+                      <MMono style={{color:T.dim,fontSize:11}}>Obsessively building this</MMono>
                     </div>
                   </div>
                 </MCard>
@@ -1142,7 +1143,7 @@ export default function DefensibleZoneMedical(){
             {[["Avg DZ Score",avgDZ,dzCol(avgDZ)],["Defensible",def,T.grn],["At Risk",risk,T.red],["Skills Assessed",results.length,T.blu]].map(([l,v,c])=>(
               <div key={l} style={{background:T.card,border:"1px solid "+T.bdr,borderRadius:12,padding:"14px 16px"}}>
                 <div style={{fontFamily:T.disp,fontSize:28,color:c,lineHeight:1,marginBottom:4}}>{v}</div>
-                <MMono style={{color:T.dim,fontSize:10,letterSpacing:".06em"}}>{String(l).toUpperCase()}</MMono>
+                <MMono style={{color:T.dim,fontSize:11,letterSpacing:".06em"}}>{String(l).toUpperCase()}</MMono>
               </div>
             ))}
           </div>
@@ -1160,7 +1161,7 @@ export default function DefensibleZoneMedical(){
                       <div style={{display:"flex",gap:8,alignItems:"center",flexShrink:0}}>
                         <div style={{textAlign:"center"}}>
                           <div style={{fontFamily:T.disp,fontSize:26,color:col,lineHeight:1}}>{sk.dz}</div>
-                          <MMono style={{color:T.dim,fontSize:9,letterSpacing:".04em"}}>DZ</MMono>
+                          <MMono style={{color:T.dim,fontSize:11,letterSpacing:".04em"}}>DZ</MMono>
                         </div>
                         <MTag col={col}>{dzLbl(sk.dz)}</MTag>
                       </div>
@@ -1171,7 +1172,7 @@ export default function DefensibleZoneMedical(){
                     <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}}>
                       {[["Natural Affinity",sk.naturalAffinity+"/10",T.blu],["Investment",sk.investment+"/10",T.amb],["AI Risk",sk.aiR+"/10",T.red],["Mkt Demand",sk.mkt+"/10",T.grn]].map(([l,v,c])=>(
                         <div key={l}>
-                          <MMono style={{color:T.dim,fontSize:10,display:"block",marginBottom:3}}>{l}</MMono>
+                          <MMono style={{color:T.dim,fontSize:11,display:"block",marginBottom:3}}>{l}</MMono>
                           <MMono style={{color:c,fontWeight:700,fontSize:13}}>{v}</MMono>
                         </div>
                       ))}
@@ -1184,7 +1185,7 @@ export default function DefensibleZoneMedical(){
               {[{s:70,l:"70+ Defensible"},{s:45,l:"45-69 Moderate"},{s:25,l:"25-44 High Risk"},{s:0,l:"Under 25 Critical"}].map(({s,l})=>(
                 <div key={l} style={{display:"flex",alignItems:"center",gap:5}}>
                   <div style={{width:10,height:10,borderRadius:2,background:dzCol(s)}}/>
-                  <MMono style={{color:T.dim,fontSize:10}}>{l}</MMono>
+                  <MMono style={{color:T.dim,fontSize:11}}>{l}</MMono>
                 </div>
               ))}
             </div>
