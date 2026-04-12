@@ -119,14 +119,15 @@ var COMPANY_SIZE_OPTIONS = [
 
 var WORK_FOCUS_OPTIONS = [
   "Mobile apps",
-  "Web products",
+  "Web products & SaaS",
   "Design systems",
-  "Enterprise software",
+  "Enterprise & B2B software",
   "Consumer products",
-  "AI / emerging tech",
-  "Physical + digital",
+  "AI-powered products",
+  "Health & medical tech",
+  "Fintech & financial services",
   "Brand and marketing",
-  "Research and strategy",
+  "Consulting & strategy",
 ];
 
 // ── DESIGN TOKENS ──────────────────────────────────────────────────────
