@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import EmailGate from "./EmailGate";
+import PDFButton from "./PDFButton";
 
 // ── DESIGNER TYPES ─────────────────────────────────────────────────────
 var DESIGNER_TYPES = [
@@ -1478,7 +1479,7 @@ export default function Designer() {
                     </p>
                   </div>
 
-                  <div style={{ marginBottom: showUpsell ? 0 : 28 }}>
+                  <div id="dz-report-content" style={{ marginBottom: showUpsell ? 0 : 28 }}>
                     {recList.map(function (rec, idx) {
                       var skillRow = skillDZs.find(function (sd) {
                         return sd.id === rec.id;
@@ -1539,8 +1540,15 @@ export default function Designer() {
                     })}
                   </div>
 
+                  {tier >= 1 || promoUsed ? (
+                    <div style={{ marginTop: 20, marginBottom: 4, textAlign: "center" }}>
+                      <PDFButton contentId="dz-report-content" label="Save as PDF" />
+                    </div>
+                  ) : null}
+
                   {showUpsell ? (
                     <div
+                      className="no-print"
                       style={{
                         background: "linear-gradient(135deg, #1a1d2e 0%, #2d1f5e 100%)",
                         borderRadius: 16,
@@ -1718,7 +1726,7 @@ export default function Designer() {
                         </div>
                       </div>
 
-                        <div style={{ marginTop: 24 }}>
+                        <div className="no-print" style={{ marginTop: 24 }}>
                         <div
                           style={{
                             fontFamily: S.mono,
