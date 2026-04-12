@@ -667,7 +667,7 @@ export default function Designer() {
           >
             ← back
           </button>
-          <div style={{ fontFamily: S.mono, fontSize: 11, color: "#d97706", letterSpacing: "0.1em" }}>
+          <div style={{ fontFamily: S.mono, fontSize: 12, color: "#d97706", letterSpacing: "0.1em" }}>
             DEFENSIBLE ZONE™ · UX PROFESSIONAL EDITION
           </div>
           <div style={{ marginTop: 16, marginBottom: 32 }}>
@@ -703,10 +703,10 @@ export default function Designer() {
           <p style={{ fontSize: 16, color: "#6b7280", lineHeight: 1.7, marginBottom: 32, marginTop: 0 }}>
             These questions aren&apos;t about how skilled you are. They&apos;re about whether this type of work genuinely fits you. Be honest — there are no wrong answers.
           </p>
-          <div style={{ fontFamily: S.mono, fontSize: 11, textTransform: "uppercase", color: "#7a88a8", marginBottom: 6 }}>
+          <div style={{ fontFamily: S.mono, fontSize: 12, textTransform: "uppercase", color: "#7a88a8", marginBottom: 6 }}>
             PART 1 — ABOUT YOU IN GENERAL
           </div>
-          <div style={{ fontSize: 14, color: "#7a88a8", marginBottom: 24 }}>
+          <div style={{ fontSize: 15, color: "#7a88a8", marginBottom: 24 }}>
             Answer these once. They apply across all your skills.
           </div>
           <div
@@ -723,7 +723,7 @@ export default function Designer() {
               <span
                 style={{
                   fontFamily: S.mono,
-                  fontSize: 11,
+                  fontSize: 12,
                   fontWeight: 700,
                   color: "#7c3aed",
                   letterSpacing: "0.08em",
@@ -736,7 +736,7 @@ export default function Designer() {
               {AFFINITY_COPY[designerType]?.conscience?.question ??
                 "When your work falls short of your own standard — a research study that felt rushed, a product that felt compromised — how does that sit with you?"}
             </p>
-            <p style={{ fontSize: 13, color: "#7a88a8", lineHeight: 1.5, marginBottom: 20, marginTop: 0 }}>
+            <p style={{ fontSize: 14, color: "#7a88a8", lineHeight: 1.5, marginBottom: 20, marginTop: 0 }}>
               {AFFINITY_COPY[designerType]?.conscience?.explanation ??
                 "This tells us whether you genuinely care about quality in your work, independent of whether anyone else notices."}
             </p>
@@ -762,7 +762,7 @@ export default function Designer() {
                     style={{
                       width: "20%",
                       textAlign: "center",
-                      fontSize: 11,
+                      fontSize: 12,
                       color: "#7c3aed",
                       opacity: Math.abs(conscience - stopValue) <= 1 ? 1 : 0.25,
                       fontWeight: Math.abs(conscience - stopValue) <= 1 ? 700 : 400,
@@ -788,7 +788,7 @@ export default function Designer() {
               <span
                 style={{
                   fontFamily: S.mono,
-                  fontSize: 11,
+                  fontSize: 12,
                   fontWeight: 700,
                   color: "#0891b2",
                   letterSpacing: "0.08em",
@@ -801,7 +801,7 @@ export default function Designer() {
               {AFFINITY_COPY[designerType]?.pull?.question ??
                 "Outside of work, with no deadlines and no one asking, how often does your mind drift toward user problems — why people behave the way they do, what frustrates them, how things could work better?"}
             </p>
-            <p style={{ fontSize: 13, color: "#7a88a8", lineHeight: 1.5, marginBottom: 20, marginTop: 0 }}>
+            <p style={{ fontSize: 14, color: "#7a88a8", lineHeight: 1.5, marginBottom: 20, marginTop: 0 }}>
               {AFFINITY_COPY[designerType]?.pull?.explanation ??
                 "This tells us whether design is something you're naturally drawn to, or something you do primarily because it pays well."}
             </p>
@@ -827,7 +827,7 @@ export default function Designer() {
                     style={{
                       width: "20%",
                       textAlign: "center",
-                      fontSize: 11,
+                      fontSize: 12,
                       color: "#0891b2",
                       opacity: Math.abs(pull - stopValue) <= 1 ? 1 : 0.25,
                       fontWeight: Math.abs(pull - stopValue) <= 1 ? 700 : 400,
@@ -840,13 +840,13 @@ export default function Designer() {
             </div>
           </div>
           <hr style={{ border: "none", borderTop: "1px solid #d0d7e8", margin: "32px 0" }} />
-          <div style={{ fontFamily: S.mono, fontSize: 11, textTransform: "uppercase", color: "#7a88a8", marginBottom: 6 }}>
+          <div style={{ fontFamily: S.mono, fontSize: 12, textTransform: "uppercase", color: "#7a88a8", marginBottom: 6 }}>
             PART 2 — SKILL BY SKILL
           </div>
-          <div style={{ fontSize: 14, color: "#7a88a8", lineHeight: 1.6, marginBottom: 8 }}>
+          <div style={{ fontSize: 15, color: "#7a88a8", lineHeight: 1.6, marginBottom: 8 }}>
             For each skill — does doing this work feel natural and easy, or does it take real effort?
           </div>
-          <div style={{ fontSize: 13, color: "#9ca3af", marginBottom: 24 }}>
+          <div style={{ fontSize: 14, color: "#9ca3af", marginBottom: 24 }}>
             Sliders are pre-set based on your answers above. Only move one if a skill feels noticeably different from your usual pattern.
           </div>
           {skills.map(function (skill) {
@@ -879,7 +879,7 @@ export default function Designer() {
                   </div>
                   <span
                     style={{
-                      fontSize: 10,
+                      fontSize: 12,
                       padding: "2px 8px",
                       borderRadius: 10,
                       fontFamily: S.mono,
@@ -892,8 +892,8 @@ export default function Designer() {
                   </span>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                  <span style={{ fontFamily: S.mono, fontSize: 10, color: "#7a88a8" }}>FELT FLUENCY</span>
-                  <span style={{ fontFamily: S.mono, fontSize: 11, fontWeight: 700, color: "#d97706" }}>
+                  <span style={{ fontFamily: S.mono, fontSize: 12, color: "#7a88a8" }}>FELT FLUENCY</span>
+                  <span style={{ fontFamily: S.mono, fontSize: 12, fontWeight: 700, color: "#d97706" }}>
                     {(fluencies[skill.id] !== undefined ? fluencies[skill.id] : getSeed(conscience, pull)) + "/10"}
                   </span>
                 </div>
@@ -923,8 +923,8 @@ export default function Designer() {
                   }}
                 />
                 <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}>
-                  <span style={{ fontSize: 11, color: "#9ca3af" }}>Effortful</span>
-                  <span style={{ fontSize: 11, color: "#9ca3af" }}>Frictionless</span>
+                  <span style={{ fontSize: 12, color: "#9ca3af" }}>Effortful</span>
+                  <span style={{ fontSize: 12, color: "#9ca3af" }}>Frictionless</span>
                 </div>
                 <div
                   style={{
@@ -936,7 +936,7 @@ export default function Designer() {
                     borderTop: "1px solid #f0f0f0",
                   }}
                 >
-                  <span style={{ fontFamily: S.mono, fontSize: 11, color: "#7a88a8" }}>AFFINITY SCORE</span>
+                  <span style={{ fontFamily: S.mono, fontSize: 12, color: "#7a88a8" }}>AFFINITY SCORE</span>
                   <span style={{ fontSize: 22, fontWeight: 700, color: affinityColor }}>{affinityScore}</span>
                 </div>
               </div>
@@ -1033,7 +1033,7 @@ export default function Designer() {
             padding: "32px 20px",
           }}
         >
-          <div style={{ textAlign: "center", maxWidth: 420, fontFamily: S.mono, fontSize: 14, color: S.dim }}>
+          <div style={{ textAlign: "center", maxWidth: 420, fontFamily: S.mono, fontSize: 15, color: S.dim }}>
             Scoring your skills against the AI landscape…
           </div>
         </div>
@@ -1053,7 +1053,7 @@ export default function Designer() {
           }}
         >
           <div style={{ textAlign: "center", maxWidth: 400 }}>
-            <p style={{ color: S.red, fontSize: 15, margin: "0 0 20px" }}>{resultsError}</p>
+            <p style={{ color: S.red, fontSize: 16, margin: "0 0 20px" }}>{resultsError}</p>
             <button
               type="button"
               onClick={function () {
@@ -1065,7 +1065,7 @@ export default function Designer() {
                 border: "none",
                 borderRadius: 12,
                 padding: "14px 32px",
-                fontSize: 15,
+                fontSize: 16,
                 fontFamily: S.font,
                 fontWeight: 600,
                 cursor: "pointer",
@@ -1135,7 +1135,7 @@ export default function Designer() {
           <div
             style={{
               fontFamily: S.mono,
-              fontSize: 11,
+              fontSize: 12,
               color: S.gold,
               letterSpacing: "0.12em",
               marginBottom: 20,
@@ -1155,9 +1155,9 @@ export default function Designer() {
               fontWeight: 600,
             }}
           >
-            Your Defensible Zone.
+            Your Defensible Zone™
           </h1>
-          <p style={{ color: "#6b7280", fontSize: 15, lineHeight: 1.6, margin: "0 0 32px" }}>
+          <p style={{ color: "#6b7280", fontSize: 16, lineHeight: 1.6, margin: "0 0 32px" }}>
             {designerTitle} · {seniority} · {companySize}
           </p>
 
@@ -1197,13 +1197,13 @@ export default function Designer() {
               >
                 {totalDZ}
               </span>
-              <span style={{ fontSize: 10, color: "#9ca3af", fontFamily: S.mono, marginTop: 2 }}>/ 100</span>
+              <span style={{ fontSize: 12, color: "#9ca3af", fontFamily: S.mono, marginTop: 2 }}>/ 100</span>
             </div>
             <div>
               <div
                 style={{
                   fontFamily: S.mono,
-                  fontSize: 11,
+                  fontSize: 12,
                   color: "#9ca3af",
                   letterSpacing: "0.08em",
                   marginBottom: 6,
@@ -1212,7 +1212,7 @@ export default function Designer() {
                 OVERALL DZ SCORE
               </div>
               <div style={{ fontSize: 22, fontWeight: 700, color: dzLabelColor, marginBottom: 6, fontFamily: S.serif }}>{dzLabel}</div>
-              <p style={{ fontSize: 14, color: "#6b7280", lineHeight: 1.55, margin: 0 }}>
+              <p style={{ fontSize: 15, color: "#6b7280", lineHeight: 1.55, margin: 0 }}>
                 Across your 8 assessed skills, this is how defensible your practice is against AI displacement right now.
               </p>
             </div>
@@ -1223,7 +1223,7 @@ export default function Designer() {
               <div
                 style={{
                   fontFamily: S.mono,
-                  fontSize: 10,
+                  fontSize: 12,
                   color: S.green,
                   letterSpacing: "0.1em",
                   marginBottom: 14,
@@ -1235,7 +1235,7 @@ export default function Designer() {
               {topSkills.map(function (s) {
                 return (
                   <div key={s.id} style={{ marginBottom: 12 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: S.text, lineHeight: 1.35, marginBottom: 4 }}>{s.text}</div>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: S.text, lineHeight: 1.35, marginBottom: 4 }}>{s.text}</div>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                       <div style={{ flex: 1, height: 6, background: "#f0f0f0", borderRadius: 3, overflow: "hidden" }}>
                         <div style={{ width: s.dz + "%", height: "100%", background: S.green, borderRadius: 3 }} />
@@ -1243,7 +1243,7 @@ export default function Designer() {
                       <span
                         style={{
                           fontFamily: S.mono,
-                          fontSize: 11,
+                          fontSize: 12,
                           color: S.green,
                           fontWeight: 700,
                           minWidth: 28,
@@ -1261,7 +1261,7 @@ export default function Designer() {
               <div
                 style={{
                   fontFamily: S.mono,
-                  fontSize: 10,
+                  fontSize: 12,
                   color: S.red,
                   letterSpacing: "0.1em",
                   marginBottom: 14,
@@ -1273,7 +1273,7 @@ export default function Designer() {
               {atRisk.map(function (s) {
                 return (
                   <div key={s.id} style={{ marginBottom: 12 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: S.text, lineHeight: 1.35, marginBottom: 4 }}>{s.text}</div>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: S.text, lineHeight: 1.35, marginBottom: 4 }}>{s.text}</div>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                       <div style={{ flex: 1, height: 6, background: "#f0f0f0", borderRadius: 3, overflow: "hidden" }}>
                         <div style={{ width: s.dz + "%", height: "100%", background: dzColor(s.dz), borderRadius: 3 }} />
@@ -1281,7 +1281,7 @@ export default function Designer() {
                       <span
                         style={{
                           fontFamily: S.mono,
-                          fontSize: 11,
+                          fontSize: 12,
                           color: dzColor(s.dz),
                           fontWeight: 700,
                           minWidth: 28,
@@ -1300,7 +1300,7 @@ export default function Designer() {
           <div
             style={{
               fontFamily: S.mono,
-              fontSize: 11,
+              fontSize: 12,
               textTransform: "uppercase",
               letterSpacing: "0.06em",
               color: S.dim,
@@ -1324,7 +1324,7 @@ export default function Designer() {
                 }}
               >
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
-                  <div style={{ fontSize: 15, fontWeight: 600, color: S.text, flex: 1, paddingRight: 12, lineHeight: 1.35 }}>{s.text}</div>
+                  <div style={{ fontSize: 16, fontWeight: 600, color: S.text, flex: 1, paddingRight: 12, lineHeight: 1.35 }}>{s.text}</div>
                   <div style={{ fontFamily: S.mono, fontSize: 22, fontWeight: 700, color: col, flexShrink: 0, lineHeight: 1 }}>{s.dz}</div>
                 </div>
                 <div style={{ height: 8, background: "#f0f0f0", borderRadius: 4, overflow: "hidden", marginBottom: 10 }}>
@@ -1332,11 +1332,11 @@ export default function Designer() {
                 </div>
                 <div style={{ display: "flex", gap: 18, marginBottom: s.rationale ? 10 : 0 }}>
                   <div>
-                    <div style={{ fontFamily: S.mono, fontSize: 9, color: "#9ca3af", letterSpacing: "0.06em" }}>AFFINITY</div>
+                    <div style={{ fontFamily: S.mono, fontSize: 11, color: "#9ca3af", letterSpacing: "0.06em" }}>AFFINITY</div>
                     <div style={{ fontFamily: S.mono, fontSize: 12, fontWeight: 700, color: "#7c3aed" }}>{s.affinity}</div>
                   </div>
                   <div>
-                    <div style={{ fontFamily: S.mono, fontSize: 9, color: "#9ca3af", letterSpacing: "0.06em" }}>AI RISK</div>
+                    <div style={{ fontFamily: S.mono, fontSize: 11, color: "#9ca3af", letterSpacing: "0.06em" }}>AI RISK</div>
                     <div
                       style={{
                         fontFamily: S.mono,
@@ -1349,12 +1349,12 @@ export default function Designer() {
                     </div>
                   </div>
                   <div>
-                    <div style={{ fontFamily: S.mono, fontSize: 9, color: "#9ca3af", letterSpacing: "0.06em" }}>DEMAND</div>
+                    <div style={{ fontFamily: S.mono, fontSize: 11, color: "#9ca3af", letterSpacing: "0.06em" }}>DEMAND</div>
                     <div style={{ fontFamily: S.mono, fontSize: 12, fontWeight: 700, color: S.blue }}>{s.market}/10</div>
                   </div>
                 </div>
                 {s.rationale ? (
-                  <div style={{ fontSize: 13, color: "#6b7280", lineHeight: 1.5, borderTop: "1px solid #f0f0f0", paddingTop: 8 }}>{s.rationale}</div>
+                  <div style={{ fontSize: 14, color: "#6b7280", lineHeight: 1.5, borderTop: "1px solid #f0f0f0", paddingTop: 8 }}>{s.rationale}</div>
                 ) : null}
               </div>
             );
@@ -1364,22 +1364,27 @@ export default function Designer() {
             <div
               style={{
                 fontFamily: S.mono,
-                fontSize: 10,
+                fontSize: 12,
+                textTransform: "uppercase",
                 color: S.dim,
                 letterSpacing: "0.06em",
-                marginBottom: 8,
+                marginBottom: 10,
                 fontWeight: 700,
               }}
             >
-              HOW DZ IS CALCULATED
+              HOW YOUR SCORE IS CALCULATED
             </div>
-            <div style={{ fontFamily: S.mono, fontSize: 12, color: "#3d4a6b", lineHeight: 1.8 }}>
-              DZ = (Affinity ÷ 10) × ((10 − AI Risk) ÷ 10) × (Demand ÷ 10) × 100
-            </div>
-            <div style={{ fontSize: 13, color: "#6b7280", lineHeight: 1.55, marginTop: 8 }}>
-              Affinity combines your Craft Conscience (35%), Intrinsic Pull (35%), and per-skill Felt Fluency (30%). AI Risk and Demand are calibrated for
-              your exact role and level.
-            </div>
+            <p style={{ fontSize: 16, lineHeight: 1.75, color: "#3d4a6b", margin: "0 0 12px" }}>
+              Your DZ score is calculated from three inputs. Affinity measures how naturally this work fits you — combining how much you care about quality
+              (Craft Conscience), how often you think about these problems unprompted (Intrinsic Pull), and how effortlessly the work flows for you (Felt
+              Fluency). AI Resistance measures how hard it is for current AI systems to replicate this skill at your seniority level. Market Demand measures
+              how much organizations are actively paying for humans who do this well. The three are multiplied together — so a high score requires all three,
+              not just one.
+            </p>
+            <p style={{ fontSize: 14, color: "#9ca3af", fontStyle: "italic", margin: 0, lineHeight: 1.65 }}>
+              The weights and calibration scores are based on published AI labor market research and our own survey of 450 professionals conducted March
+              2026.
+            </p>
           </div>
 
           {recsLoading ? (
@@ -1389,7 +1394,7 @@ export default function Designer() {
                 maxWidth: 420,
                 margin: "24px auto 28px",
                 fontFamily: S.mono,
-                fontSize: 14,
+                fontSize: 15,
                 color: S.dim,
                 letterSpacing: "0.04em",
               }}
@@ -1398,7 +1403,7 @@ export default function Designer() {
             </div>
           ) : recsError ? (
             <div style={{ textAlign: "center", maxWidth: 400, margin: "24px auto 28px" }}>
-              <p style={{ color: S.red, fontSize: 15, margin: "0 0 20px" }}>{recsError}</p>
+              <p style={{ color: S.red, fontSize: 16, margin: "0 0 20px" }}>{recsError}</p>
               <button
                 type="button"
                 onClick={function () {
@@ -1410,7 +1415,7 @@ export default function Designer() {
                   border: "none",
                   borderRadius: 12,
                   padding: "14px 32px",
-                  fontSize: 15,
+                  fontSize: 16,
                   fontFamily: S.font,
                   fontWeight: 600,
                   cursor: "pointer",
@@ -1468,7 +1473,7 @@ export default function Designer() {
                     >
                       Your 90-Day Action Plan
                     </h2>
-                    <p style={{ fontSize: 15, color: "#6b7280", lineHeight: 1.6, margin: 0 }}>
+                    <p style={{ fontSize: 16, color: "#6b7280", lineHeight: 1.6, margin: 0 }}>
                       One specific action for each skill — ranked by what will move the needle most for a {seniority} {designerTitle}.
                     </p>
                   </div>
@@ -1505,7 +1510,7 @@ export default function Designer() {
                             <div
                               style={{
                                 fontFamily: S.mono,
-                                fontSize: 11,
+                                fontSize: 12,
                                 textTransform: "uppercase",
                                 letterSpacing: "0.06em",
                                 color: "#6b7280",
@@ -1526,8 +1531,8 @@ export default function Designer() {
                             >
                               {rec.headline || "—"}
                             </div>
-                            <div style={{ fontSize: 15, color: S.text, lineHeight: 1.6, marginBottom: 10 }}>{rec.action}</div>
-                            <div style={{ fontSize: 13, color: "#6b7280", fontStyle: "italic", lineHeight: 1.55 }}>{rec.why}</div>
+                            <div style={{ fontSize: 16, color: S.text, lineHeight: 1.6, marginBottom: 10 }}>{rec.action}</div>
+                            <div style={{ fontSize: 14, color: "#6b7280", fontStyle: "italic", lineHeight: 1.55 }}>{rec.why}</div>
                           </div>
                         </div>
                       );
@@ -1547,7 +1552,7 @@ export default function Designer() {
                       <div
                         style={{
                           fontFamily: S.mono,
-                          fontSize: 11,
+                          fontSize: 12,
                           color: S.gold,
                           letterSpacing: "0.1em",
                           marginBottom: 12,
@@ -1568,7 +1573,7 @@ export default function Designer() {
                       >
                         See exactly what to do next.
                       </h3>
-                      <p style={{ fontSize: 14, color: "rgba(196, 181, 253, 0.85)", lineHeight: 1.65, margin: "0 0 24px" }}>
+                      <p style={{ fontSize: 15, color: "rgba(196, 181, 253, 0.85)", lineHeight: 1.65, margin: "0 0 24px" }}>
                         Your scores are ready. Your action plan is personalized to you as a {seniority} {designerTitle}. Unlock all 8 recommendations
                         plus a PDF you can keep.
                       </p>
@@ -1595,7 +1600,7 @@ export default function Designer() {
                           <div
                             style={{
                               fontFamily: S.mono,
-                              fontSize: 11,
+                              fontSize: 12,
                               textTransform: "uppercase",
                               letterSpacing: "0.06em",
                               color: "#6b7280",
@@ -1605,11 +1610,11 @@ export default function Designer() {
                           >
                             RECOMMENDATIONS
                           </div>
-                          <div style={{ fontSize: 15, fontWeight: 700, color: S.text, marginBottom: 4 }}>$29 one-time</div>
+                          <div style={{ fontSize: 16, fontWeight: 700, color: S.text, marginBottom: 4 }}>$29 one-time</div>
                           <div style={{ flex: 1, marginBottom: 16 }}>
                             {tier29Features.map(function (line) {
                               return (
-                                <div key={line} style={{ fontSize: 13, color: "#4a5568", lineHeight: 1.5, marginBottom: 6 }}>
+                                <div key={line} style={{ fontSize: 14, color: "#4a5568", lineHeight: 1.5, marginBottom: 6 }}>
                                   {line}
                                 </div>
                               );
@@ -1626,7 +1631,7 @@ export default function Designer() {
                               border: "none",
                               borderRadius: 10,
                               padding: "12px 16px",
-                              fontSize: 14,
+                              fontSize: 15,
                               fontFamily: S.font,
                               fontWeight: 600,
                               cursor: "pointer",
@@ -1655,7 +1660,7 @@ export default function Designer() {
                               top: 12,
                               right: 12,
                               fontFamily: S.mono,
-                              fontSize: 11,
+                              fontSize: 12,
                               background: S.gold,
                               color: "#ffffff",
                               padding: "4px 8px",
@@ -1669,7 +1674,7 @@ export default function Designer() {
                           <div
                             style={{
                               fontFamily: S.mono,
-                              fontSize: 11,
+                              fontSize: 12,
                               textTransform: "uppercase",
                               letterSpacing: "0.06em",
                               color: "#6b7280",
@@ -1680,11 +1685,11 @@ export default function Designer() {
                           >
                             RECOMMENDATIONS + PDF
                           </div>
-                          <div style={{ fontSize: 15, fontWeight: 700, color: S.text, marginBottom: 4 }}>$34 one-time</div>
+                          <div style={{ fontSize: 16, fontWeight: 700, color: S.text, marginBottom: 4 }}>$34 one-time</div>
                           <div style={{ flex: 1, marginBottom: 16 }}>
                             {tier34Features.map(function (line) {
                               return (
-                                <div key={line} style={{ fontSize: 13, color: "#4a5568", lineHeight: 1.5, marginBottom: 6 }}>
+                                <div key={line} style={{ fontSize: 14, color: "#4a5568", lineHeight: 1.5, marginBottom: 6 }}>
                                   {line}
                                 </div>
                               );
@@ -1701,7 +1706,7 @@ export default function Designer() {
                               border: "none",
                               borderRadius: 10,
                               padding: "12px 16px",
-                              fontSize: 14,
+                              fontSize: 15,
                               fontFamily: S.font,
                               fontWeight: 600,
                               cursor: "pointer",
@@ -1713,11 +1718,11 @@ export default function Designer() {
                         </div>
                       </div>
 
-                      <div style={{ marginTop: 24 }}>
+                        <div style={{ marginTop: 24 }}>
                         <div
                           style={{
                             fontFamily: S.mono,
-                            fontSize: 11,
+                            fontSize: 12,
                             color: "rgba(255,255,255,0.75)",
                             letterSpacing: "0.08em",
                             marginBottom: 10,
@@ -1739,7 +1744,7 @@ export default function Designer() {
                               flex: "1 1 180px",
                               minWidth: 0,
                               padding: "12px 14px",
-                              fontSize: 14,
+                              fontSize: 15,
                               fontFamily: S.mono,
                               border: "1px solid rgba(255,255,255,0.25)",
                               borderRadius: 10,
@@ -1762,7 +1767,7 @@ export default function Designer() {
                             }}
                             style={{
                               padding: "12px 20px",
-                              fontSize: 14,
+                              fontSize: 15,
                               fontFamily: S.font,
                               fontWeight: 600,
                               background: "rgba(255,255,255,0.15)",
@@ -1776,7 +1781,7 @@ export default function Designer() {
                           </button>
                         </div>
                         {promoError ? (
-                          <div style={{ color: S.red, fontSize: 13, marginTop: 8 }}>{promoError}</div>
+                          <div style={{ color: S.red, fontSize: 14, marginTop: 8 }}>{promoError}</div>
                         ) : null}
                       </div>
                     </div>
@@ -1789,7 +1794,7 @@ export default function Designer() {
           <div
             style={{
               fontFamily: S.mono,
-              fontSize: 10,
+              fontSize: 12,
               color: "#9ca3af",
               textAlign: "center",
               paddingBottom: 32,
@@ -1843,7 +1848,7 @@ export default function Designer() {
           <div
             style={{
               fontFamily: S.mono,
-              fontSize: 11,
+              fontSize: 12,
               color: S.gold,
               letterSpacing: "0.12em",
               marginBottom: 16,
@@ -1871,7 +1876,7 @@ export default function Designer() {
               background: "#f2f4f8",
               borderRadius: 10,
               padding: "16px 20px",
-              fontSize: 15,
+              fontSize: 16,
               color: "#3d4a6b",
               marginBottom: 28,
               lineHeight: 1.65,
@@ -1883,7 +1888,30 @@ export default function Designer() {
           <div
             style={{
               fontFamily: S.mono,
-              fontSize: 11,
+              fontSize: 12,
+              textTransform: "uppercase",
+              letterSpacing: "0.06em",
+              color: S.dim,
+              marginBottom: 6,
+            }}
+          >
+            HOW WE CHOSE THESE SKILLS
+          </div>
+          <p
+            style={{
+              fontSize: 14,
+              lineHeight: 1.65,
+              color: "#6b7280",
+              margin: "0 0 20px",
+            }}
+          >
+            These 8 skills were selected based on your profile — your UX practice area, seniority, company size, and work focus. They represent the areas where AI is having the most impact on work like yours right now, and where your Defensible Zone™ is most likely to be tested.
+          </p>
+
+          <div
+            style={{
+              fontFamily: S.mono,
+              fontSize: 12,
               textTransform: "uppercase",
               letterSpacing: "0.06em",
               color: S.dim,
@@ -1904,7 +1932,7 @@ export default function Designer() {
                     borderRadius: 10,
                     padding: "14px 18px",
                     marginBottom: 8,
-                    fontSize: 15,
+                    fontSize: 16,
                     color: S.text,
                     lineHeight: 1.5,
                   }}
@@ -1927,7 +1955,7 @@ export default function Designer() {
                 border: "none",
                 borderRadius: 12,
                 padding: "14px 32px",
-                fontSize: 15,
+                fontSize: 16,
                 fontFamily: S.font,
                 fontWeight: 600,
                 cursor: "pointer",
