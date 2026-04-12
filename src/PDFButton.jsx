@@ -19,24 +19,14 @@ export default function PDFButton({ contentId, label = "Save as PDF" }) {
         "@media print {\n" +
         "  @page { margin: 1in; }\n" +
         "  html, body { background: #fff !important; }\n" +
-        "  body * { display: none !important; }\n" +
+        "  body * { visibility: hidden !important; }\n" +
         "  #" +
         sel +
-        " { display: block !important; }\n" +
+        " { visibility: visible !important; position: absolute; left: 0; top: 0; width: 100%; }\n" +
         "  #" +
         sel +
-        " * { display: revert !important; }\n" +
-        "  #" +
-        sel +
-        ", #" +
-        sel +
-        " * { font-family: Arial, sans-serif !important; font-size: 12pt !important; box-shadow: none !important; border-radius: 0 !important; }\n" +
-        "  #" +
-        sel +
-        " div { page-break-inside: avoid; }\n" +
-        "  .no-print, #" +
-        sel +
-        " .no-print { display: none !important; }\n" +
+        " * { visibility: visible !important; }\n" +
+        "  .no-print { visibility: hidden !important; display: none !important; }\n" +
         "}\n";
 
       document.head.appendChild(styleEl);
