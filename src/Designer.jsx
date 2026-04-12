@@ -84,6 +84,9 @@ export default function Designer() {
   var [fluencies, setFluencies] = useState({});
   var [adjustedSkills, setAdjustedSkills] = useState(new Set());
   var adjustedSkillsRef = useRef(new Set());
+  var [results, setResults] = useState(null);
+  var [resultsLoading, setResultsLoading] = useState(false);
+  var [resultsError, setResultsError] = useState(null);
 
   useEffect(function () {
     var link = document.createElement("link");
@@ -193,6 +196,57 @@ export default function Designer() {
       setError("Something went wrong — please try again.");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function fetchResults() {
+    setResultsLoading(true);
+    setResultsError(null);
+    var designerTitle =
+      (DESIGNER_TYPES.find(function (dt) {
+        return dt.id === designerType;
+      }) || {}).title || designerType;
+    var skillList = skills
+      .map(function (s, i) {
+        return i + 1 + ". " + s.text;
+      })
+      .join("\n");
+    var prompt =
+      "You are a senior AI labor market analyst specializing in design careers.\n\nDESIGNER PROFILE: " +
+      designerTitle +
+      ", " +
+      seniority +
+      ", " +
+      companySize +
+      ", focus: " +
+      workFocus.join(", ") +
+      "\n\nFor each of the 8 skills below, provide scores for this exact profile in April 2026:\n- aiR: AI replaceability 0-10 (10 = AI can fully do this now)\n- market: market demand 0-10 (10 = very high demand for humans)\n- rationale: one sentence explaining the aiR score\n\nInclude a realistic mix — some high aiR (at risk), some low.\n\nSkills:\n" +
+      skillList +
+      '\n\nReturn ONLY valid JSON, no preamble:\n{"skills":[{"id":"s0","aiR":7.5,"market":8.0,"rationale":"..."},{"id":"s1","aiR":3.0,"market":7.5,"rationale":"..."},{"id":"s2","aiR":5.0,"market":6.0,"rationale":"..."},{"id":"s3","aiR":2.0,"market":8.5,"rationale":"..."},{"id":"s4","aiR":8.0,"market":7.0,"rationale":"..."},{"id":"s5","aiR":4.5,"market":6.5,"rationale":"..."},{"id":"s6","aiR":6.0,"market":7.5,"rationale":"..."},{"id":"s7","aiR":3.5,"market":9.0,"rationale":"..."}]}';
+    try {
+      var res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-6",
+          max_tokens: 1500,
+          messages: [{ role: "user", content: prompt }],
+        }),
+      });
+      var data = await res.json();
+      if (!data.content) throw new Error(data.error || "API error");
+      var raw = data.content
+        .map(function (b) {
+          return b.text || "";
+        })
+        .join("");
+      var m = raw.match(/\{[\s\S]*\}/);
+      if (!m) throw new Error("No JSON in response");
+      setResults(JSON.parse(m[0]));
+      setResultsLoading(false);
+    } catch (e) {
+      setResultsError("Something went wrong scoring your skills. Please try again.");
+      setResultsLoading(false);
     }
   }
 
@@ -644,6 +698,7 @@ export default function Designer() {
           productName="Defensible Zone Designer Edition"
           onUnlock={function () {
             setStep(5);
+            fetchResults();
           }}
         />
         <div
@@ -663,6 +718,63 @@ export default function Designer() {
   }
 
   if (step === 5) {
+    if (resultsLoading) {
+      return (
+        <div
+          style={{
+            background: "#f8f9fc",
+            minHeight: "100vh",
+            fontFamily: S.font,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "32px 20px",
+          }}
+        >
+          <div style={{ textAlign: "center", maxWidth: 420, fontFamily: S.mono, fontSize: 14, color: S.dim }}>
+            Scoring your skills against the AI landscape…
+          </div>
+        </div>
+      );
+    }
+    if (resultsError) {
+      return (
+        <div
+          style={{
+            background: "#f8f9fc",
+            minHeight: "100vh",
+            fontFamily: S.font,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "32px 20px",
+          }}
+        >
+          <div style={{ textAlign: "center", maxWidth: 400 }}>
+            <p style={{ color: S.red, fontSize: 15, margin: "0 0 20px" }}>{resultsError}</p>
+            <button
+              type="button"
+              onClick={function () {
+                fetchResults();
+              }}
+              style={{
+                background: "#D97706",
+                color: "#fff",
+                border: "none",
+                borderRadius: 12,
+                padding: "14px 32px",
+                fontSize: 15,
+                fontFamily: S.font,
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              Try again
+            </button>
+          </div>
+        </div>
+      );
+    }
     return (
       <div
         style={{
@@ -675,10 +787,9 @@ export default function Designer() {
           padding: "32px 20px",
           color: S.dim,
           fontSize: 14,
-          textAlign: "center",
         }}
       >
-        Results coming in Slice 4b.
+        Results UI coming in Slice 4b-ii.
       </div>
     );
   }
