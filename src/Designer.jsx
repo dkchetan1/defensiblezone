@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import EmailGate from "./EmailGate";
 
 // ── DESIGNER TYPES ─────────────────────────────────────────────────────
 var DESIGNER_TYPES = [
@@ -616,7 +617,56 @@ export default function Designer() {
     return (
       <div
         style={{
-          background: S.bg,
+          background: "#f8f9fc",
+          minHeight: "100vh",
+          fontFamily: S.mono,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "32px 20px",
+          boxSizing: "border-box",
+        }}
+      >
+        <div
+          style={{
+            fontSize: 11,
+            color: "#d97706",
+            letterSpacing: "0.12em",
+            fontWeight: 600,
+            textAlign: "center",
+            marginBottom: 24,
+          }}
+        >
+          DEFENSIBLE ZONE™ · DESIGNER EDITION
+        </div>
+        <EmailGate
+          productName="Defensible Zone Designer Edition"
+          onUnlock={function () {
+            setStep(5);
+          }}
+        />
+        <div
+          style={{
+            fontSize: 10,
+            color: S.dim,
+            textAlign: "center",
+            marginTop: 32,
+            maxWidth: 480,
+            lineHeight: 1.5,
+          }}
+        >
+          DEFENSIBLE ZONE™ is a trademark of its creator. All rights reserved.
+        </div>
+      </div>
+    );
+  }
+
+  if (step === 5) {
+    return (
+      <div
+        style={{
+          background: "#f8f9fc",
           minHeight: "100vh",
           fontFamily: S.mono,
           display: "flex",
@@ -625,9 +675,10 @@ export default function Designer() {
           padding: "32px 20px",
           color: S.dim,
           fontSize: 14,
+          textAlign: "center",
         }}
       >
-        Step 4 coming next.
+        Results coming in Slice 4b.
       </div>
     );
   }
