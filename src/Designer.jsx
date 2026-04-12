@@ -15,15 +15,98 @@ var DESIGNER_TYPES = [
   { id: "ux_analyst", title: "UX Analyst", desc: "Data, metrics, heatmaps, quantitative research." },
 ];
 
-var SENIORITY_OPTIONS = [
-  "Intern / Student",
-  "Junior (0–2 years)",
-  "Mid-level (3–5 years)",
-  "Senior (6–10 years)",
-  "Staff / Principal (10+ years)",
-  "Director / Head of Design",
-  "VP / C-Suite",
-];
+var SENIORITY_BY_TYPE = {
+  product: [
+    "Intern / Student",
+    "Junior Product Designer",
+    "Product Designer",
+    "Senior Product Designer",
+    "Staff / Principal Product Designer",
+    "Product Design Director",
+    "VP of Design",
+  ],
+  interaction: [
+    "Intern / Student",
+    "Junior Interaction Designer",
+    "Interaction Designer",
+    "Senior Interaction Designer",
+    "Staff / Principal Interaction Designer",
+    "Interaction Design Lead",
+    "Head of Interaction Design",
+  ],
+  visual_brand: [
+    "Intern / Student",
+    "Junior Visual Designer",
+    "Visual Designer",
+    "Senior Visual Designer",
+    "Staff / Principal Visual Designer",
+    "Visual Design Director",
+    "VP of Brand & Design",
+  ],
+  ux_researcher: [
+    "Intern / Student",
+    "Junior UX Researcher",
+    "UX Researcher",
+    "Senior UX Researcher",
+    "Staff / Principal Researcher",
+    "Research Director",
+    "VP of Research",
+  ],
+  content: [
+    "Intern / Student",
+    "Junior Content Designer",
+    "Content Designer",
+    "Senior Content Designer",
+    "Staff / Principal Content Designer",
+    "Content Design Director",
+    "Head of Content Design",
+  ],
+  design_ops: [
+    "Intern / Student",
+    "Junior DesignOps Specialist",
+    "DesignOps Specialist",
+    "Senior DesignOps Specialist",
+    "Staff / Principal DesignOps",
+    "DesignOps Director",
+    "VP of Design Operations",
+  ],
+  motion: [
+    "Intern / Student",
+    "Junior Motion Designer",
+    "Motion Designer",
+    "Senior Motion Designer",
+    "Staff / Principal Motion Designer",
+    "Motion Design Director",
+    "Head of Motion Design",
+  ],
+  service: [
+    "Intern / Student",
+    "Junior Service Designer",
+    "Service Designer",
+    "Senior Service Designer",
+    "Staff / Principal Service Designer",
+    "Service Design Director",
+    "Head of Service Design",
+  ],
+  strategist: [
+    "Intern / Student",
+    "Junior Design Strategist",
+    "Design Strategist",
+    "Senior Design Strategist",
+    "Staff / Principal Design Strategist",
+    "Strategy Director",
+    "VP of Design Strategy",
+  ],
+  ux_analyst: [
+    "Intern / Student",
+    "Junior UX Analyst",
+    "UX Analyst",
+    "Senior UX Analyst",
+    "Staff / Principal UX Analyst",
+    "UX Analytics Director",
+    "Head of UX Analytics",
+  ],
+};
 
 var COMPANY_SIZE_OPTIONS = [
   "Freelance / Solo",
@@ -106,6 +189,13 @@ export default function Designer() {
       document.body.style.background = "";
     };
   }, []);
+
+  useEffect(
+    function () {
+      setSeniority("");
+    },
+    [designerType]
+  );
 
   function snapToStop(val) {
     var stops = [0, 3, 5, 7, 10];
@@ -434,7 +524,7 @@ export default function Designer() {
             ← back
           </button>
           <div style={{ fontFamily: S.mono, fontSize: 11, color: "#d97706", letterSpacing: "0.1em" }}>
-            DEFENSIBLE ZONE™ · DESIGNER EDITION
+            DEFENSIBLE ZONE™ · UX PROFESSIONAL EDITION
           </div>
           <div style={{ marginTop: 16, marginBottom: 32 }}>
             {[0, 1, 2, 3].map(function (i) {
@@ -756,7 +846,7 @@ export default function Designer() {
             marginBottom: 24,
           }}
         >
-          DEFENSIBLE ZONE™ · DESIGNER EDITION
+          DEFENSIBLE ZONE™ · UX PROFESSIONAL EDITION
         </div>
         <EmailGate
           productName="Defensible Zone Designer Edition"
@@ -904,7 +994,7 @@ export default function Designer() {
               fontWeight: 600,
             }}
           >
-            DEFENSIBLE ZONE™ · DESIGNER EDITION
+            DEFENSIBLE ZONE™ · UX PROFESSIONAL EDITION
           </div>
 
           <h1
@@ -1612,7 +1702,7 @@ export default function Designer() {
               fontWeight: 600,
             }}
           >
-            DEFENSIBLE ZONE™ · DESIGNER EDITION
+            DEFENSIBLE ZONE™ · UX PROFESSIONAL EDITION
           </div>
 
           <h1
@@ -1710,7 +1800,7 @@ export default function Designer() {
       border: "1px solid #d0d7e8",
       borderRadius: 20,
       padding: "10px 18px",
-      fontSize: 14,
+      fontSize: 15,
       color: "#0d1117",
       cursor: "pointer",
       fontFamily: S.font,
@@ -1722,7 +1812,7 @@ export default function Designer() {
       border: "none",
       borderRadius: 20,
       padding: "10px 18px",
-      fontSize: 14,
+      fontSize: 15,
       cursor: "pointer",
       fontFamily: S.font,
       lineHeight: 1.3,
@@ -1785,20 +1875,20 @@ export default function Designer() {
           <div
             style={{
               fontFamily: S.mono,
-              fontSize: 11,
+              fontSize: 12,
               color: S.gold,
               letterSpacing: "0.12em",
               marginBottom: 16,
               fontWeight: 600,
             }}
           >
-            DEFENSIBLE ZONE™ · DESIGNER EDITION
+            DEFENSIBLE ZONE™ · UX PROFESSIONAL EDITION
           </div>
 
           <h1
             style={{
               fontFamily: S.serif,
-              fontSize: 32,
+              fontSize: 36,
               color: S.text,
               margin: "0 0 14px",
               lineHeight: 1.15,
@@ -1811,7 +1901,7 @@ export default function Designer() {
           <p
             style={{
               color: "#6b7280",
-              fontSize: 15,
+              fontSize: 16,
               lineHeight: 1.65,
               margin: "0 0 32px",
               maxWidth: "100%",
@@ -1824,7 +1914,7 @@ export default function Designer() {
             <div
               style={{
                 fontFamily: S.mono,
-                fontSize: 11,
+                fontSize: 12,
                 textTransform: "uppercase",
                 letterSpacing: "0.06em",
                 color: S.dim,
@@ -1834,7 +1924,7 @@ export default function Designer() {
               YOUR EXPERIENCE LEVEL
             </div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-              {SENIORITY_OPTIONS.map(function (label) {
+              {(SENIORITY_BY_TYPE[designerType] || []).map(function (label) {
                 var sel = seniority === label;
                 return (
                   <button
@@ -1856,7 +1946,7 @@ export default function Designer() {
             <div
               style={{
                 fontFamily: S.mono,
-                fontSize: 11,
+                fontSize: 12,
                 textTransform: "uppercase",
                 letterSpacing: "0.06em",
                 color: S.dim,
@@ -1888,7 +1978,7 @@ export default function Designer() {
             <div
               style={{
                 fontFamily: S.mono,
-                fontSize: 11,
+                fontSize: 12,
                 textTransform: "uppercase",
                 letterSpacing: "0.06em",
                 color: S.dim,
@@ -1976,7 +2066,7 @@ export default function Designer() {
         </div>
 
         <div style={{ fontFamily: S.mono, fontSize: 11, color: S.gold, letterSpacing: "0.12em", marginBottom: 16, fontWeight: 600 }}>
-          DEFENSIBLE ZONE™ · DESIGNER EDITION
+          DEFENSIBLE ZONE™ · UX PROFESSIONAL EDITION
         </div>
 
         <h1 style={{ fontFamily: S.serif, fontSize: 34, color: S.text, margin: "0 0 14px", lineHeight: 1.15, fontWeight: 600 }}>
