@@ -1105,7 +1105,7 @@ export default function Designer() {
           rationale = found.rationale || "";
         }
       }
-      var dz = Math.round((affinity / 10) * ((10 - aiRScore) / 10) * (marketScore / 10) * 100);
+      var dz = Math.round(100 * Math.pow(affinity / 10, 0.35) * Math.pow((10 - aiRScore) / 10, 0.40) * Math.pow(marketScore / 10, 0.25));
       return {
         id: skill.id,
         text: skill.text,
