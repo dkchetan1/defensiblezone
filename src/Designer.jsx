@@ -775,21 +775,319 @@ export default function Designer() {
         </div>
       );
     }
+    var designerTitle = (DESIGNER_TYPES.find(function (dt) {
+      return dt.id === designerType;
+    }) || {}).title || designerType;
+
+    var skillDZs = skills.map(function (skill) {
+      var f = fluencies[skill.id] !== undefined ? fluencies[skill.id] : getSeed(conscience, pull);
+      var affinity = computeAffinity(conscience, pull, f);
+      var aiRScore = 5;
+      var marketScore = 7;
+      var rationale = "";
+      if (results && results.skills) {
+        var found = results.skills.find(function (r) {
+          return r.id === skill.id;
+        });
+        if (found) {
+          aiRScore = typeof found.aiR === "number" ? found.aiR : 5;
+          marketScore = typeof found.market === "number" ? found.market : 7;
+          rationale = found.rationale || "";
+        }
+      }
+      var dz = Math.round((affinity / 10) * ((10 - aiRScore) / 10) * (marketScore / 10) * 100);
+      return {
+        id: skill.id,
+        text: skill.text,
+        affinity: affinity,
+        aiR: aiRScore,
+        market: marketScore,
+        rationale: rationale,
+        dz: Math.max(0, Math.min(100, dz)),
+      };
+    });
+
+    var totalDZ = Math.round(skillDZs.reduce(function (sum, s) {
+      return sum + s.dz;
+    }, 0) / skillDZs.length);
+
+    var dzLabelColor = totalDZ >= 70 ? S.green : totalDZ >= 50 ? S.gold : totalDZ >= 30 ? S.orange : S.red;
+    var dzLabel =
+      totalDZ >= 70 ? "Highly Defensible" : totalDZ >= 50 ? "Moderately Defensible" : totalDZ >= 30 ? "Mixed Territory" : "Needs Attention";
+
+    var sortedDZ = skillDZs.slice().sort(function (a, b) {
+      return b.dz - a.dz;
+    });
+    var topSkills = sortedDZ.slice(0, 3);
+    var atRisk = sortedDZ.slice(-3);
+
+    function dzColor(score) {
+      if (score >= 65) return S.green;
+      if (score >= 40) return S.gold;
+      return S.red;
+    }
+
     return (
-      <div
-        style={{
-          background: "#f8f9fc",
-          minHeight: "100vh",
-          fontFamily: S.mono,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          padding: "32px 20px",
-          color: S.dim,
-          fontSize: 14,
-        }}
-      >
-        Results UI coming in Slice 4b-ii.
+      <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font, padding: "32px 20px" }}>
+        <div style={{ maxWidth: 680, margin: "0 auto" }}>
+          <div
+            style={{
+              fontFamily: S.mono,
+              fontSize: 11,
+              color: S.gold,
+              letterSpacing: "0.12em",
+              marginBottom: 20,
+              fontWeight: 600,
+            }}
+          >
+            DEFENSIBLE ZONE™ · DESIGNER EDITION
+          </div>
+
+          <h1
+            style={{
+              fontFamily: S.serif,
+              fontSize: 34,
+              color: S.text,
+              margin: "0 0 6px",
+              lineHeight: 1.15,
+              fontWeight: 600,
+            }}
+          >
+            Your Defensible Zone.
+          </h1>
+          <p style={{ color: "#6b7280", fontSize: 15, lineHeight: 1.6, margin: "0 0 32px" }}>
+            {designerTitle} · {seniority} · {companySize}
+          </p>
+
+          <div
+            style={{
+              background: "#ffffff",
+              border: "1px solid #d0d7e8",
+              borderRadius: 16,
+              padding: "28px",
+              marginBottom: 24,
+              display: "flex",
+              alignItems: "center",
+              gap: 28,
+            }}
+          >
+            <div
+              style={{
+                width: 96,
+                height: 96,
+                borderRadius: "50%",
+                border: "4px solid " + dzLabelColor,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+              }}
+            >
+              <span
+                style={{
+                  fontSize: 32,
+                  fontWeight: 700,
+                  color: dzLabelColor,
+                  lineHeight: 1,
+                  fontFamily: S.mono,
+                }}
+              >
+                {totalDZ}
+              </span>
+              <span style={{ fontSize: 10, color: "#9ca3af", fontFamily: S.mono, marginTop: 2 }}>/ 100</span>
+            </div>
+            <div>
+              <div
+                style={{
+                  fontFamily: S.mono,
+                  fontSize: 11,
+                  color: "#9ca3af",
+                  letterSpacing: "0.08em",
+                  marginBottom: 6,
+                }}
+              >
+                OVERALL DZ SCORE
+              </div>
+              <div style={{ fontSize: 22, fontWeight: 700, color: dzLabelColor, marginBottom: 6, fontFamily: S.serif }}>{dzLabel}</div>
+              <p style={{ fontSize: 14, color: "#6b7280", lineHeight: 1.55, margin: 0 }}>
+                Across your 8 assessed skills, this is how defensible your practice is against AI displacement right now.
+              </p>
+            </div>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 28 }}>
+            <div style={{ background: "#ffffff", border: "1px solid #d0d7e8", borderRadius: 14, padding: "20px 18px" }}>
+              <div
+                style={{
+                  fontFamily: S.mono,
+                  fontSize: 10,
+                  color: S.green,
+                  letterSpacing: "0.1em",
+                  marginBottom: 14,
+                  fontWeight: 700,
+                }}
+              >
+                MOST DEFENSIBLE
+              </div>
+              {topSkills.map(function (s) {
+                return (
+                  <div key={s.id} style={{ marginBottom: 12 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: S.text, lineHeight: 1.35, marginBottom: 4 }}>{s.text}</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <div style={{ flex: 1, height: 6, background: "#f0f0f0", borderRadius: 3, overflow: "hidden" }}>
+                        <div style={{ width: s.dz + "%", height: "100%", background: S.green, borderRadius: 3 }} />
+                      </div>
+                      <span
+                        style={{
+                          fontFamily: S.mono,
+                          fontSize: 11,
+                          color: S.green,
+                          fontWeight: 700,
+                          minWidth: 28,
+                          textAlign: "right",
+                        }}
+                      >
+                        {s.dz}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{ background: "#ffffff", border: "1px solid #d0d7e8", borderRadius: 14, padding: "20px 18px" }}>
+              <div
+                style={{
+                  fontFamily: S.mono,
+                  fontSize: 10,
+                  color: S.red,
+                  letterSpacing: "0.1em",
+                  marginBottom: 14,
+                  fontWeight: 700,
+                }}
+              >
+                MOST EXPOSED
+              </div>
+              {atRisk.map(function (s) {
+                return (
+                  <div key={s.id} style={{ marginBottom: 12 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: S.text, lineHeight: 1.35, marginBottom: 4 }}>{s.text}</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <div style={{ flex: 1, height: 6, background: "#f0f0f0", borderRadius: 3, overflow: "hidden" }}>
+                        <div style={{ width: s.dz + "%", height: "100%", background: dzColor(s.dz), borderRadius: 3 }} />
+                      </div>
+                      <span
+                        style={{
+                          fontFamily: S.mono,
+                          fontSize: 11,
+                          color: dzColor(s.dz),
+                          fontWeight: 700,
+                          minWidth: 28,
+                          textAlign: "right",
+                        }}
+                      >
+                        {s.dz}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div
+            style={{
+              fontFamily: S.mono,
+              fontSize: 11,
+              textTransform: "uppercase",
+              letterSpacing: "0.06em",
+              color: S.dim,
+              marginBottom: 14,
+            }}
+          >
+            FULL SKILL BREAKDOWN
+          </div>
+
+          {skillDZs.map(function (s) {
+            var col = dzColor(s.dz);
+            return (
+              <div
+                key={s.id}
+                style={{
+                  background: "#ffffff",
+                  border: "1px solid #d0d7e8",
+                  borderRadius: 12,
+                  padding: "16px 18px",
+                  marginBottom: 8,
+                }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+                  <div style={{ fontSize: 15, fontWeight: 600, color: S.text, flex: 1, paddingRight: 12, lineHeight: 1.35 }}>{s.text}</div>
+                  <div style={{ fontFamily: S.mono, fontSize: 22, fontWeight: 700, color: col, flexShrink: 0, lineHeight: 1 }}>{s.dz}</div>
+                </div>
+                <div style={{ height: 8, background: "#f0f0f0", borderRadius: 4, overflow: "hidden", marginBottom: 10 }}>
+                  <div style={{ width: s.dz + "%", height: "100%", background: col, borderRadius: 4 }} />
+                </div>
+                <div style={{ display: "flex", gap: 18, marginBottom: s.rationale ? 10 : 0 }}>
+                  <div>
+                    <div style={{ fontFamily: S.mono, fontSize: 9, color: "#9ca3af", letterSpacing: "0.06em" }}>AFFINITY</div>
+                    <div style={{ fontFamily: S.mono, fontSize: 12, fontWeight: 700, color: "#7c3aed" }}>{s.affinity}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontFamily: S.mono, fontSize: 9, color: "#9ca3af", letterSpacing: "0.06em" }}>AI RISK</div>
+                    <div
+                      style={{
+                        fontFamily: S.mono,
+                        fontSize: 12,
+                        fontWeight: 700,
+                        color: s.aiR >= 7 ? S.red : s.aiR >= 5 ? S.gold : S.green,
+                      }}
+                    >
+                      {s.aiR}/10
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontFamily: S.mono, fontSize: 9, color: "#9ca3af", letterSpacing: "0.06em" }}>DEMAND</div>
+                    <div style={{ fontFamily: S.mono, fontSize: 12, fontWeight: 700, color: S.blue }}>{s.market}/10</div>
+                  </div>
+                </div>
+                {s.rationale ? (
+                  <div style={{ fontSize: 13, color: "#6b7280", lineHeight: 1.5, borderTop: "1px solid #f0f0f0", paddingTop: 8 }}>{s.rationale}</div>
+                ) : null}
+              </div>
+            );
+          })}
+
+          <div style={{ background: "#f2f4f8", borderRadius: 12, padding: "16px 20px", marginTop: 8, marginBottom: 28 }}>
+            <div
+              style={{
+                fontFamily: S.mono,
+                fontSize: 10,
+                color: S.dim,
+                letterSpacing: "0.06em",
+                marginBottom: 8,
+                fontWeight: 700,
+              }}
+            >
+              HOW DZ IS CALCULATED
+            </div>
+            <div style={{ fontFamily: S.mono, fontSize: 12, color: "#3d4a6b", lineHeight: 1.8 }}>
+              DZ = (Affinity ÷ 10) × ((10 − AI Risk) ÷ 10) × (Demand ÷ 10) × 100
+            </div>
+            <div style={{ fontSize: 13, color: "#6b7280", lineHeight: 1.55, marginTop: 8 }}>
+              Affinity combines your Craft Conscience (35%), Intrinsic Pull (35%), and per-skill Felt Fluency (30%). AI Risk and Demand are calibrated for
+              your exact role and level.
+            </div>
+          </div>
+
+          <div style={{ fontFamily: S.mono, fontSize: 12, color: S.dim, textAlign: "center", marginBottom: 28 }}>Stripe upsell coming in Slice 4c.</div>
+
+          <div style={{ fontFamily: S.mono, fontSize: 10, color: "#9ca3af", textAlign: "center", paddingBottom: 32, lineHeight: 1.7 }}>
+            DEFENSIBLE ZONE™ is a trademark of its creator. All rights reserved.
+            <br />
+            For educational purposes only. Not professional career advice.
+          </div>
+        </div>
       </div>
     );
   }
