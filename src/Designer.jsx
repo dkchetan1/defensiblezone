@@ -1149,7 +1149,7 @@ export default function Designer() {
               style={{
                 textAlign: "center",
                 maxWidth: 420,
-                margin: "0 auto 28px",
+                margin: "24px auto 28px",
                 fontFamily: S.mono,
                 fontSize: 14,
                 color: S.dim,
@@ -1159,7 +1159,7 @@ export default function Designer() {
               Building your personalized action plan…
             </div>
           ) : recsError ? (
-            <div style={{ textAlign: "center", maxWidth: 400, margin: "0 auto 28px" }}>
+            <div style={{ textAlign: "center", maxWidth: 400, margin: "24px auto 28px" }}>
               <p style={{ color: S.red, fontSize: 15, margin: "0 0 20px" }}>{recsError}</p>
               <button
                 type="button"
@@ -1182,15 +1182,385 @@ export default function Designer() {
               </button>
             </div>
           ) : (
-            <div style={{ fontFamily: S.mono, fontSize: 14, color: S.dim, textAlign: "center", marginBottom: 28 }}>
-              Recommendations ready. Upsell UI coming in Slice 4c-ii.
-            </div>
+            (function () {
+              var rawRecs =
+                recommendations && recommendations.recommendations ? recommendations.recommendations.slice() : [];
+              var byId = {};
+              rawRecs.forEach(function (r) {
+                byId[r.id] = r;
+              });
+              skills.forEach(function (s) {
+                if (rawRecs.length < 8 && !byId[s.id]) {
+                  rawRecs.push({ id: s.id, headline: "", action: "", why: "" });
+                  byId[s.id] = rawRecs[rawRecs.length - 1];
+                }
+              });
+              var recList = rawRecs.slice(0, 8);
+              var showAllRecs = tier >= 1 || promoUsed;
+              var showUpsell = tier === 0 && !promoUsed;
+
+              var rec29Url = "https://buy.stripe.com/00waEXbZobnl0D3bc2dQQ02";
+              var rec34Url = "https://buy.stripe.com/00wdR93sSgHFadD5RIdQQ03";
+
+              var tier29Features = [
+                "All 8 personalized recommendations",
+                "Ranked by impact for your role",
+                "90-day action steps",
+                "Specific to your seniority and focus",
+              ];
+              var tier34Features = [
+                "Everything in Recommendations",
+                "Downloadable PDF",
+                "Share with a coach or manager",
+                "Permanent record of your assessment",
+              ];
+
+              return (
+                <div style={{ marginTop: 24 }}>
+                  <div style={{ marginBottom: 28 }}>
+                    <h2
+                      style={{
+                        fontFamily: S.serif,
+                        fontSize: 28,
+                        fontWeight: 600,
+                        color: S.text,
+                        margin: "0 0 10px",
+                        lineHeight: 1.2,
+                      }}
+                    >
+                      Your 90-Day Action Plan
+                    </h2>
+                    <p style={{ fontSize: 15, color: "#6b7280", lineHeight: 1.6, margin: 0 }}>
+                      One specific action for each skill — ranked by what will move the needle most for a {seniority} {designerTitle}.
+                    </p>
+                  </div>
+
+                  <div style={{ marginBottom: showUpsell ? 0 : 28 }}>
+                    {recList.map(function (rec, idx) {
+                      var skillRow = skillDZs.find(function (sd) {
+                        return sd.id === rec.id;
+                      });
+                      var skillName =
+                        (skills.find(function (sk) {
+                          return sk.id === rec.id;
+                        }) || {}).text || rec.id;
+                      var dzForBar = skillRow ? skillRow.dz : 0;
+                      var barColor = dzColor(dzForBar);
+                      var lockedBlur = !showAllRecs && idx > 0;
+                      return (
+                        <div
+                          key={rec.id + "-" + idx}
+                          style={{
+                            display: "flex",
+                            background: "#ffffff",
+                            border: "1px solid #d0d7e8",
+                            borderRadius: 12,
+                            marginBottom: 12,
+                            overflow: "hidden",
+                            filter: lockedBlur ? "blur(5px)" : "none",
+                            userSelect: lockedBlur ? "none" : "auto",
+                            pointerEvents: lockedBlur ? "none" : "auto",
+                          }}
+                        >
+                          <div style={{ width: 4, background: barColor, flexShrink: 0 }} />
+                          <div style={{ padding: "20px 22px", flex: 1, minWidth: 0 }}>
+                            <div
+                              style={{
+                                fontFamily: S.mono,
+                                fontSize: 11,
+                                textTransform: "uppercase",
+                                letterSpacing: "0.06em",
+                                color: "#6b7280",
+                                marginBottom: 8,
+                              }}
+                            >
+                              {skillName}
+                            </div>
+                            <div
+                              style={{
+                                fontFamily: S.serif,
+                                fontSize: 20,
+                                fontWeight: 600,
+                                color: S.text,
+                                lineHeight: 1.3,
+                                marginBottom: 10,
+                              }}
+                            >
+                              {rec.headline || "—"}
+                            </div>
+                            <div style={{ fontSize: 15, color: S.text, lineHeight: 1.6, marginBottom: 10 }}>{rec.action}</div>
+                            <div style={{ fontSize: 13, color: "#6b7280", fontStyle: "italic", lineHeight: 1.55 }}>{rec.why}</div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {showUpsell ? (
+                    <div
+                      style={{
+                        background: "linear-gradient(135deg, #1a1d2e 0%, #2d1f5e 100%)",
+                        borderRadius: 16,
+                        padding: 28,
+                        marginTop: 24,
+                        marginBottom: 28,
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontFamily: S.mono,
+                          fontSize: 11,
+                          color: S.gold,
+                          letterSpacing: "0.1em",
+                          marginBottom: 12,
+                          fontWeight: 600,
+                        }}
+                      >
+                        UNLOCK YOUR FULL ACTION PLAN
+                      </div>
+                      <h3
+                        style={{
+                          fontFamily: S.serif,
+                          fontSize: 24,
+                          fontWeight: 600,
+                          color: "#ffffff",
+                          margin: "0 0 12px",
+                          lineHeight: 1.25,
+                        }}
+                      >
+                        See exactly what to do next.
+                      </h3>
+                      <p style={{ fontSize: 14, color: "rgba(196, 181, 253, 0.85)", lineHeight: 1.65, margin: "0 0 24px" }}>
+                        Your scores are ready. Your action plan is personalized to you as a {seniority} {designerTitle}. Unlock all 8 recommendations
+                        plus a PDF you can keep.
+                      </p>
+
+                      <div
+                        style={{
+                          display: "flex",
+                          flexWrap: "wrap",
+                          gap: 12,
+                          alignItems: "stretch",
+                        }}
+                      >
+                        <div
+                          style={{
+                            flex: "1 1 260px",
+                            background: "#ffffff",
+                            border: "1px solid #d0d7e8",
+                            borderRadius: 12,
+                            padding: "20px 18px",
+                            display: "flex",
+                            flexDirection: "column",
+                          }}
+                        >
+                          <div
+                            style={{
+                              fontFamily: S.mono,
+                              fontSize: 11,
+                              textTransform: "uppercase",
+                              letterSpacing: "0.06em",
+                              color: "#6b7280",
+                              marginBottom: 8,
+                              fontWeight: 600,
+                            }}
+                          >
+                            RECOMMENDATIONS
+                          </div>
+                          <div style={{ fontSize: 15, fontWeight: 700, color: S.text, marginBottom: 4 }}>$29 one-time</div>
+                          <div style={{ flex: 1, marginBottom: 16 }}>
+                            {tier29Features.map(function (line) {
+                              return (
+                                <div key={line} style={{ fontSize: 13, color: "#4a5568", lineHeight: 1.5, marginBottom: 6 }}>
+                                  {line}
+                                </div>
+                              );
+                            })}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={function () {
+                              window.open(rec29Url, "_blank", "noopener,noreferrer");
+                            }}
+                            style={{
+                              background: S.gold,
+                              color: "#ffffff",
+                              border: "none",
+                              borderRadius: 10,
+                              padding: "12px 16px",
+                              fontSize: 14,
+                              fontFamily: S.font,
+                              fontWeight: 600,
+                              cursor: "pointer",
+                              width: "100%",
+                            }}
+                          >
+                            Unlock Recommendations →
+                          </button>
+                        </div>
+
+                        <div
+                          style={{
+                            flex: "1 1 260px",
+                            background: "#ffffff",
+                            border: "1px solid #d0d7e8",
+                            borderRadius: 12,
+                            padding: "20px 18px",
+                            display: "flex",
+                            flexDirection: "column",
+                            position: "relative",
+                          }}
+                        >
+                          <div
+                            style={{
+                              position: "absolute",
+                              top: 12,
+                              right: 12,
+                              fontFamily: S.mono,
+                              fontSize: 11,
+                              background: S.gold,
+                              color: "#ffffff",
+                              padding: "4px 8px",
+                              borderRadius: 6,
+                              fontWeight: 700,
+                              letterSpacing: "0.04em",
+                            }}
+                          >
+                            BEST VALUE
+                          </div>
+                          <div
+                            style={{
+                              fontFamily: S.mono,
+                              fontSize: 11,
+                              textTransform: "uppercase",
+                              letterSpacing: "0.06em",
+                              color: "#6b7280",
+                              marginBottom: 8,
+                              fontWeight: 600,
+                              paddingRight: 88,
+                            }}
+                          >
+                            RECOMMENDATIONS + PDF
+                          </div>
+                          <div style={{ fontSize: 15, fontWeight: 700, color: S.text, marginBottom: 4 }}>$34 one-time</div>
+                          <div style={{ flex: 1, marginBottom: 16 }}>
+                            {tier34Features.map(function (line) {
+                              return (
+                                <div key={line} style={{ fontSize: 13, color: "#4a5568", lineHeight: 1.5, marginBottom: 6 }}>
+                                  {line}
+                                </div>
+                              );
+                            })}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={function () {
+                              window.open(rec34Url, "_blank", "noopener,noreferrer");
+                            }}
+                            style={{
+                              background: S.gold,
+                              color: "#ffffff",
+                              border: "none",
+                              borderRadius: 10,
+                              padding: "12px 16px",
+                              fontSize: 14,
+                              fontFamily: S.font,
+                              fontWeight: 600,
+                              cursor: "pointer",
+                              width: "100%",
+                            }}
+                          >
+                            Get PDF Report →
+                          </button>
+                        </div>
+                      </div>
+
+                      <div style={{ marginTop: 24 }}>
+                        <div
+                          style={{
+                            fontFamily: S.mono,
+                            fontSize: 11,
+                            color: "rgba(255,255,255,0.75)",
+                            letterSpacing: "0.08em",
+                            marginBottom: 10,
+                            fontWeight: 600,
+                          }}
+                        >
+                          HAVE A PROMO CODE?
+                        </div>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "stretch" }}>
+                          <input
+                            type="text"
+                            value={promoCode}
+                            onChange={function (e) {
+                              setPromoCode(e.target.value);
+                              if (promoError) setPromoError("");
+                            }}
+                            placeholder="Enter code"
+                            style={{
+                              flex: "1 1 180px",
+                              minWidth: 0,
+                              padding: "12px 14px",
+                              fontSize: 14,
+                              fontFamily: S.mono,
+                              border: "1px solid rgba(255,255,255,0.25)",
+                              borderRadius: 10,
+                              background: "rgba(255,255,255,0.95)",
+                              color: S.text,
+                              boxSizing: "border-box",
+                            }}
+                          />
+                          <button
+                            type="button"
+                            onClick={function () {
+                              var v = (promoCode || "").trim().toUpperCase();
+                              if (v === "DZFRIEND" || v === "DZPREVIEW" || v === "DZTEST") {
+                                setTier(2);
+                                setPromoUsed(true);
+                                setPromoError("");
+                              } else {
+                                setPromoError("That code isn't valid.");
+                              }
+                            }}
+                            style={{
+                              padding: "12px 20px",
+                              fontSize: 14,
+                              fontFamily: S.font,
+                              fontWeight: 600,
+                              background: "rgba(255,255,255,0.15)",
+                              color: "#ffffff",
+                              border: "1px solid rgba(255,255,255,0.35)",
+                              borderRadius: 10,
+                              cursor: "pointer",
+                            }}
+                          >
+                            Apply
+                          </button>
+                        </div>
+                        {promoError ? (
+                          <div style={{ color: S.red, fontSize: 13, marginTop: 8 }}>{promoError}</div>
+                        ) : null}
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              );
+            })()
           )}
 
-          <div style={{ fontFamily: S.mono, fontSize: 10, color: "#9ca3af", textAlign: "center", paddingBottom: 32, lineHeight: 1.7 }}>
-            DEFENSIBLE ZONE™ is a trademark of its creator. All rights reserved.
-            <br />
-            For educational purposes only. Not professional career advice.
+          <div
+            style={{
+              fontFamily: S.mono,
+              fontSize: 10,
+              color: "#9ca3af",
+              textAlign: "center",
+              paddingBottom: 32,
+              marginTop: 0,
+              lineHeight: 1.7,
+            }}
+          >
+            <div>DEFENSIBLE ZONE™ is a trademark of its creator. All rights reserved.</div>
+            <div style={{ marginTop: 6 }}>For educational purposes only. Not professional career advice.</div>
           </div>
         </div>
       </div>
