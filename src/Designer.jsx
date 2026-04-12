@@ -87,6 +87,13 @@ export default function Designer() {
   var [results, setResults] = useState(null);
   var [resultsLoading, setResultsLoading] = useState(false);
   var [resultsError, setResultsError] = useState(null);
+  var [recommendations, setRecommendations] = useState(null);
+  var [recsLoading, setRecsLoading] = useState(false);
+  var [recsError, setRecsError] = useState(null);
+  var [tier, setTier] = useState(0);
+  var [promoCode, setPromoCode] = useState("");
+  var [promoError, setPromoError] = useState("");
+  var [promoUsed, setPromoUsed] = useState(false);
 
   useEffect(function () {
     var link = document.createElement("link");
@@ -242,11 +249,68 @@ export default function Designer() {
         .join("");
       var m = raw.match(/\{[\s\S]*\}/);
       if (!m) throw new Error("No JSON in response");
-      setResults(JSON.parse(m[0]));
+      var parsedResults = JSON.parse(m[0]);
+      setResults(parsedResults);
       setResultsLoading(false);
+      fetchRecommendations(parsedResults.skills);
     } catch (e) {
       setResultsError("Something went wrong scoring your skills. Please try again.");
       setResultsLoading(false);
+    }
+  }
+
+  async function fetchRecommendations(scoredSkills) {
+    setRecsLoading(true);
+    setRecsError(null);
+    var designerTitle = (DESIGNER_TYPES.find(function (dt) {
+      return dt.id === designerType;
+    }) || {}).title || designerType;
+    var skillSummary = skills
+      .map(function (s, i) {
+        var scored = scoredSkills.find(function (r) {
+          return r.id === s.id;
+        });
+        var aiR = scored ? scored.aiR : 5;
+        var market = scored ? scored.market : 7;
+        return i + 1 + ". " + s.text + " (AI Risk: " + aiR + "/10, Market Demand: " + market + "/10)";
+      })
+      .join("\n");
+    var prompt =
+      "You are a senior design career strategist. A " +
+      seniority +
+      " " +
+      designerTitle +
+      " at a " +
+      companySize +
+      " focused on " +
+      workFocus.join(", ") +
+      " just completed a Defensible Zone assessment.\n\nFor each skill below, write a short personalized recommendation. Be specific to their seniority and context. Use plain English. Do not use the word 'threat'. Be direct and practical.\n\nSkills with scores:\n" +
+      skillSummary +
+      '\n\nReturn ONLY valid JSON, no preamble:\n{"recommendations":[{"id":"s0","headline":"5-7 word action headline","action":"One specific thing to do in the next 90 days.","why":"One sentence on why this matters for their exact situation."},{"id":"s1","headline":"...","action":"...","why":"..."},{"id":"s2","headline":"...","action":"...","why":"..."},{"id":"s3","headline":"...","action":"...","why":"..."},{"id":"s4","headline":"...","action":"...","why":"..."},{"id":"s5","headline":"...","action":"...","why":"..."},{"id":"s6","headline":"...","action":"...","why":"..."},{"id":"s7","headline":"...","action":"...","why":"..."}]}';
+    try {
+      var res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-6",
+          max_tokens: 2000,
+          messages: [{ role: "user", content: prompt }],
+        }),
+      });
+      var data = await res.json();
+      if (!data.content) throw new Error(data.error || "API error");
+      var raw = data.content
+        .map(function (b) {
+          return b.text || "";
+        })
+        .join("");
+      var m = raw.match(/\{[\s\S]*\}/);
+      if (!m) throw new Error("No JSON in response");
+      setRecommendations(JSON.parse(m[0]));
+      setRecsLoading(false);
+    } catch (e) {
+      setRecsError("Could not load recommendations. Please try again.");
+      setRecsLoading(false);
     }
   }
 
@@ -1080,7 +1144,48 @@ export default function Designer() {
             </div>
           </div>
 
-          <div style={{ fontFamily: S.mono, fontSize: 12, color: S.dim, textAlign: "center", marginBottom: 28 }}>Stripe upsell coming in Slice 4c.</div>
+          {recsLoading ? (
+            <div
+              style={{
+                textAlign: "center",
+                maxWidth: 420,
+                margin: "0 auto 28px",
+                fontFamily: S.mono,
+                fontSize: 14,
+                color: S.dim,
+                letterSpacing: "0.04em",
+              }}
+            >
+              Building your personalized action plan…
+            </div>
+          ) : recsError ? (
+            <div style={{ textAlign: "center", maxWidth: 400, margin: "0 auto 28px" }}>
+              <p style={{ color: S.red, fontSize: 15, margin: "0 0 20px" }}>{recsError}</p>
+              <button
+                type="button"
+                onClick={function () {
+                  fetchRecommendations(results ? results.skills : []);
+                }}
+                style={{
+                  background: "#D97706",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: 12,
+                  padding: "14px 32px",
+                  fontSize: 15,
+                  fontFamily: S.font,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                Try again
+              </button>
+            </div>
+          ) : (
+            <div style={{ fontFamily: S.mono, fontSize: 14, color: S.dim, textAlign: "center", marginBottom: 28 }}>
+              Recommendations ready. Upsell UI coming in Slice 4c-ii.
+            </div>
+          )}
 
           <div style={{ fontFamily: S.mono, fontSize: 10, color: "#9ca3af", textAlign: "center", paddingBottom: 32, lineHeight: 1.7 }}>
             DEFENSIBLE ZONE™ is a trademark of its creator. All rights reserved.
