@@ -473,10 +473,10 @@ const GROUPS = {
 const LEVELS = ["Medical Student","Resident","Fellow","Attending Physician"];
 
 const THREAT = {
-  low:      { col:"#059669", label:"Low AI Threat",      desc:"Human presence, relationship, and tactile skill dominate. AI is an assistant, not a threat." },
-  moderate: { col:"#d97706", label:"Moderate AI Threat", desc:"AI is automating specific tasks. Core clinical judgment remains defensible." },
-  high:     { col:"#f97316", label:"High AI Threat",     desc:"Multiple AI systems are FDA-cleared in this specialty. Defensible skills require deliberate investment." },
-  critical: { col:"#dc2626", label:"Critical AI Threat", desc:"AI matches or exceeds specialist performance on core tasks. The defensible zone™ must be actively constructed." }
+  low:      { col:"#059669", label:"Low AI Landscape",      desc:"Human presence, relationship, and tactile skill dominate. AI is an assistant, not a replacement for clinical judgment." },
+  moderate: { col:"#d97706", label:"Moderate AI Landscape", desc:"AI is automating specific tasks. Core clinical judgment remains defensible." },
+  high:     { col:"#f97316", label:"High AI Landscape",     desc:"Multiple AI systems are FDA-cleared in this specialty. Defensible skills require deliberate investment." },
+  critical: { col:"#dc2626", label:"Critical AI Landscape", desc:"AI matches or exceeds specialist performance on core tasks. The defensible zone™ must be actively constructed." }
 };
 
 const T = {
@@ -515,9 +515,9 @@ function compAff(conscience, pull, fluency) {
 }
 function calcDZ(aff, aiR, mkt) { return Math.min(100, Math.round(100 * Math.pow(aff/10, 0.35) * Math.pow((10-aiR)/10, 0.40) * Math.pow(mkt/10, 0.25))); }
 function dzCol(s) { if(s>=70)return T.grn; if(s>=45)return T.amb; if(s>=25)return T.org; return T.red; }
-function dzLbl(s) { if(s>=70)return"Defensible"; if(s>=45)return"Moderate Risk"; if(s>=25)return"High Risk"; return"Critical Risk"; }
+function dzLbl(s) { if(s>=70)return"Defensible"; if(s>=45)return"Moderate Risk"; if(s>=25)return"Growth Area"; return"Needs Attention"; }
 
-function MCard({children,style}){ return <div style={{background:T.card,border:"1px solid "+T.bdr,borderRadius:14,padding:24,...style}}>{children}</div>; }
+function MCard({children,style,className}){ return <div className={className} style={{background:T.card,border:"1px solid "+T.bdr,borderRadius:14,padding:24,...style}}>{children}</div>; }
 function MLbl({children,col,style}){ return <div style={{fontFamily:T.mono,fontSize:11,color:col||T.amb,letterSpacing:".1em",fontWeight:700,textTransform:"uppercase",marginBottom:10,...style}}>{children}</div>; }
 function MMono({children,style}){ return <span style={{fontFamily:T.mono,fontSize:12,...style}}>{children}</span>; }
 function MTag({children,col}){ return <span style={{display:"inline-flex",alignItems:"center",padding:"3px 10px",borderRadius:20,fontFamily:T.mono,fontSize:11,fontWeight:700,color:col,background:col+"18",border:"1px solid "+col+"40",whiteSpace:"nowrap"}}>{children}</span>; }
@@ -686,10 +686,10 @@ function buildRecs(results, specialty, level, degree) {
   if (reassess.length > 0) {
     recs.push({
       icon: "⚠", col: "#dc2626",
-      title: "Reassess your investment here",
+      title: "Redirect your energy here",
       skills: reassess.map(r => r.name),
       actions: [
-        "Low affinity combined with high AI risk is the most exposed combination. Ericsson's deliberate practice research shows that skill development requires intrinsic motivation — without it, you plateau early and the ceiling is low.",
+        "Low affinity combined with high AI risk is the combination that needs most attention. Ericsson's deliberate practice research shows that skill development requires intrinsic motivation — without it, you plateau early and the ceiling is low.",
         "Meet the minimum competency standard for your training level — this is non-negotiable for patient safety and credentialing. But stop there. Do not invest development energy beyond what your role requires.",
         SKILL_RESOURCES.mkt_low[1],
         "Redirect the time you would spend here toward your high-affinity, high-demand, low-AI-risk skills. The compounding effect of deliberate practice in your genuine strength areas far exceeds marginal gains in areas of low affinity."
@@ -711,7 +711,7 @@ function buildRecs(results, specialty, level, degree) {
       degree === "DO" ? "Your OPP training positions you to practice integrative, whole-person medicine that AI-assisted specialists may lack. This is a competitive advantage in complex, multi-system cases." : "Consider an added qualification in clinical informatics through ABPM or your specialty board. The intersection of clinical expertise and AI literacy is one of the fastest-growing and most defensible niches in medicine."
     ],
     moderate: [
-      "AI is entering your specialty but has not yet threatened its core competencies. The ACGME's 2024 Milestones 2.0 framework explicitly includes AI literacy and health systems science — engage with these requirements as developmental opportunities, not checkboxes.",
+      "AI is entering your specialty but has not yet reshaped its core competencies. The ACGME's 2024 Milestones 2.0 framework explicitly includes AI literacy and health systems science — engage with these requirements as developmental opportunities, not checkboxes.",
       "Your longitudinal patient relationships, diagnostic reasoning, and clinical communication are your primary defensible zone™. These are supported by evidence: patient-centered communication is associated with better outcomes, higher adherence, and lower malpractice risk (Stewart et al., J Fam Pract 2000).",
       "Invest in point-of-care ultrasound (POCUS) skills if relevant to your specialty. POCUS is a concrete procedural skill with growing market demand that extends clinical reach and is supported by multiple ACGME milestones.",
       level === "Medical Student" || level === "Resident" ? "As you train, seek diagnostic ambiguity deliberately. The cases where the diagnosis is unclear are where clinical reasoning — your most defensible competency — develops fastest (Mamede et al., Med Educ 2012)." : "Consider developing a quality improvement, clinical education, or health systems leadership role alongside your clinical practice. These human-systems roles grow in value as AI handles more routine clinical tasks."
@@ -753,7 +753,7 @@ function PaywallGateMedical({ onUnlock }) {
   }
 
   return (
-    <MCard style={{marginBottom:14}}>
+    <MCard className="no-print" style={{marginBottom:14}}>
       <style>{`@keyframes dzShake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}`}</style>
 
       {/* Header */}
@@ -775,7 +775,7 @@ function PaywallGateMedical({ onUnlock }) {
           <MLbl style={{marginBottom:6}}>Recommendations</MLbl>
           <div style={{fontFamily:T.disp,fontSize:28,color:T.txt,lineHeight:1,marginBottom:4}}>$29<span style={{fontFamily:T.mono,fontSize:13,fontWeight:400,color:T.dim}}> one-time</span></div>
           <ul style={{margin:"10px 0 14px",padding:0,listStyle:"none"}}>
-            {["Personalized action plan","Steps ranked by impact & effort","Skills to protect vs deprioritize","AI-threat timeline for your specialty"].map(item=>(
+            {["Personalized action plan","Steps ranked by impact & effort","Skills to protect vs deprioritize","AI landscape timeline for your specialty"].map(item=>(
               <li key={item} style={{display:"flex",gap:7,alignItems:"flex-start",marginBottom:5}}>
                 <span style={{color:T.amb,fontWeight:700,flexShrink:0,marginTop:1}}>✓</span>
                 <MMono style={{color:T.mut,fontSize:11,lineHeight:1.5}}>{item}</MMono>
@@ -1024,7 +1024,7 @@ export default function DefensibleZoneMedical(){
             {Object.entries(THREAT).map(([k,v])=>(
               <div key={k} style={{display:"flex",alignItems:"center",gap:5}}>
                 <div style={{width:8,height:8,borderRadius:"50%",background:v.col}}/>
-                <MMono style={{color:T.dim,fontSize:11}}>{v.label.replace(" AI Threat","")}</MMono>
+                <MMono style={{color:T.dim,fontSize:11}}>{v.label.replace(" AI Landscape","")}</MMono>
               </div>
             ))}
           </div>
@@ -1225,7 +1225,7 @@ export default function DefensibleZoneMedical(){
         <div style={{maxWidth:480,width:"100%",background:T.surf,border:"1px solid "+T.bdr,borderRadius:16,padding:"40px 36px",textAlign:"center"}}>
           <MMono style={{color:T.amb,fontSize:11,letterSpacing:"0.14em",fontWeight:600,display:"block",marginBottom:16}}>ONE LAST THING</MMono>
           <h2 style={{fontFamily:T.serif,fontSize:26,color:T.txt,margin:"0 0 12px",lineHeight:1.2}}>Want to save your results?</h2>
-          <p style={{color:T.mut,fontSize:15,lineHeight:1.7,margin:"0 0 28px"}}>Drop your email and we'll send you a copy. You'll also get occasional updates when the AI threat landscape shifts for your specialty. No spam.</p>
+          <p style={{color:T.mut,fontSize:15,lineHeight:1.7,margin:"0 0 28px"}}>Drop your email and we'll send you a copy. You'll also get occasional updates when the AI landscape shifts for your specialty. No spam.</p>
           <input
             type="email"
             placeholder="your@email.com"
@@ -1249,6 +1249,9 @@ export default function DefensibleZoneMedical(){
     const def   = results.filter(r=>r.dz>=70).length;
     const risk  = results.filter(r=>r.dz<45).length;
     const sorted = [...results].sort((a,b)=>b.dz-a.dz);
+    const showAllRecs = tier >= 2 || promoUsed;
+    const showUpsell = tier === 0 && !promoUsed;
+    const recList = buildRecs(results, specialty, level, degree);
     return(
       <div style={{minHeight:"100vh",background:T.bg,padding:"40px 24px",fontFamily:T.font,color:T.txt}}>
         <style>{GCSS}</style>
@@ -1261,7 +1264,7 @@ export default function DefensibleZoneMedical(){
 
           <MCard style={{marginBottom:14,background:tm.col+"08",border:"1px solid "+tm.col+"30"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,flexWrap:"wrap",gap:8}}>
-              <MLbl col={tm.col} style={{marginBottom:0}}>AI Threat Assessment &mdash; {specialty}</MLbl>
+              <MLbl col={tm.col} style={{marginBottom:0}}>AI Landscape Assessment &mdash; {specialty}</MLbl>
               <MTag col={tm.col}>{tm.label}</MTag>
             </div>
             <ThreatBar level={sd.t||"moderate"}/>
@@ -1269,7 +1272,7 @@ export default function DefensibleZoneMedical(){
           </MCard>
 
           <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:14}}>
-            {[["Avg DZ Score",avgDZ,dzCol(avgDZ)],["Defensible",def,T.grn],["At Risk",risk,T.red],["Skills Assessed",results.length,T.blu]].map(([l,v,c])=>(
+            {[["Avg DZ Score",avgDZ,dzCol(avgDZ)],["Defensible",def,T.grn],["Needs Attention",risk,T.red],["Skills Assessed",results.length,T.blu]].map(([l,v,c])=>(
               <div key={l} style={{background:T.card,border:"1px solid "+T.bdr,borderRadius:12,padding:"14px 16px"}}>
                 <div style={{fontFamily:T.disp,fontSize:28,color:c,lineHeight:1,marginBottom:4}}>{v}</div>
                 <MMono style={{color:T.dim,fontSize:11,letterSpacing:".06em"}}>{String(l).toUpperCase()}</MMono>
@@ -1311,7 +1314,7 @@ export default function DefensibleZoneMedical(){
               })}
             </div>
             <div style={{display:"flex",gap:14,marginTop:16,paddingTop:14,borderTop:"1px solid "+T.bdr,flexWrap:"wrap"}}>
-              {[{s:70,l:"70+ Defensible"},{s:45,l:"45-69 Moderate"},{s:25,l:"25-44 High Risk"},{s:0,l:"Under 25 Critical"}].map(({s,l})=>(
+              {[{s:70,l:"70+ Defensible"},{s:45,l:"45-69 Moderate"},{s:25,l:"25-44 Growth Area"},{s:0,l:"Under 25 Needs Attention"}].map(({s,l})=>(
                 <div key={l} style={{display:"flex",alignItems:"center",gap:5}}>
                   <div style={{width:10,height:10,borderRadius:2,background:dzCol(s)}}/>
                   <MMono style={{color:T.dim,fontSize:11}}>{l}</MMono>
@@ -1346,10 +1349,7 @@ export default function DefensibleZoneMedical(){
             </p>
           </div>
 
-          {tier < 2 ? (
-            <PaywallGateMedical onUnlock={handleUnlock} />
-          ) : (
-            <MCard style={{marginBottom:14}}>
+          <MCard style={{marginBottom:14}}>
               <style>{`@media print{body *{visibility:hidden}#dz-med-print,#dz-med-print *{visibility:visible}#dz-med-print{position:absolute;left:0;top:0;width:100%}.no-print{display:none!important}}`}</style>
               <div id="dz-med-print">
               {tier >= 3 && !promoUsed && (
@@ -1365,7 +1365,7 @@ export default function DefensibleZoneMedical(){
                   <MLbl style={{marginBottom:0}}>What To Do &mdash; Strengthening Your Defensible Zone&#8482;</MLbl>
                   <MMono style={{color:T.dim}}>{showRecs?"▲ Collapse":"▼ Expand"}</MMono>
                 </button>
-                {showRecs && (
+                {showRecs && showAllRecs && (
                   <button
                     className="no-print"
                     onClick={()=>window.print()}
@@ -1375,13 +1375,19 @@ export default function DefensibleZoneMedical(){
               </div>
             {showRecs&&(
               <div style={{marginTop:16,display:"flex",flexDirection:"column",gap:0}}>
-                {buildRecs(results,specialty,level,degree).map((rec,ri)=>(
+                {recList.map(function(rec, ri){
+                  var lockedBlur = !showAllRecs && ri > 0;
+                  return (
                   <div key={ri} style={{
                     borderLeft:"4px solid "+rec.col,
                     paddingLeft:20, paddingTop:16, paddingBottom:16,
                     marginBottom:4,
                     borderRadius:"0 8px 8px 0",
-                    background: ri%2===0 ? "transparent" : T.bg
+                    background: ri%2===0 ? "transparent" : T.bg,
+                    overflow:"hidden",
+                    filter: lockedBlur ? "blur(5px)" : "none",
+                    userSelect: lockedBlur ? "none" : "auto",
+                    pointerEvents: lockedBlur ? "none" : "auto"
                   }}>
                     <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:rec.skills.length>0?6:10}}>
                       <span style={{display:"inline-block",width:8,height:8,borderRadius:2,background:rec.col,flexShrink:0}} />
@@ -1401,12 +1407,13 @@ export default function DefensibleZoneMedical(){
                       ))}
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
             </div> {/* end dz-med-print */}
           </MCard>
-          )} {/* end tier >= 2 conditional */}
+          {showUpsell ? <PaywallGateMedical onUnlock={handleUnlock} /> : null}
 
           {degree==="DO"&&(
             <MCard style={{marginBottom:14,borderLeft:"4px solid "+T.grn}}>
