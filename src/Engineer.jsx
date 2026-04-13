@@ -151,14 +151,14 @@ function dzLabel(dz) {
 function affinityLabel(val) { return [...AFFINITY_LABELS].reverse().find(function(l) { return val >= l.v; })?.label ?? "—"; }
 function investLabel(val)   { return [...INVESTMENT_LABELS].reverse().find(function(l) { return val >= l.v; })?.label ?? "—"; }
 
-function buildProfile(devType, devTypeOther, seniority, workContexts, customContexts, companyType) {
+function buildProfile(devType, devTypeOther, seniority, workContexts, companyType) {
   var dt = DEV_TYPES.find(function(d) { return d.id === devType; });
   var sl = SENIORITY_LEVELS.find(function(s) { return s.id === seniority; });
   var ct = COMPANY_TYPES.find(function(c) { return c.id === companyType; });
   var wcLabels = workContexts.map(function(id) {
     var w = WORK_CONTEXTS.find(function(x) { return x.id === id; });
     return w ? w.label : id;
-  }).concat(customContexts.filter(function(x) { return x.trim(); }));
+  });
   var devLabel = devType === "other" ? (devTypeOther || "Engineer") : (dt ? dt.label : devType);
   return {
     devLabel: devLabel,
@@ -483,13 +483,10 @@ export default function Engineer() {
   var [devTypeOther, setDevTypeOther]     = useState("");
   var [seniority, setSeniority]           = useState("");
   var [workContexts, setWorkContexts]     = useState([]);
-  var [customContexts, setCustomContexts] = useState([]);
-  var [customCtxInput, setCustomCtxInput] = useState("");
   var [showAllCtx, setShowAllCtx]         = useState(false);
   var [companyType, setCompanyType]       = useState("");
   var [landscape, setLandscape]           = useState("");
   var [skills, setSkills]                 = useState([]);
-  var [customInput, setCustomInput]       = useState("");
   var [affinities, setAffinities]         = useState({});
   var [investments, setInvestments]       = useState({});
   var [results, setResults]               = useState(null);
@@ -600,35 +597,10 @@ export default function Engineer() {
     });
   }
 
-  function addCustomCtx() {
-    var raw = customCtxInput.trim();
-    if (!raw) return;
-    // Split on commas, clean each piece
-    var parts = raw.split(",").map(function(p) { return p.trim(); }).filter(function(p) {
-      return p.length >= 5 &&           // at least 5 chars — filters "bla", "xyz" etc
-             p.length <= 60 &&          // not absurdly long
-             /[a-zA-Z]{3,}/.test(p);    // must contain a real word (3+ consecutive letters)
-    });
-    if (parts.length === 0) {
-      setCustomCtxInput("");
-      return;
-    }
-    setCustomContexts(function(prev) {
-      var existing = prev.map(function(x) { return x.toLowerCase(); });
-      var toAdd = parts.filter(function(p) { return existing.indexOf(p.toLowerCase()) === -1; });
-      return prev.concat(toAdd);
-    });
-    setCustomCtxInput("");
-  }
-
-  function removeCustomCtx(idx) {
-    setCustomContexts(function(prev) { return prev.filter(function(_, i) { return i !== idx; }); });
-  }
-
   function resetAll() {
     setStep(0); setDevType(""); setDevTypeOther(""); setSeniority("");
-    setWorkContexts([]); setCustomContexts([]); setCustomCtxInput(""); setShowAllCtx(false);
-    setCompanyType(""); setLandscape(""); setSkills([]); setCustomInput("");
+    setWorkContexts([]); setShowAllCtx(false);
+    setCompanyType(""); setLandscape(""); setSkills([]);
     setAffinities({}); setInvestments({}); setResults(null); setBenchmark(null);
     setHovered(null); setError(null); setShowRecs(true); setShowAlgo(false); setShowSources(false); setTier(0); setPromoUsed(false);
   }
@@ -641,23 +613,14 @@ export default function Engineer() {
     setAffinities(function(p) { var n=Object.assign({},p); delete n[id]; return n; });
     setInvestments(function(p) { var n=Object.assign({},p); delete n[id]; return n; });
   }
-  function addCustomSkill() {
-    var t = customInput.trim();
-    if (!t || skills.length >= 8) return;
-    var id = "c" + Date.now();
-    setSkills(function(p) { return p.concat([{id:id,text:t,editing:false}]); });
-    setAffinities(function(p) { return Object.assign({},p,{[id]:5}); });
-    setInvestments(function(p) { return Object.assign({},p,{[id]:5}); });
-    setCustomInput("");
-  }
 
-  var canProceed = devType !== "" && seniority !== "" && (workContexts.length > 0 || customContexts.length > 0) && (devType !== "other" || devTypeOther.trim() !== "");
+  var canProceed = devType !== "" && seniority !== "" && workContexts.length > 0 && (devType !== "other" || devTypeOther.trim() !== "");
 
   // ── API CALL 1 ────────────────────────────────────────────────────────
   async function fetchLandscapeAndSkills() {
     if (!canProceed) return;
     setLoading(true); setLoadingMsg("Reading your engineering landscape…"); setError(null);
-    var profile = buildProfile(devType, devTypeOther, seniority, workContexts, customContexts, companyType);
+    var profile = buildProfile(devType, devTypeOther, seniority, workContexts, companyType);
     var wcStr = profile.workContextLabels.join(", ");
     var sl = SENIORITY_LEVELS.find(function(s) { return s.id === seniority; });
     var prompt = "You are a senior engineering career strategist specializing in AI labor market analysis for software engineers.\n\nENGINEER PROFILE:\n- Type: " + profile.devLabel + " Engineer\n- Seniority: " + profile.seniorityLabel + " — " + (sl ? sl.note : "") + "\n- Work context: " + wcStr + "\n- Company: " + (profile.companyLabel || "not specified") + "\n\nTask 1 — LANDSCAPE SNAPSHOT: Write 2-3 precise sentences about the AI threat to this exact engineer profile RIGHT NOW (April 2026). Name specific tools (GitHub Copilot, Cursor, Devin, Claude, Gemini Code Assist), specific tasks being automated, and where the real exposure is at this seniority level doing this work. Do not write generic AI commentary — be specific to this combination.\n\nTask 2 — SKILL SUGGESTIONS: Generate exactly 8 skills that are the most strategically important for a " + profile.seniorityLabel + " " + profile.devLabel + " Engineer working on " + wcStr + " to assess for AI defensibility right now. Be precise — not 'coding' but 'designing distributed transaction systems across eventual consistency boundaries'. Include a realistic mix: some that are defensible and some genuinely at risk. Weight toward skills that actually differentiate at the " + profile.seniorityLabel + " level, not junior-level skills.\n\nReturn ONLY valid JSON:\n{\"landscape\":\"...\",\"skills\":[\"skill1\",\"skill2\",\"skill3\",\"skill4\",\"skill5\",\"skill6\",\"skill7\",\"skill8\"]}";
@@ -724,7 +687,7 @@ export default function Engineer() {
   // ── API CALL 2 ────────────────────────────────────────────────────────
   async function runAnalysis() {
     setLoading(true); setLoadingMsg("Scoring your Defensible Zone™…"); setError(null);
-    var profile = buildProfile(devType, devTypeOther, seniority, workContexts, customContexts, companyType);
+    var profile = buildProfile(devType, devTypeOther, seniority, workContexts, companyType);
     var wcStr = profile.workContextLabels.join(", ");
     var sl = SENIORITY_LEVELS.find(function(s) { return s.id === seniority; });
     var skillList = skills.map(function(s,i) { return (i+1)+". "+s.text; }).join("\n");
@@ -806,7 +769,7 @@ export default function Engineer() {
   if (step === 0) {
     var devTypeReady = devType !== "" && (devType !== "other" || devTypeOther.trim() !== "");
     var seniorityReady = devTypeReady && seniority !== "";
-    var contextsReady = seniorityReady && (workContexts.length > 0 || customContexts.length > 0);
+    var contextsReady = seniorityReady && workContexts.length > 0;
     var visibleCtx = getVisibleContexts();
     var hiddenCount = WORK_CONTEXTS.length - visibleCtx.length;
 
@@ -884,8 +847,8 @@ export default function Engineer() {
             <Card style={{marginBottom:12}} className="reveal">
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:4}}>
                 <Label style={{marginBottom:0}}>WHAT DO YOU PRIMARILY WORK ON?</Label>
-                <span style={{fontFamily:S.mono,fontSize:11,color:workContexts.length+customContexts.length>0?S.gold:S.dim,fontWeight:700}}>
-                  {workContexts.length+customContexts.length > 0 ? (workContexts.length+customContexts.length)+" selected" : "select all that apply"}
+                <span style={{fontFamily:S.mono,fontSize:11,color:workContexts.length>0?S.gold:S.dim,fontWeight:700}}>
+                  {workContexts.length > 0 ? workContexts.length+" selected" : "select all that apply"}
                 </span>
               </div>
               <p style={{color:S.muted,fontSize:15,margin:"0 0 14px",lineHeight:1.7}}>
@@ -902,25 +865,6 @@ export default function Engineer() {
               {devType && devType !== "other" && !showAllCtx && hiddenCount > 0 && (
                 <button onClick={function(){setShowAllCtx(true);}} style={{background:"none",border:"1px dashed "+S.border,borderRadius:20,padding:"5px 14px",cursor:"pointer",fontFamily:S.mono,fontSize:11,color:S.dim,marginBottom:12}}>+ Show {hiddenCount} more contexts</button>
               )}
-              <div style={{borderTop:"1px solid "+S.border,paddingTop:12,marginTop:4}}>
-                <div style={{fontFamily:S.mono,fontSize:11,color:S.muted,marginBottom:8,fontWeight:600}}>NOT LISTED? ADD YOUR OWN</div>
-                <div style={{display:"flex",gap:8}}>
-                  <input value={customCtxInput} onChange={function(e){setCustomCtxInput(e.target.value);}} onKeyDown={function(e){if(e.key==="Enter"){e.preventDefault();addCustomCtx();}}} placeholder="e.g. WebRTC, Algorithmic trading, Nuclear systems…" style={Object.assign({},inputStyle,{flex:1})} />
-                  <button onClick={addCustomCtx} style={{background:S.accent,border:"none",color:"white",padding:"12px 18px",borderRadius:8,cursor:"pointer",fontFamily:S.mono,fontSize:13,fontWeight:700,whiteSpace:"nowrap"}}>+ ADD</button>
-                </div>
-                {customContexts.length > 0 && (
-                  <div style={{display:"flex",flexWrap:"wrap",gap:6,marginTop:10}}>
-                    {customContexts.map(function(ctx, i) {
-                      return (
-                        <span key={i} style={{background:S.gold,color:"white",borderRadius:20,padding:"5px 12px",fontFamily:S.mono,fontSize:11,fontWeight:700,display:"flex",alignItems:"center",gap:6}}>
-                          {ctx}
-                          <button onClick={function(){removeCustomCtx(i);}} style={{background:"none",border:"none",color:"white",cursor:"pointer",fontSize:14,lineHeight:1,padding:0}}>×</button>
-                        </span>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
             </Card>
           )}
 
@@ -974,7 +918,7 @@ export default function Engineer() {
 
   // ── STEP 1: SKILLS ─────────────────────────────────────────────────────
   if (step === 1) {
-    var profile1 = buildProfile(devType, devTypeOther, seniority, workContexts, customContexts, companyType);
+    var profile1 = buildProfile(devType, devTypeOther, seniority, workContexts, companyType);
     return (
       <div style={{background:S.bg,minHeight:"100vh",fontFamily:S.font,padding:"32px 20px"}}>
         <div style={{maxWidth:680,margin:"0 auto"}}>
@@ -1000,7 +944,7 @@ export default function Engineer() {
             <p style={{color:S.muted,fontSize:14,margin:"0 0 16px",lineHeight:1.6}}>
               Generated for your exact profile. <strong style={{color:S.text}}>Edit any skill to be more specific</strong> — "React perf optimization for 50M MAU" scores better than "React".
             </p>
-            <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:skills.length<8?16:0}}>
+            <div style={{display:"flex",flexDirection:"column",gap:10}}>
               {skills.map(function(s, i) {
                 return (
                   <div key={s.id} style={{display:"flex",alignItems:"flex-start",gap:10}}>
@@ -1025,12 +969,6 @@ export default function Engineer() {
                 );
               })}
             </div>
-            {skills.length < 8 && (
-              <div style={{display:"flex",gap:8}}>
-                <input value={customInput} onChange={function(e){setCustomInput(e.target.value);}} onKeyDown={function(e){if(e.key==="Enter"){e.preventDefault();addCustomSkill();}}} placeholder="Add a skill — be specific about the judgment and scale involved" style={Object.assign({},inputStyle,{flex:1})} />
-                <button onClick={addCustomSkill} style={{background:S.accent,border:"none",color:"white",padding:"12px 18px",borderRadius:8,cursor:"pointer",fontFamily:S.mono,fontSize:13,fontWeight:700,whiteSpace:"nowrap"}}>+ ADD</button>
-              </div>
-            )}
           </Card>
           <div style={{display:"flex",gap:12}}>
             <button onClick={function(){setStep(0);}} style={{flex:1,background:"transparent",border:"1px solid "+S.border,color:S.muted,borderRadius:12,padding:"15px 0",fontSize:14,fontFamily:S.mono,cursor:"pointer",letterSpacing:"0.06em",fontWeight:600}}>← BACK</button>
@@ -1183,7 +1121,7 @@ export default function Engineer() {
 
   // ── STEP 3: RESULTS ────────────────────────────────────────────────────
   if (step === 3 && results) {
-    var profile3 = buildProfile(devType, devTypeOther, seniority, workContexts, customContexts, companyType);
+    var profile3 = buildProfile(devType, devTypeOther, seniority, workContexts, companyType);
     var recs   = buildRecs(results, profile3, benchmark);
     var avgDZ  = Math.round(results.reduce(function(a,r){return a+r.dz;},0) / results.length);
     var sorted = results.slice().sort(function(a,b){return b.dz-a.dz;});
