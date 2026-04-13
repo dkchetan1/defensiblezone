@@ -473,10 +473,10 @@ const GROUPS = {
 const LEVELS = ["Medical Student","Resident","Fellow","Attending Physician"];
 
 const THREAT = {
-  low:      { col:"#059669", label:"Low AI Landscape",      desc:"Human presence, relationship, and tactile skill dominate. AI is an assistant, not a replacement for clinical judgment." },
-  moderate: { col:"#d97706", label:"Moderate AI Landscape", desc:"AI is automating specific tasks. Core clinical judgment remains defensible." },
-  high:     { col:"#f97316", label:"High AI Landscape",     desc:"Multiple AI systems are FDA-cleared in this specialty. Defensible skills require deliberate investment." },
-  critical: { col:"#dc2626", label:"Critical AI Landscape", desc:"AI matches or exceeds specialist performance on core tasks. The defensible zone™ must be actively constructed." }
+  low:      { col:"#059669", label:"Minimal AI Exposure",      desc:"Human presence, relationship, and tactile skill dominate. AI is an assistant, not a replacement for clinical judgment." },
+  moderate: { col:"#d97706", label:"Moderate AI Integration", desc:"AI is automating specific tasks. Core clinical judgment remains defensible." },
+  high:     { col:"#f97316", label:"High AI Augmentation",     desc:"Multiple AI systems are FDA-cleared in this specialty. Defensible skills require deliberate investment." },
+  critical: { col:"#dc2626", label:"Extensive AI Transformation", desc:"AI matches or exceeds specialist performance on core tasks. The defensible zone™ must be actively constructed." }
 };
 
 const T = {
