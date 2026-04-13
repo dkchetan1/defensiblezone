@@ -1226,7 +1226,7 @@ export default function DefensibleZoneMedical(){
               );
             })}
           </div>
-          {tier >= 2 || promoUsed ? (
+          {showAllRecs ? (
             <div style={{ marginTop: 20, marginBottom: 4, textAlign: "center" }}>
               <PDFButton contentId="dz-doctor-report" label="Save as PDF" />
             </div>
