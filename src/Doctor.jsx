@@ -875,16 +875,16 @@ export default function DefensibleZoneMedical(){
       await fetch("https://api.convertkit.com/v3/forms/9309751/subscribe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ api_key: "OtIv3L3SPCCcxped1fYkLw", email: email })
+        body: JSON.stringify({ api_key: "OtIv3L3SPCCcxped1fYkLw", email: email, fields: { source: "doctor" } })
       });
     } catch(e) { /* silent fail */ }
   }
 
   async function handleEmailAndContinue() {
+    const email = emailInput.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return;
     setEmailSubmitting(true);
-    if (emailInput && emailInput.indexOf("@") > -1) {
-      await submitEmailToKit(emailInput);
-    }
+    await submitEmailToKit(email);
     setEmailSubmitting(false);
     runAnalysis();
   }
@@ -972,7 +972,7 @@ export default function DefensibleZoneMedical(){
       <div style={{minHeight:"100vh",background:T.bg,padding:"40px 24px",fontFamily:T.font,color:T.txt}}>
         <style>{GCSS}</style>
         <div style={{marginBottom:16}}>
-  <a href="/" style={{fontFamily:T.mono,fontSize:12,color:T.mut,textDecoration:"none",letterSpacing:"0.06em",fontWeight:600}}>← DEFENSIBLE ZONE™</a>
+  <a href="/" style={{fontFamily:T.mono,fontSize:12,color:T.mut,textDecoration:"none",letterSpacing:"0.06em",fontWeight:600}}>← DEFENSIBLE ZONE&#8482;</a>
 </div>
         <div style={{maxWidth:520,margin:"0 auto"}}>
           <div style={{marginBottom:40}}>
@@ -1320,6 +1320,31 @@ export default function DefensibleZoneMedical(){
             </div>
           </MCard>
 
+          <div style={{ background: "#f2f4f8", borderRadius: 12, padding: "16px 20px", marginTop: 8, marginBottom: 14 }}>
+            <div
+              style={{
+                fontFamily: T.mono,
+                fontSize: 12,
+                textTransform: "uppercase",
+                color: T.dim,
+                letterSpacing: "0.06em",
+                marginBottom: 10,
+                fontWeight: 700,
+              }}
+            >
+              HOW YOUR SCORE IS CALCULATED
+            </div>
+            <p style={{ fontSize: 16, lineHeight: 1.75, color: "#3d4a6b", margin: "0 0 12px" }}>
+              Your DZ score combines three inputs. Affinity reflects how naturally this clinical work fits you — composed of Craft Conscience, Intrinsic Pull,
+              and Felt Fluency. AI Resistance is how hard it is for current AI systems to replicate this clinical skill at this physician&apos;s level. Market
+              Demand is the current value of this skill in the medical labor market. The three are multiplied together using a Cobb-Douglas formula — a high
+              score requires strength in all three, not just one.
+            </p>
+            <p style={{ fontSize: 14, color: "#9ca3af", fontStyle: "italic", margin: 0, lineHeight: 1.65 }}>
+              Scores are grounded in ACGME Milestones 2.0, CanMEDS 2015, and peer-reviewed clinical AI literature. Weights are literature-informed and pending
+              empirical validation.
+            </p>
+          </div>
 
           {tier < 2 ? (
             <PaywallGateMedical onUnlock={handleUnlock} />
