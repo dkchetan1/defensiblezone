@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 // ── ENGINEER TYPES ─────────────────────────────────────────────────────
 var DEV_TYPES = [
@@ -92,32 +92,16 @@ var SOURCES = [
   { id:"S7", label:"METR / RAND AI Capability Evals (2024–25)", cite:"METR. (2024). Autonomy Evaluation Results. metr.org. RAND Corporation. (2024). Measuring AI's Coding Proficiency Across Skill Levels." },
 ];
 
-// ── AFFINITY / INVESTMENT LABELS ───────────────────────────────────────
-var AFFINITY_LABELS = [
-  { v:0,  label:"Just a paycheck" },
-  { v:3,  label:"Competent but draining" },
-  { v:5,  label:"Enjoy it, not my core" },
-  { v:7,  label:"Energizing, I seek it" },
-  { v:10, label:"My reason for being" },
-];
-var INVESTMENT_LABELS = [
-  { v:0,  label:"Letting it atrophy" },
-  { v:3,  label:"Coasting on what I know" },
-  { v:5,  label:"Maintaining, not growing" },
-  { v:7,  label:"Actively learning" },
-  { v:10, label:"Obsessively deepening" },
-];
-
 // ── ALGO NOTES ─────────────────────────────────────────────────────────
 var ALGO_NOTES = [
-  { id:"A1", color:"#7c3aed", title:"Natural Affinity",   desc:"Slider 0-10. 0 = paycheck only, 10 = reason for being. Self-report bias applies — people tend toward the middle." },
-  { id:"A2", color:"#0891b2", title:"Investment Signal",  desc:"Slider 0-10. Catches the golden cage: high affinity but not investing, quietly drifting while AI advances on the skill." },
-  { id:"A3", color:"#7c3aed", title:"Composite Affinity", desc:"(Natural Affinity x 0.6) + (Investment x 0.4). Wiring weighted more; behavior is the leading indicator of where affinity is heading." },
+  { id:"A1", color:"#7c3aed", title:"Craft Conscience",   desc:"Asked once globally, stable adult trait — how much unfinished or compromised work weighs on you when no one is watching." },
+  { id:"A2", color:"#0891b2", title:"Intrinsic Pull",     desc:"Asked once globally — frequency of unprompted domain engagement outside formal work (mind drifting toward technical problems)." },
+  { id:"A3", color:"#d97706", title:"Felt Fluency",       desc:"Asked per skill — cognitive ease specific to that domain (effortful vs frictionless)." },
   { id:"A4", color:"#dc2626", title:"AI Replaceability",  desc:"Calibrated to your specific role type, seniority, and work context. A Staff engineer's system design scores 2-3; a Junior doing CRUD scores 8-9. Source: GitHub Copilot research, METR evals 2024-25." },
   { id:"A5", color:"#d97706", title:"Market Demand",      desc:"Estimated for your role type and company context. Based on BLS OOH data and WEF Future of Jobs 2025. Not real-time — production upgrade: live job posting data via BLS/Indeed API." },
   { id:"A6", color:"#2563eb", title:"Skill Suggestions",  desc:"Generated from your dev type + seniority + work context. More targeted than a generic engineer profile. You can edit any skill to be more specific." },
   { id:"A7", color:"#059669", title:"Benchmarking",       desc:"Estimated percentile vs engineers at your level and role type. No real cohort data yet — estimate only. Production: anonymized Defensible Zone™ cohort data." },
-  { id:"A8", color:"#ea580c", title:"DZ Formula",         desc:"DZ = 100 x (affinity/10)^0.35 x ((10-aiR)/10)^0.40 x (market/10)^0.25, capped at 100 (Cobb-Douglas). The former interface_bonus term has been removed. Multiplicative — weakness in any dimension still drags the score." },
+  { id:"A8", color:"#ea580c", title:"DZ Formula",         desc:"Composite affinity compAff(c,p,f) = (c×0.35)+(p×0.35)+(f×0.30). DZ = 100 x (affinity/10)^0.35 x ((10-aiR)/10)^0.40 x (market/10)^0.25, capped at 100 (Cobb-Douglas). The former interface_bonus term has been removed. Multiplicative — weakness in any dimension still drags the score." },
   { id:"A9", color:"#64748b", title:"Risk Matrix Placement",desc:"Skills placed on 2x2 by AI Replaceability (x-axis) and Market Demand (y-axis). Bubble size = natural affinity. Color = DZ score. Quadrant labels are strategic not prescriptive." },
 ];
 
@@ -133,7 +117,21 @@ var S = {
 };
 
 // ── MATH ───────────────────────────────────────────────────────────────
-function compAffinity(na, inv) { return Math.round((na * 0.6 + inv * 0.4) * 10) / 10; }
+var AFFINITY_STOPS = [0, 3, 5, 7, 10];
+function snapToStop(val) {
+  return AFFINITY_STOPS.reduce(function(prev, curr) {
+    return Math.abs(curr - val) < Math.abs(prev - val) ? curr : prev;
+  });
+}
+function getSeed(c, p) {
+  var raw = Math.round((c * 0.5 + p * 0.5) * 10) / 10;
+  return AFFINITY_STOPS.reduce(function(prev, curr) {
+    return Math.abs(curr - raw) < Math.abs(prev - raw) ? curr : prev;
+  });
+}
+function compAff(conscience, pull, fluency) {
+  return Math.round((conscience * 0.35 + pull * 0.35 + fluency * 0.3) * 10) / 10;
+}
 function calcDZ(aff, aiR, mkt) {
   var v = 100 * Math.pow(aff / 10, 0.35) * Math.pow((10 - aiR) / 10, 0.40) * Math.pow(mkt / 10, 0.25);
   return Math.min(100, Math.round(v));
@@ -148,9 +146,6 @@ function dzLabel(dz) {
   if (dz >= 45) return "Moderate Risk";
   return "High Risk";
 }
-function affinityLabel(val) { return [...AFFINITY_LABELS].reverse().find(function(l) { return val >= l.v; })?.label ?? "—"; }
-function investLabel(val)   { return [...INVESTMENT_LABELS].reverse().find(function(l) { return val >= l.v; })?.label ?? "—"; }
-
 function buildProfile(devType, devTypeOther, seniority, workContexts, companyType) {
   var dt = DEV_TYPES.find(function(d) { return d.id === devType; });
   var sl = SENIORITY_LEVELS.find(function(s) { return s.id === seniority; });
@@ -484,16 +479,17 @@ export default function Engineer() {
   var [companyType, setCompanyType]       = useState("");
   var [landscape, setLandscape]           = useState("");
   var [skills, setSkills]                 = useState([]);
-  var [affinities, setAffinities]         = useState({});
-  var [investments, setInvestments]       = useState({});
+  var [conscience, setConscience]         = useState(5);
+  var [pull, setPull]                     = useState(5);
+  var [fluencies, setFluencies]           = useState({});
+  var [adjustedSkills, setAdjustedSkills] = useState(function() { return new Set(); });
+  var adjustedSkillsRef                   = useRef(new Set());
   var [results, setResults]               = useState(null);
   var [benchmark, setBenchmark]           = useState(null);
   var [hovered, setHovered]               = useState(null);
   var [loading, setLoading]               = useState(false);
   var [loadingMsg, setLoadingMsg]         = useState("");
   var [error, setError]                   = useState(null);
-  var [emailInput, setEmailInput]         = useState("");
-  var [emailSubmitting, setEmailSubmitting] = useState(false);
   var [showRecs, setShowRecs]             = useState(true);
   var [showAlgo, setShowAlgo]             = useState(false);
   var [showSources, setShowSources]       = useState(false);
@@ -501,6 +497,23 @@ export default function Engineer() {
   var [promoUsed, setPromoUsed]           = useState(false);
 
   function handleUnlock(t, isPromo) { setTier(t); if (isPromo) setPromoUsed(true); }
+
+  function markAdjusted(skillId) {
+    adjustedSkillsRef.current.add(skillId);
+    setAdjustedSkills(new Set(adjustedSkillsRef.current));
+  }
+
+  useEffect(function() {
+    setFluencies(function(prev) {
+      var next = Object.assign({}, prev);
+      skills.forEach(function(s) {
+        if (!adjustedSkillsRef.current.has(s.id)) {
+          next[s.id] = getSeed(conscience, pull);
+        }
+      });
+      return next;
+    });
+  }, [conscience, pull, skills]);
 
   // ── Payment verification ────────────────────────────────────────────────
   // On mount: (1) check localStorage for existing valid token,
@@ -602,7 +615,9 @@ export default function Engineer() {
     setStep(0); setDevType(""); setDevTypeOther(""); setSeniority("");
     setWorkContexts([]); setShowAllCtx(false);
     setCompanyType(""); setLandscape(""); setSkills([]);
-    setAffinities({}); setInvestments({}); setResults(null); setBenchmark(null);
+    setConscience(5); setPull(5); setFluencies({}); setAdjustedSkills(new Set());
+    adjustedSkillsRef.current = new Set();
+    setResults(null); setBenchmark(null);
     setHovered(null); setError(null); setShowRecs(true); setShowAlgo(false); setShowSources(false); setTier(0); setPromoUsed(false);
   }
 
@@ -611,8 +626,9 @@ export default function Engineer() {
   function commitEdit(id) { setSkills(function(p) { return p.map(function(s) { return s.id===id ? Object.assign({},s,{editing:false}) : s; }); }); }
   function removeSkill(id) {
     setSkills(function(p) { return p.filter(function(s) { return s.id!==id; }); });
-    setAffinities(function(p) { var n=Object.assign({},p); delete n[id]; return n; });
-    setInvestments(function(p) { var n=Object.assign({},p); delete n[id]; return n; });
+    setFluencies(function(p) { var n=Object.assign({},p); delete n[id]; return n; });
+    adjustedSkillsRef.current.delete(id);
+    setAdjustedSkills(new Set(adjustedSkillsRef.current));
   }
 
   var canProceed = devType !== "" && seniority !== "" && workContexts.length > 0 && (devType !== "other" || devTypeOther.trim() !== "");
@@ -639,8 +655,9 @@ export default function Engineer() {
       var loaded = parsed.skills.map(function(text, i) { return {id:"s"+i,text:text,editing:false}; });
       setLandscape(parsed.landscape);
       setSkills(loaded);
-      setAffinities(Object.fromEntries(loaded.map(function(s) { return [s.id,5]; })));
-      setInvestments(Object.fromEntries(loaded.map(function(s) { return [s.id,5]; })));
+      setFluencies({});
+      setAdjustedSkills(new Set());
+      adjustedSkillsRef.current = new Set();
       setStep(1);
     } catch(e) {
       if (e.message && e.message.indexOf("overloaded") !== -1) {
@@ -656,33 +673,14 @@ export default function Engineer() {
           var loaded2 = parsed2.skills.map(function(text, i) { return {id:"s"+i,text:text,editing:false}; });
           setLandscape(parsed2.landscape);
           setSkills(loaded2);
-          setAffinities(Object.fromEntries(loaded2.map(function(s) { return [s.id,5]; })));
-          setInvestments(Object.fromEntries(loaded2.map(function(s) { return [s.id,5]; })));
+          setFluencies({});
+          setAdjustedSkills(new Set());
+          adjustedSkillsRef.current = new Set();
           setStep(1);
         } catch(e2) { setError("Something went wrong — please try again in a moment."); }
       } else { setError("Something went wrong — please try again in a moment."); }
     }
     finally { setLoading(false); }
-  }
-
-  // ── EMAIL CAPTURE ─────────────────────────────────────────────────────
-  async function submitEmailToKit(email) {
-    try {
-      await fetch("https://api.convertkit.com/v3/forms/9309751/subscribe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ api_key: "OtIv3L3SPCCcxped1fYkLw", email: email })
-      });
-    } catch(e) { /* silent fail — never block the user */ }
-  }
-
-  async function handleEmailAndContinue() {
-    setEmailSubmitting(true);
-    if (emailInput && emailInput.indexOf("@") > -1) {
-      await submitEmailToKit(emailInput);
-    }
-    setEmailSubmitting(false);
-    runAnalysis();
   }
 
   // ── API CALL 2 ────────────────────────────────────────────────────────
@@ -693,9 +691,9 @@ export default function Engineer() {
     var sl = SENIORITY_LEVELS.find(function(s) { return s.id === seniority; });
     var skillList = skills.map(function(s,i) { return (i+1)+". "+s.text; }).join("\n");
     var affinityList = skills.map(function(s) {
-      var na = affinities[s.id]!=null?affinities[s.id]:5;
-      var inv = investments[s.id]!=null?investments[s.id]:5;
-      return '"'+s.text+'": na='+na+'/10, inv='+inv+'/10, composite='+compAffinity(na,inv)+'/10';
+      var fluencyVal = fluencies[s.id] !== undefined ? fluencies[s.id] : getSeed(conscience, pull);
+      var w = compAff(conscience, pull, fluencyVal);
+      return '"'+s.text+'": conscience='+conscience+'/10, pull='+pull+'/10, fluency='+fluencyVal+'/10, composite='+w+'/10';
     }).join("\n");
     var prompt = "You are a senior engineering career strategist and AI labor market analyst.\n\nENGINEER PROFILE:\n- Type: " + profile.devLabel + " Engineer\n- Seniority: " + profile.seniorityLabel + " — " + (sl ? sl.note : "") + "\n- Work context: " + wcStr + "\n- Company: " + (profile.companyLabel||"not specified") + "\n\nSKILLS:\n" + skillList + "\n\nAFFINITY SCORES:\n" + affinityList + "\n\nScore each skill:\n\nai_replaceability (0-10) — calibrated to THIS specific profile:\n0-2: Requires sustained judgment, cross-system context, or org relationships that take years to build. AI cannot approximate.\n3-4: AI accelerates this substantially but the judgment, architecture decisions, or oversight still requires this seniority level.\n5-6: AI handles most execution. The engineer adds framing, edge case handling, and quality judgment.\n7-8: AI does this adequately today for this role. The engineer is reviewing, not creating.\n9-10: A junior prompt engineer outperforms this person's contribution on this skill right now.\n\nCRITICAL: A " + profile.seniorityLabel + " engineer doing " + wcStr + " should NOT have the same scores as a junior CRUD developer. Calibrate to seniority and work context. Staff-level system design, compliance judgment, and cross-team technical leadership should score 2-4 max.\n\nmarket_demand (0-10) — for " + profile.seniorityLabel + " " + profile.devLabel + " engineers at " + (profile.companyLabel||"this company type") + ":\n0-2: Declining or commoditized\n3-4: Steady\n5-6: Growing, competitive\n7-8: High demand, premium comp\n9-10: Critical shortage, top-of-market\n\ninterface_span: true ONLY if skill requires fluency in 2+ distinct professional disciplines simultaneously (eng + security compliance, eng + ML research, eng + product strategy, eng + hardware).\n\nrationale: one precise sentence calibrated to this specific profile. Explain the replaceability score given this person's seniority and work context.\n\nBENCHMARK vs other " + profile.seniorityLabel + " " + profile.devLabel + " engineers:\n- percentile: 0-100 AI defensibility\n- summary: one sentence\n- insights: 2-3 strategic observations specific to this profile\n\nReturn ONLY valid JSON:\n{\"skills\":[{\"name\":\"exact skill text\",\"ai_replaceability\":5,\"market_demand\":7,\"interface_span\":false,\"rationale\":\"one sentence\"}],\"benchmark\":{\"percentile\":65,\"summary\":\"...\",\"insights\":[\"...\",\"...\"]}}";
     try {
@@ -712,11 +710,10 @@ export default function Engineer() {
       var enriched = parsed.skills.map(function(skill) {
         var found = skills.find(function(s) { return s.text===skill.name; }) || skills.find(function(s) { return skill.name.indexOf(s.text.slice(0,20))!==-1; });
         var id = found ? found.id : null;
-        var na  = id && affinities[id]!=null  ? affinities[id]  : 5;
-        var inv = id && investments[id]!=null ? investments[id] : 5;
-        var aff = compAffinity(na, inv);
+        var fluencyVal = id && fluencies[id] !== undefined ? fluencies[id] : getSeed(conscience, pull);
+        var aff = compAff(conscience, pull, fluencyVal);
         var dz  = calcDZ(aff, skill.ai_replaceability, skill.market_demand);
-        return Object.assign({}, skill, { naturalAffinity:na, investment:inv, affinity:aff, dz:dz });
+        return Object.assign({}, skill, { naturalAffinity:aff, investment:fluencyVal, affinity:aff, dz:dz });
       });
       setBenchmark(parsed.benchmark);
       setResults(enriched);
@@ -735,11 +732,10 @@ export default function Engineer() {
           var enriched2 = parsed2.skills.map(function(skill) {
             var found2 = skills.find(function(s) { return s.text===skill.name; }) || skills.find(function(s) { return skill.name.indexOf(s.text.slice(0,20))!==-1; });
             var id2 = found2 ? found2.id : null;
-            var na2  = id2 && affinities[id2]!=null  ? affinities[id2]  : 5;
-            var inv2 = id2 && investments[id2]!=null ? investments[id2] : 5;
-            var aff2 = compAffinity(na2, inv2);
+            var fluencyVal2 = id2 && fluencies[id2] !== undefined ? fluencies[id2] : getSeed(conscience, pull);
+            var aff2 = compAff(conscience, pull, fluencyVal2);
             var dz2  = calcDZ(aff2, skill.ai_replaceability, skill.market_demand);
-            return Object.assign({}, skill, { naturalAffinity:na2, investment:inv2, affinity:aff2, dz:dz2 });
+            return Object.assign({}, skill, { naturalAffinity:aff2, investment:fluencyVal2, affinity:aff2, dz:dz2 });
           });
           setBenchmark(parsed2.benchmark);
           setResults(enriched2);
@@ -971,7 +967,7 @@ export default function Engineer() {
           <div style={{display:"flex",gap:12}}>
             <button onClick={function(){setStep(0);}} style={{flex:1,background:"transparent",border:"1px solid "+S.border,color:S.muted,borderRadius:12,padding:"15px 0",fontSize:14,fontFamily:S.mono,cursor:"pointer",letterSpacing:"0.06em",fontWeight:600}}>← BACK</button>
             <PrimaryBtn onClick={function(){setStep(2);}} disabled={skills.length===0} style={{flex:3}}>
-              {skills.length===0?"ADD AT LEAST ONE SKILL":"NEXT: RATE YOUR NATURAL AFFINITY →"}
+              {skills.length===0?"ADD AT LEAST ONE SKILL":"NEXT: RATE AFFINITY & FLUENCY →"}
             </PrimaryBtn>
           </div>
         </div>
@@ -979,137 +975,168 @@ export default function Engineer() {
     );
   }
 
-  // ── STEP 2: AFFINITY SLIDERS ───────────────────────────────────────────
+  // ── STEP 2: BIFACTOR AFFINITY ─────────────────────────────────────────
   if (step === 2) {
-    var slCSS = "input[type=range]{-webkit-appearance:none;width:100%;height:6px;border-radius:3px;outline:none;cursor:pointer;} input.sl-aff::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;border-radius:50%;background:"+S.purple+";border:3px solid white;cursor:pointer;} input.sl-aff::-moz-range-thumb{width:24px;height:24px;border-radius:50%;background:"+S.purple+";border:3px solid white;cursor:pointer;} input.sl-inv::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;border-radius:50%;background:#0891b2;border:3px solid white;cursor:pointer;} input.sl-inv::-moz-range-thumb{width:24px;height:24px;border-radius:50%;background:#0891b2;border:3px solid white;cursor:pointer;}";
+    var profile2 = buildProfile(devType, devTypeOther, seniority, workContexts, companyType);
+    var affinityStops = [0, 3, 5, 7, 10];
+    var conscienceLabelTexts = ["Move on easily","Mildly bothered","Somewhat unsettled","Want to fix it","Can't let it go"];
+    var pullLabelTexts = ["Almost never","Occasionally","Sometimes","Regularly","Constantly"];
+    var dzSliderCSS = "input[type=range].dz-slider{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:3px;outline:none;cursor:pointer;border:none} input[type=range].dz-slider::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;border-radius:50%;border:3px solid white;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.18)} input[type=range].dz-slider::-moz-range-thumb{width:24px;height:24px;border-radius:50%;border:3px solid white;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.18)} input[type=range].conscience-sl::-webkit-slider-thumb{background:#7c3aed} input[type=range].conscience-sl::-moz-range-thumb{background:#7c3aed} input[type=range].pull-sl::-webkit-slider-thumb{background:#0891b2} input[type=range].pull-sl::-moz-range-thumb{background:#0891b2} input[type=range].fluency-sl::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:#d97706;border:2px solid white;cursor:pointer} input[type=range].fluency-sl::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:#d97706;border:2px solid white;cursor:pointer}";
     return (
       <div style={{background:S.bg,minHeight:"100vh",fontFamily:S.font,padding:"32px 20px"}}>
-        <style dangerouslySetInnerHTML={{__html:slCSS}} />
-        <div style={{maxWidth:660,margin:"0 auto"}}>
+        <style dangerouslySetInnerHTML={{__html:dzSliderCSS}} />
+        <div style={{maxWidth:680,margin:"0 auto"}}>
           <div style={{marginBottom:24}}>
-            <div style={{fontFamily:S.mono,fontSize:12,color:S.purple,letterSpacing:"0.1em",marginBottom:8,fontWeight:600}}>STEP 2 OF 2 · AFFINITY & INVESTMENT</div>
-            <h2 style={{fontFamily:S.serif,fontSize:30,color:S.text,margin:"0 0 8px"}}>Two questions per skill. Be honest.</h2>
-            <p style={{color:S.muted,fontSize:16,margin:0,lineHeight:1.65}}>The first asks how much this skill feels like <em>you</em>. The second asks how actively you're deepening it. Together they reveal whether you're quietly drifting from a skill you're still being paid for.</p>
+            <div style={{fontFamily:S.mono,fontSize:12,color:S.purple,letterSpacing:"0.1em",marginBottom:8,fontWeight:600}}>STEP 2 OF 2 · AFFINITY</div>
+            <h2 style={{fontFamily:S.serif,fontSize:30,color:S.text,margin:"0 0 8px"}}>How does engineering work feel?</h2>
+            <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap"}}>
+              <span style={{fontFamily:S.mono,fontSize:12,color:S.gold,background:"rgba(217,119,6,0.1)",border:"1px solid rgba(217,119,6,0.3)",borderRadius:12,padding:"3px 10px",fontWeight:600}}>{profile2.devLabel} Engineer</span>
+              <span style={{fontFamily:S.mono,fontSize:12,color:S.muted,background:S.card2,border:"1px solid "+S.border,borderRadius:12,padding:"3px 10px",fontWeight:600}}>{profile2.seniorityLabel}</span>
+            </div>
+            <p style={{fontSize:16,color:"#6b7280",lineHeight:1.7,margin:0}}>
+              These questions aren&apos;t about how skilled you are. They&apos;re about whether this work genuinely fits you. Be honest — there are no wrong answers.
+            </p>
           </div>
-          <div style={{display:"flex",flexDirection:"column",gap:18,marginBottom:20}}>
-            {skills.map(function(s, i) {
-              var na   = affinities[s.id]!=null?affinities[s.id]:5;
-              var inv  = investments[s.id]!=null?investments[s.id]:5;
-              var c    = compAffinity(na, inv);
-              var naP  = (na/10)*100;
-              var invP = (inv/10)*100;
+          <div style={{fontFamily:S.mono,fontSize:12,textTransform:"uppercase",color:"#7a88a8",marginBottom:6}}>PART 1 — ABOUT YOU IN GENERAL</div>
+          <div style={{fontSize:15,color:"#7a88a8",marginBottom:24}}>Answer these once. They apply across all your skills.</div>
+          <div style={{background:S.card,border:"1px solid #d0d7e8",borderRadius:14,padding:"24px 28px",marginBottom:16}}>
+            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
+              <span style={{width:10,height:10,borderRadius:"50%",background:"#7c3aed",flexShrink:0}} />
+              <span style={{fontFamily:S.mono,fontSize:12,fontWeight:700,color:"#7c3aed",letterSpacing:"0.08em"}}>CRAFT CONSCIENCE</span>
+            </div>
+            <p style={{fontSize:16,fontStyle:"italic",color:"#3d4a6b",lineHeight:1.6,marginBottom:6,marginTop:0}}>
+              When you push code or ship something you know isn&apos;t quite right — a shortcut, a hack, technical debt you accepted under pressure — how does that sit with you?
+            </p>
+            <p style={{fontSize:14,color:"#7a88a8",lineHeight:1.5,marginBottom:20,marginTop:0}}>
+              This tells us whether you genuinely care about engineering quality independent of whether anyone reviewed it, measured it, or noticed.
+            </p>
+            <input
+              className="dz-slider conscience-sl"
+              type="range"
+              min={0}
+              max={10}
+              step={1}
+              value={conscience}
+              onChange={function(e){ setConscience(snapToStop(Number(e.target.value))); }}
+              style={{background:"linear-gradient(to right, #7c3aed "+(conscience/10)*100+"%, #d0d7e8 "+(conscience/10)*100+"%)"}}
+            />
+            <div style={{display:"flex",justifyContent:"space-between",marginTop:10}}>
+              {affinityStops.map(function(stopValue, idx) {
+                return (
+                  <div key={stopValue} style={{width:"20%",textAlign:"center",fontSize:12,color:"#7c3aed",opacity:Math.abs(conscience-stopValue)<=1?1:0.25,fontWeight:Math.abs(conscience-stopValue)<=1?700:400}}>
+                    {conscienceLabelTexts[idx]}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+          <div style={{background:S.card,border:"1px solid #d0d7e8",borderRadius:14,padding:"24px 28px",marginBottom:16}}>
+            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
+              <span style={{width:10,height:10,borderRadius:"50%",background:"#0891b2",flexShrink:0}} />
+              <span style={{fontFamily:S.mono,fontSize:12,fontWeight:700,color:"#0891b2",letterSpacing:"0.08em"}}>INTRINSIC PULL</span>
+            </div>
+            <p style={{fontSize:16,fontStyle:"italic",color:"#3d4a6b",lineHeight:1.6,marginBottom:6,marginTop:0}}>
+              Outside of work, with no deadlines and no one asking, how often does your mind drift toward technical problems — an architecture decision, a bug, something you want to build?
+            </p>
+            <p style={{fontSize:14,color:"#7a88a8",lineHeight:1.5,marginBottom:20,marginTop:0}}>
+              This tells us whether engineering is something you&apos;re genuinely wired for, or primarily a professional identity and income.
+            </p>
+            <input
+              className="dz-slider pull-sl"
+              type="range"
+              min={0}
+              max={10}
+              step={1}
+              value={pull}
+              onChange={function(e){ setPull(snapToStop(Number(e.target.value))); }}
+              style={{background:"linear-gradient(to right, #0891b2 "+(pull/10)*100+"%, #d0d7e8 "+(pull/10)*100+"%)"}}
+            />
+            <div style={{display:"flex",justifyContent:"space-between",marginTop:10}}>
+              {affinityStops.map(function(stopValue, idx) {
+                return (
+                  <div key={stopValue} style={{width:"20%",textAlign:"center",fontSize:12,color:"#0891b2",opacity:Math.abs(pull-stopValue)<=1?1:0.25,fontWeight:Math.abs(pull-stopValue)<=1?700:400}}>
+                    {pullLabelTexts[idx]}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+          <hr style={{border:"none",borderTop:"1px solid #d0d7e8",margin:"32px 0"}} />
+          <div style={{fontFamily:S.mono,fontSize:12,textTransform:"uppercase",color:"#7a88a8",marginBottom:6}}>PART 2 — SKILL BY SKILL</div>
+          <div style={{fontSize:15,color:"#7a88a8",lineHeight:1.6,marginBottom:8}}>
+            For each skill — does doing this work feel natural and easy, or does it take real effort?
+          </div>
+          <div style={{fontSize:14,color:"#9ca3af",marginBottom:24}}>
+            Sliders are pre-set based on your answers above. Only move one if a skill feels noticeably different from your usual pattern.
+          </div>
+          <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:20}}>
+            {skills.map(function(s) {
+              var fluencyVal = fluencies[s.id] !== undefined ? fluencies[s.id] : getSeed(conscience, pull);
+              var affinityScore = compAff(conscience, pull, fluencyVal);
+              var affinityColor = affinityScore >= 7 ? S.green : affinityScore >= 5 ? S.gold : S.red;
+              var fluencyForGrad = fluencies[s.id] !== undefined ? fluencies[s.id] : getSeed(conscience, pull);
               return (
-                <Card key={s.id} style={{padding:24}}>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20}}>
-                    <div style={{flex:1,paddingRight:14}}>
-                      <div style={{fontFamily:S.mono,fontSize:12,color:S.dim,letterSpacing:"0.06em",marginBottom:4,fontWeight:600}}>SKILL {i+1}</div>
-                      <div style={{color:S.text,fontSize:16,fontWeight:700,lineHeight:1.35}}>{s.text}</div>
+                <div
+                  key={s.id}
+                  style={{
+                    background:S.card,
+                    border:"1px solid #d0d7e8",
+                    borderRadius:12,
+                    padding:"18px 22px",
+                    marginBottom:0
+                  }}
+                >
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
+                    <div style={{flex:1,paddingRight:12}}>
+                      <div style={{fontSize:16,fontWeight:600,color:S.text}}>{s.text}</div>
                     </div>
-                    <div style={{textAlign:"right",flexShrink:0}}>
-                      <div style={{fontFamily:S.mono,fontSize:12,color:S.dim,marginBottom:2}}>COMPOSITE</div>
-                      <div style={{fontFamily:S.mono,fontSize:28,fontWeight:700,color:c>=7?S.gold:c>=4?S.purple:S.red,lineHeight:1}}>{c}</div>
-                      <div style={{fontFamily:S.mono,fontSize:12,color:S.dim}}>/ 10</div>
-                    </div>
+                    <span style={{
+                      fontSize:12,
+                      padding:"2px 8px",
+                      borderRadius:10,
+                      fontFamily:S.mono,
+                      flexShrink:0,
+                      background:adjustedSkills.has(s.id)?"rgba(217,119,6,0.12)":"rgba(5,150,105,0.10)",
+                      color:adjustedSkills.has(s.id)?"#d97706":"#059669"
+                    }}>
+                      {adjustedSkills.has(s.id)?"adjusted":"pre-seeded"}
+                    </span>
                   </div>
-                  <div style={{marginBottom:20}}>
-                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-                      <div style={{display:"flex",alignItems:"center",gap:7}}>
-                        <div style={{width:9,height:9,borderRadius:"50%",background:S.purple}} />
-                        <span style={{fontFamily:S.mono,fontSize:12,color:S.purple,fontWeight:700}}>NATURAL AFFINITY</span>
-                      </div>
-                      <span style={{fontFamily:S.mono,fontSize:17,fontWeight:700,color:S.purple}}>{na}<span style={{fontSize:12,color:S.dim}}>/10</span></span>
-                    </div>
-                    <input type="range" min="0" max="10" step="1" value={na} className="sl-aff" onChange={function(e){setAffinities(function(p){return Object.assign({},p,{[s.id]:Number(e.target.value)});});}} style={{background:"linear-gradient(to right,"+S.purple+" "+naP+"%,#d0d7e8 "+naP+"%)"}} />
-                    <div style={{display:"flex",justifyContent:"space-between",marginTop:6}}>
-                      {AFFINITY_LABELS.map(function(l) {
-                        return (
-                          <div key={l.v} style={{textAlign:"center",width:"20%",opacity:Math.abs(na-l.v)<=1.5?1:0.2}}>
-                            <div style={{fontFamily:S.mono,fontSize:12,fontWeight:700,color:S.purple,marginBottom:1}}>{l.v}</div>
-                            <div style={{fontSize:14,color:S.muted,lineHeight:1.3}}>{l.label}</div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                    <div style={{marginTop:8,background:"rgba(124,58,237,0.06)",borderRadius:6,padding:"6px 12px"}}>
-                      <span style={{color:S.purple,fontSize:12,fontWeight:600,fontStyle:"italic"}}>"{affinityLabel(na)}"</span>
-                    </div>
+                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
+                    <span style={{fontFamily:S.mono,fontSize:12,color:"#7a88a8"}}>FELT FLUENCY</span>
+                    <span style={{fontFamily:S.mono,fontSize:12,fontWeight:700,color:"#d97706"}}>{fluencyForGrad}/10</span>
                   </div>
-                  <div style={{height:1,background:S.border,marginBottom:20}} />
-                  <div>
-                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-                      <div style={{display:"flex",alignItems:"center",gap:7}}>
-                        <div style={{width:9,height:9,borderRadius:"50%",background:"#0891b2"}} />
-                        <span style={{fontFamily:S.mono,fontSize:12,color:"#0891b2",fontWeight:700}}>INVESTMENT SIGNAL</span>
-                      </div>
-                      <span style={{fontFamily:S.mono,fontSize:17,fontWeight:700,color:"#0891b2"}}>{inv}<span style={{fontSize:12,color:S.dim}}>/10</span></span>
-                    </div>
-                    <p style={{color:S.dim,fontSize:16,margin:"0 0 8px",lineHeight:1.5,fontStyle:"italic"}}>How actively are you deepening this skill — side projects, courses, new patterns, staying current?</p>
-                    <input type="range" min="0" max="10" step="1" value={inv} className="sl-inv" onChange={function(e){setInvestments(function(p){return Object.assign({},p,{[s.id]:Number(e.target.value)});});}} style={{background:"linear-gradient(to right,#0891b2 "+invP+"%,#d0d7e8 "+invP+"%)"}} />
-                    <div style={{display:"flex",justifyContent:"space-between",marginTop:6}}>
-                      {INVESTMENT_LABELS.map(function(l) {
-                        return (
-                          <div key={l.v} style={{textAlign:"center",width:"20%",opacity:Math.abs(inv-l.v)<=1.5?1:0.2}}>
-                            <div style={{fontFamily:S.mono,fontSize:12,fontWeight:700,color:"#0891b2",marginBottom:1}}>{l.v}</div>
-                            <div style={{fontSize:14,color:S.muted,lineHeight:1.3}}>{l.label}</div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                    <div style={{marginTop:8,background:"rgba(8,145,178,0.06)",borderRadius:6,padding:"6px 12px"}}>
-                      <span style={{color:"#0891b2",fontSize:12,fontWeight:600,fontStyle:"italic"}}>"{investLabel(inv)}"</span>
-                    </div>
+                  <input
+                    className="dz-slider fluency-sl"
+                    type="range"
+                    min={0}
+                    max={10}
+                    step={1}
+                    value={fluencyVal}
+                    onChange={function(e) {
+                      var val = Number(e.target.value);
+                      setFluencies(function(prev) { return Object.assign({}, prev, { [s.id]: val }); });
+                      markAdjusted(s.id);
+                    }}
+                    style={{background:"linear-gradient(to right, #d97706 "+(fluencyForGrad/10)*100+"%, #d0d7e8 "+(fluencyForGrad/10)*100+"%)"}}
+                  />
+                  <div style={{display:"flex",justifyContent:"space-between",marginTop:6}}>
+                    <span style={{fontSize:12,color:"#9ca3af"}}>Effortful</span>
+                    <span style={{fontSize:12,color:"#9ca3af"}}>Frictionless</span>
                   </div>
-                  {na<=3 && inv<=3 && (
-                    <div style={{marginTop:14,background:"rgba(220,38,38,0.06)",border:"1px solid rgba(220,38,38,0.15)",borderRadius:8,padding:"9px 14px",display:"flex",gap:10}}>
-                      <p style={{color:S.red,fontSize:16,margin:0,lineHeight:1.5,fontWeight:500}}>Low affinity + low investment. You won't fight to keep this skill, and AI is advancing on it.</p>
-                    </div>
-                  )}
-                  {na>=6 && inv<=2 && (
-                    <div style={{marginTop:14,background:"rgba(217,119,6,0.06)",border:"1px solid rgba(217,119,6,0.2)",borderRadius:8,padding:"9px 14px",display:"flex",gap:10}}>
-                      <p style={{color:S.gold,fontSize:16,margin:0,lineHeight:1.5,fontWeight:500}}>Golden cage. You feel wired for this but aren't investing — that gap is where AI catches up.</p>
-                    </div>
-                  )}
-                </Card>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:14,paddingTop:12,borderTop:"1px solid #f0f0f0"}}>
+                    <span style={{fontFamily:S.mono,fontSize:12,color:"#7a88a8"}}>AFFINITY SCORE</span>
+                    <span style={{fontSize:22,fontWeight:700,color:affinityColor}}>{affinityScore}</span>
+                  </div>
+                </div>
               );
             })}
           </div>
           <div style={{display:"flex",gap:12,marginBottom:12}}>
             <button onClick={function(){setStep(1);}} style={{flex:1,background:"transparent",border:"1px solid "+S.border,color:S.muted,borderRadius:12,padding:"15px 0",fontSize:14,fontFamily:S.mono,cursor:"pointer",letterSpacing:"0.06em",fontWeight:600}}>← BACK</button>
-            <PrimaryBtn onClick={function(){setStep(2.5);}} style={{flex:3}}>ANALYZE MY DEFENSIBLE ZONE™ →</PrimaryBtn>
+            <PrimaryBtn onClick={function(){ runAnalysis(); }} disabled={skills.length===0} style={{flex:3}}>ANALYZE MY DEFENSIBLE ZONE™ →</PrimaryBtn>
           </div>
           {error && <p style={{color:S.red,fontSize:14,marginTop:10,textAlign:"center",fontFamily:S.mono,fontWeight:600}}>{error}</p>}
-        </div>
-      </div>
-    );
-  }
-
-  // ── STEP 2.5: EMAIL CAPTURE ───────────────────────────────────────────
-  if (step === 2.5) {
-    return (
-      <div style={{background:S.bg,minHeight:"100vh",fontFamily:S.font,display:"flex",alignItems:"center",justifyContent:"center",padding:"24px"}}>
-        <div style={{maxWidth:480,width:"100%",background:S.card,border:"1px solid "+S.border,borderRadius:16,padding:"40px 36px",textAlign:"center"}}>
-          <div style={{fontFamily:S.mono,fontSize:12,color:S.gold,letterSpacing:"0.14em",fontWeight:600,marginBottom:16}}>ONE LAST THING</div>
-          <h2 style={{fontFamily:S.serif,fontSize:26,color:S.text,margin:"0 0 12px",lineHeight:1.2}}>Want to save your results?</h2>
-          <p style={{color:S.muted,fontSize:16,lineHeight:1.7,margin:"0 0 28px"}}>Drop your email and we'll send you a copy. You'll also get occasional updates when the AI threat landscape shifts for your role. No spam.</p>
-          <input
-            type="email"
-            placeholder="your@email.com"
-            value={emailInput}
-            onChange={function(e){setEmailInput(e.target.value);}}
-            style={{width:"100%",boxSizing:"border-box",padding:"14px 16px",fontSize:16,border:"1px solid "+(emailInput && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailInput) ? S.red : S.border),borderRadius:10,fontFamily:S.font,color:S.text,background:S.bg,marginBottom:4,outline:"none"}}
-          />
-          {emailInput && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailInput) && (
-            <p style={{color:S.red,fontSize:14,fontFamily:S.mono,margin:"0 0 10px",textAlign:"left"}}>Please enter a valid email address.</p>
-          )}
-          {!emailInput && (
-            <p style={{color:S.muted,fontSize:14,fontFamily:S.mono,margin:"0 0 10px",textAlign:"left"}}>&nbsp;</p>
-          )}
-          {emailInput && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailInput) && (
-            <p style={{margin:"0 0 10px"}}>&nbsp;</p>
-          )}
-          <PrimaryBtn onClick={handleEmailAndContinue} disabled={emailSubmitting || !emailInput || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailInput)} style={{width:"100%",marginBottom:12,opacity:(!emailInput || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailInput)) ? 0.4 : 1}}>
-            {emailSubmitting ? "SENDING…" : "GET MY RESULTS →"}
-          </PrimaryBtn>
         </div>
       </div>
     );
