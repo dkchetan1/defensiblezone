@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import EmailGate from "./EmailGate";
 
 // ── ENGINEER TYPES ─────────────────────────────────────────────────────
 var DEV_TYPES = [
@@ -1134,9 +1135,58 @@ export default function Engineer() {
           </div>
           <div style={{display:"flex",gap:12,marginBottom:12}}>
             <button onClick={function(){setStep(1);}} style={{flex:1,background:"transparent",border:"1px solid "+S.border,color:S.muted,borderRadius:12,padding:"15px 0",fontSize:14,fontFamily:S.mono,cursor:"pointer",letterSpacing:"0.06em",fontWeight:600}}>← BACK</button>
-            <PrimaryBtn onClick={function(){ runAnalysis(); }} disabled={skills.length===0} style={{flex:3}}>ANALYZE MY DEFENSIBLE ZONE™ →</PrimaryBtn>
+            <PrimaryBtn onClick={function(){ setStep(2.5); }} disabled={skills.length===0} style={{flex:3}}>ANALYZE MY DEFENSIBLE ZONE™ →</PrimaryBtn>
           </div>
-          {error && <p style={{color:S.red,fontSize:14,marginTop:10,textAlign:"center",fontFamily:S.mono,fontWeight:600}}>{error}</p>}
+        </div>
+      </div>
+    );
+  }
+
+  if (step === 2.5) {
+    return (
+      <div
+        style={{
+          background: "#f8f9fc",
+          minHeight: "100vh",
+          fontFamily: S.mono,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "32px 20px",
+          boxSizing: "border-box",
+        }}
+      >
+        <div
+          style={{
+            fontSize: 11,
+            color: "#d97706",
+            letterSpacing: "0.12em",
+            fontWeight: 600,
+            textAlign: "center",
+            marginBottom: 24,
+          }}
+        >
+          DEFENSIBLE ZONE™ · SOFTWARE ENGINEER EDITION
+        </div>
+        <EmailGate
+          productName="Defensible Zone Engineer Edition"
+          onUnlock={function () {
+            runAnalysis();
+          }}
+        />
+        {error && <p style={{color:S.red,fontSize:14,marginTop:16,textAlign:"center",fontFamily:S.mono,fontWeight:600,maxWidth:480}}>{error}</p>}
+        <div
+          style={{
+            fontSize: 10,
+            color: S.dim,
+            textAlign: "center",
+            marginTop: 32,
+            maxWidth: 480,
+            lineHeight: 1.5,
+          }}
+        >
+          DEFENSIBLE ZONE™ is a trademark of its creator. All rights reserved.
         </div>
       </div>
     );
