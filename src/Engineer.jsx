@@ -2,21 +2,21 @@ import { useState, useEffect } from "react";
 
 // ── ENGINEER TYPES ─────────────────────────────────────────────────────
 var DEV_TYPES = [
-  { id:"frontend",  label:"Frontend",          icon:"🖥️",  desc:"UI, browser, user-facing" },
-  { id:"backend",   label:"Backend",            icon:"⚙️",  desc:"APIs, servers, databases" },
-  { id:"fullstack", label:"Full Stack",         icon:"🔀",  desc:"End-to-end ownership" },
-  { id:"mobile",    label:"Mobile",             icon:"📱",  desc:"iOS, Android, React Native" },
-  { id:"aiml",      label:"AI / ML",            icon:"🤖",  desc:"Models, training, inference" },
-  { id:"platform",  label:"Platform / Infra",   icon:"🏗️",  desc:"Internal platforms, reliability" },
-  { id:"devops",    label:"DevOps / SRE",       icon:"🔧",  desc:"CI/CD, observability, ops" },
-  { id:"data",      label:"Data",               icon:"📊",  desc:"Pipelines, warehouses, analytics" },
-  { id:"security",  label:"Security",           icon:"🔒",  desc:"AppSec, pen testing, compliance" },
-  { id:"qa",        label:"QA / Test",          icon:"✅",  desc:"Quality, automation, testing" },
-  { id:"embedded",  label:"Embedded / Firmware",icon:"🔌",  desc:"Hardware, IoT, low-level systems" },
-  { id:"game",      label:"Game",               icon:"🎮",  desc:"Game engines, graphics, simulation" },
-  { id:"arvr",      label:"AR / VR / XR",       icon:"🥽",  desc:"Spatial computing, immersive tech" },
-  { id:"research",  label:"Research Engineer",  icon:"🔬",  desc:"Algorithms, systems research" },
-  { id:"other",     label:"Other",              icon:"➕",  desc:"Specify your type below" },
+  { id:"frontend",  label:"Frontend",          desc:"UI, browser, user-facing" },
+  { id:"backend",   label:"Backend",            desc:"APIs, servers, databases" },
+  { id:"fullstack", label:"Full Stack",         desc:"End-to-end ownership" },
+  { id:"mobile",    label:"Mobile",             desc:"iOS, Android, React Native" },
+  { id:"aiml",      label:"AI / ML",            desc:"Models, training, inference" },
+  { id:"platform",  label:"Platform / Infra",   desc:"Internal platforms, reliability" },
+  { id:"devops",    label:"DevOps / SRE",       desc:"CI/CD, observability, ops" },
+  { id:"data",      label:"Data",               desc:"Pipelines, warehouses, analytics" },
+  { id:"security",  label:"Security",           desc:"AppSec, pen testing, compliance" },
+  { id:"qa",        label:"QA / Test",          desc:"Quality, automation, testing" },
+  { id:"embedded",  label:"Embedded / Firmware",desc:"Hardware, IoT, low-level systems" },
+  { id:"game",      label:"Game",               desc:"Game engines, graphics, simulation" },
+  { id:"arvr",      label:"AR / VR / XR",       desc:"Spatial computing, immersive tech" },
+  { id:"research",  label:"Research Engineer",  desc:"Algorithms, systems research" },
+  { id:"other",     label:"Other",              desc:"Specify your type below" },
 ];
 
 // ── SENIORITY ──────────────────────────────────────────────────────────
@@ -180,7 +180,7 @@ function Card(props) {
 }
 function Label(props) {
   return (
-    <div style={Object.assign({ fontFamily: S.mono, fontSize: 13, color: S.muted, letterSpacing: "0.06em", fontWeight: 600, marginBottom: 8 }, props.style)}>
+    <div style={Object.assign({ fontFamily: S.mono, fontSize: 12, color: S.muted, letterSpacing: "0.06em", fontWeight: 600, marginBottom: 8 }, props.style)}>
       {props.children}
     </div>
   );
@@ -206,7 +206,7 @@ function SelBtn(props) {
       color: active ? "white" : S.text,
       border:"1px solid " + (active ? S.accent : S.border),
       borderRadius:10, padding:"10px 14px", cursor:"pointer",
-      fontFamily:S.font, fontSize:14, fontWeight: active ? 700 : 500,
+      fontFamily:S.font, fontSize:16, fontWeight: active ? 700 : 500,
       textAlign:"left", transition:"all 0.15s", width:"100%",
     }}>
       {props.children}
@@ -268,8 +268,8 @@ function RiskMatrix(props) {
         return (
           <g key={i}>
             <rect x={q.x} y={q.y} width={q.w} height={q.h} fill={q.color} />
-            <text x={q.lx} y={q.ly} fontSize="11" fontFamily={S.mono} fontWeight="700" fill={q.tc} letterSpacing="0.08em">{q.label}</text>
-            <text x={q.lx} y={q.ly + 14} fontSize="9.5" fontFamily={S.mono} fill={S.dim}>{q.sub}</text>
+            <text x={q.lx} y={q.ly} fontSize="12" fontFamily={S.mono} fontWeight="700" fill={q.tc} letterSpacing="0.08em">{q.label}</text>
+            <text x={q.lx} y={q.ly + 14} fontSize="12" fontFamily={S.mono} fill={S.dim}>{q.sub}</text>
           </g>
         );
       })}
@@ -281,14 +281,14 @@ function RiskMatrix(props) {
       {[0,2,4,6,8,10].map(function(v) {
         return (
           <g key={v}>
-            <text x={px(v)} y={PAD_T + PH + 16} textAnchor="middle" fontSize="10" fontFamily={S.mono} fill={S.dim}>{v}</text>
-            <text x={PAD_L - 10} y={py(v) + 4} textAnchor="end" fontSize="10" fontFamily={S.mono} fill={S.dim}>{v}</text>
+            <text x={px(v)} y={PAD_T + PH + 16} textAnchor="middle" fontSize="12" fontFamily={S.mono} fill={S.dim}>{v}</text>
+            <text x={PAD_L - 10} y={py(v) + 4} textAnchor="end" fontSize="12" fontFamily={S.mono} fill={S.dim}>{v}</text>
           </g>
         );
       })}
 
-      <text x={PAD_L + PW / 2} y={H - 6} textAnchor="middle" fontSize="11" fontFamily={S.mono} fill={S.muted} fontWeight="600" letterSpacing="0.06em">AI REPLACEABILITY →</text>
-      <text x={12} y={PAD_T + PH / 2} textAnchor="middle" fontSize="11" fontFamily={S.mono} fill={S.muted} fontWeight="600" letterSpacing="0.06em" transform={"rotate(-90,12," + (PAD_T + PH / 2) + ")"}>MARKET DEMAND →</text>
+      <text x={PAD_L + PW / 2} y={H - 6} textAnchor="middle" fontSize="12" fontFamily={S.mono} fill={S.muted} fontWeight="600" letterSpacing="0.06em">AI REPLACEABILITY →</text>
+      <text x={12} y={PAD_T + PH / 2} textAnchor="middle" fontSize="12" fontFamily={S.mono} fill={S.muted} fontWeight="600" letterSpacing="0.06em" transform={"rotate(-90,12," + (PAD_T + PH / 2) + ")"}>MARKET DEMAND →</text>
 
       {results && results.map(function(s, i) {
         var cx2 = px(s.ai_replaceability);
@@ -298,7 +298,7 @@ function RiskMatrix(props) {
         return (
           <g key={s.name} onMouseEnter={function() { setHovered(s.name); }} onMouseLeave={function() { setHovered(null); }} style={{ cursor:"pointer" }}>
             <circle cx={cx2} cy={cy2} r={isH ? r + 4 : r} fill={dzColor(s.dz)} fillOpacity="0.85" stroke="white" strokeWidth="2" filter={isH ? "url(#bub-glow)" : ""} />
-            <text x={cx2} y={cy2 + 4} textAnchor="middle" fontSize="11" fontFamily={S.mono} fontWeight="700" fill="white">{i + 1}</text>
+            <text x={cx2} y={cy2 + 4} textAnchor="middle" fontSize="12" fontFamily={S.mono} fontWeight="700" fill="white">{i + 1}</text>
           </g>
         );
       })}
@@ -314,15 +314,15 @@ function RiskMatrix(props) {
           <g>
             <rect x={tx} y={ty} width={tw} height={th} rx="8" fill="rgba(13,17,23,.96)" stroke={dzColor(hovS.dz)} strokeWidth="1.5" />
             <text x={tx+12} y={ty+18} fontSize="12" fill="#f8f9fc" fontFamily={S.font} fontWeight="700">{sn}</text>
-            <text x={tx+12} y={ty+34} fontSize="11" fill={dzColor(hovS.dz)} fontFamily={S.mono} fontWeight="600">{dzLabel(hovS.dz)} · DZ {hovS.dz}</text>
+            <text x={tx+12} y={ty+34} fontSize="12" fill={dzColor(hovS.dz)} fontFamily={S.mono} fontWeight="600">{dzLabel(hovS.dz)} · DZ {hovS.dz}</text>
             <line x1={tx+12} y1={ty+42} x2={tx+tw-12} y2={ty+42} stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
-            <text x={tx+12} y={ty+56} fontSize="10" fill="#8a96b0" fontFamily={S.mono}>AI Risk: {hovS.ai_replaceability}/10 · Demand: {hovS.market_demand}/10</text>
-            <text x={tx+12} y={ty+70} fontSize="10" fill="#8a96b0" fontFamily={S.mono}>Affinity: {hovS.affinity}/10 · Interface span: {hovS.interface_span ? "yes" : "no"}</text>
+            <text x={tx+12} y={ty+56} fontSize="12" fill="#8a96b0" fontFamily={S.mono}>AI Risk: {hovS.ai_replaceability}/10 · Demand: {hovS.market_demand}/10</text>
+            <text x={tx+12} y={ty+70} fontSize="12" fill="#8a96b0" fontFamily={S.mono}>Affinity: {hovS.affinity}/10 · Interface span: {hovS.interface_span ? "yes" : "no"}</text>
           </g>
         );
       })()}
 
-      <text x={PAD_L + 6} y={PAD_T - 8} fontSize="9" fontFamily={S.mono} fill={S.dim}>Bubble size = Natural Affinity · Color = DZ Score</text>
+      <text x={PAD_L + 6} y={PAD_T - 8} fontSize="12" fontFamily={S.mono} fill={S.dim}>Bubble size = Natural Affinity · Color = DZ Score</text>
     </svg>
   );
 }
@@ -409,12 +409,9 @@ function PaywallGate({ tier, onUnlock }) {
 
       {/* Header */}
       <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:20}}>
-        <div style={{width:36,height:36,background:S.gold,borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-          <span style={{fontSize:18}}>🔒</span>
-        </div>
         <div>
           <div style={{fontFamily:S.mono,fontSize:12,color:S.muted,fontWeight:700,letterSpacing:"0.08em"}}>UNLOCK YOUR FULL REPORT</div>
-          <div style={{fontSize:13,color:S.dim,marginTop:2}}>Your DZ score is above. Go deeper with actionable next steps.</div>
+          <div style={{fontSize:15,color:S.dim,marginTop:2}}>Your DZ score is above. Go deeper with actionable next steps.</div>
         </div>
       </div>
 
@@ -423,54 +420,54 @@ function PaywallGate({ tier, onUnlock }) {
 
         {/* Tier 2 */}
         <div style={{background:S.bg,border:"2px solid "+S.gold,borderRadius:12,padding:16,position:"relative"}}>
-          <div style={{fontFamily:S.mono,fontSize:10,fontWeight:700,color:S.gold,letterSpacing:"0.1em",marginBottom:6}}>RECOMMENDATIONS</div>
-          <div style={{fontFamily:S.serif,fontSize:28,color:S.text,fontWeight:700,lineHeight:1,marginBottom:4}}>$29<span style={{fontSize:13,fontWeight:400,color:S.dim}}> one-time</span></div>
+          <div style={{fontFamily:S.mono,fontSize:12,fontWeight:700,color:S.gold,letterSpacing:"0.1em",marginBottom:6}}>RECOMMENDATIONS</div>
+          <div style={{fontFamily:S.serif,fontSize:28,color:S.text,fontWeight:700,lineHeight:1,marginBottom:4}}>$29<span style={{fontSize:15,fontWeight:400,color:S.dim}}> one-time</span></div>
           <ul style={{margin:"10px 0 14px",padding:0,listStyle:"none"}}>
             {["Personalized action plan","Steps ranked by impact & effort","Skills to protect vs deprioritize","AI-threat timeline for your profile"].map(function(item){
-              return <li key={item} style={{display:"flex",gap:7,alignItems:"flex-start",marginBottom:5}}><span style={{color:S.gold,fontWeight:700,flexShrink:0,marginTop:1}}>✓</span><span style={{color:S.muted,fontSize:12,lineHeight:1.5}}>{item}</span></li>;
+              return <li key={item} style={{display:"flex",gap:7,alignItems:"flex-start",marginBottom:5}}><span style={{color:S.gold,fontWeight:700,flexShrink:0,marginTop:1}}>✓</span><span style={{color:S.muted,fontSize:14,lineHeight:1.5}}>{item}</span></li>;
             })}
           </ul>
           <button
             onClick={function(){ window.open("https://buy.stripe.com/00waEXbZobnl0D3bc2dQQ02","_blank"); }}
-            style={{width:"100%",background:S.gold,color:"white",border:"none",borderRadius:8,padding:"11px 0",fontSize:13,fontFamily:S.mono,fontWeight:700,cursor:"pointer",letterSpacing:"0.06em"}}
+            style={{width:"100%",background:S.gold,color:"white",border:"none",borderRadius:8,padding:"11px 0",fontSize:14,fontFamily:S.mono,fontWeight:700,cursor:"pointer",letterSpacing:"0.06em"}}
           >GET RECOMMENDATIONS →</button>
         </div>
 
         {/* Tier 3 */}
         <div style={{background:S.bg,border:"2px solid "+S.accent,borderRadius:12,padding:16,position:"relative"}}>
-          <div style={{position:"absolute",top:-11,left:"50%",transform:"translateX(-50%)",background:S.accent,color:"white",fontFamily:S.mono,fontSize:9,fontWeight:700,padding:"3px 10px",borderRadius:20,letterSpacing:"0.1em",whiteSpace:"nowrap"}}>BEST VALUE</div>
-          <div style={{fontFamily:S.mono,fontSize:10,fontWeight:700,color:S.accent,letterSpacing:"0.1em",marginBottom:6}}>RECOMMENDATIONS + PDF</div>
-          <div style={{fontFamily:S.serif,fontSize:28,color:S.text,fontWeight:700,lineHeight:1,marginBottom:4}}>$34<span style={{fontSize:13,fontWeight:400,color:S.dim}}> one-time</span></div>
+          <div style={{position:"absolute",top:-11,left:"50%",transform:"translateX(-50%)",background:S.accent,color:"white",fontFamily:S.mono,fontSize:11,fontWeight:700,padding:"3px 10px",borderRadius:20,letterSpacing:"0.1em",whiteSpace:"nowrap"}}>BEST VALUE</div>
+          <div style={{fontFamily:S.mono,fontSize:12,fontWeight:700,color:S.accent,letterSpacing:"0.1em",marginBottom:6}}>RECOMMENDATIONS + PDF</div>
+          <div style={{fontFamily:S.serif,fontSize:28,color:S.text,fontWeight:700,lineHeight:1,marginBottom:4}}>$34<span style={{fontSize:15,fontWeight:400,color:S.dim}}> one-time</span></div>
           <ul style={{margin:"10px 0 14px",padding:0,listStyle:"none"}}>
             {["Everything in Recommendations","Branded PDF you can save & share","Ready for career coaches & managers","Permanent record of your assessment"].map(function(item){
-              return <li key={item} style={{display:"flex",gap:7,alignItems:"flex-start",marginBottom:5}}><span style={{color:S.accent,fontWeight:700,flexShrink:0,marginTop:1}}>✓</span><span style={{color:S.muted,fontSize:12,lineHeight:1.5}}>{item}</span></li>;
+              return <li key={item} style={{display:"flex",gap:7,alignItems:"flex-start",marginBottom:5}}><span style={{color:S.accent,fontWeight:700,flexShrink:0,marginTop:1}}>✓</span><span style={{color:S.muted,fontSize:14,lineHeight:1.5}}>{item}</span></li>;
             })}
           </ul>
           {/* TODO: Replace onClick with Stripe checkout for $34 */}
           <button
             onClick={function(){ window.open("https://buy.stripe.com/00wdR93sSgHFadD5RIdQQ03","_blank"); }}
-            style={{width:"100%",background:S.accent,color:"white",border:"none",borderRadius:8,padding:"11px 0",fontSize:13,fontFamily:S.mono,fontWeight:700,cursor:"pointer",letterSpacing:"0.06em"}}
+            style={{width:"100%",background:S.accent,color:"white",border:"none",borderRadius:8,padding:"11px 0",fontSize:14,fontFamily:S.mono,fontWeight:700,cursor:"pointer",letterSpacing:"0.06em"}}
           >GET PDF REPORT →</button>
         </div>
       </div>
 
       {/* Promo code */}
       <div style={{borderTop:"1px solid "+S.border,paddingTop:16}}>
-        <div style={{fontFamily:S.mono,fontSize:10,color:S.dim,fontWeight:700,letterSpacing:"0.08em",marginBottom:8}}>HAVE A PROMO CODE?</div>
+        <div style={{fontFamily:S.mono,fontSize:12,color:S.dim,fontWeight:700,letterSpacing:"0.08em",marginBottom:8}}>HAVE A PROMO CODE?</div>
         <div style={Object.assign({display:"flex",gap:8},shakeStyle)}>
           <input
             value={input}
             onChange={function(e){setInput(e.target.value);setError("");}}
             onKeyDown={function(e){if(e.key==="Enter")tryPromo();}}
             placeholder="Enter code"
-            style={{flex:1,background:S.bg,border:"1px solid "+(error?S.red:S.border),borderRadius:8,padding:"10px 14px",fontSize:13,fontFamily:S.mono,color:S.text,outline:"none"}}
+            style={{flex:1,background:S.bg,border:"1px solid "+(error?S.red:S.border),borderRadius:8,padding:"10px 14px",fontSize:16,fontFamily:S.mono,color:S.text,outline:"none"}}
           />
           <button
             onClick={tryPromo}
             style={{background:S.card2,border:"1px solid "+S.border,borderRadius:8,padding:"10px 18px",fontSize:12,fontFamily:S.mono,fontWeight:700,color:S.muted,cursor:"pointer",letterSpacing:"0.06em"}}
           >APPLY</button>
         </div>
-        {error && <div style={{fontFamily:S.mono,fontSize:11,color:S.red,marginTop:6,fontWeight:600}}>{error}</div>}
+        {error && <div style={{fontFamily:S.mono,fontSize:12,color:S.red,marginTop:6,fontWeight:600}}>{error}</div>}
       </div>
     </div>
   );
@@ -786,9 +783,9 @@ export default function Engineer() {
   <div style={{maxWidth:740,margin:"0 auto"}}>
 
           <div style={{marginBottom:32}}>
-            <div style={{fontFamily:S.mono,fontSize:11,color:S.gold,letterSpacing:"0.12em",marginBottom:10,fontWeight:600}}>RECURSIO LAB · DEFENSIBLE ZONE™ · SOFTWARE ENGINEER EDITION</div>
+            <div style={{fontFamily:S.mono,fontSize:12,color:S.gold,letterSpacing:"0.12em",marginBottom:10,fontWeight:600}}>RECURSIO LAB · DEFENSIBLE ZONE™ · SOFTWARE ENGINEER EDITION</div>
             <h1 style={{fontFamily:S.serif,fontSize:40,color:S.text,margin:"0 0 12px",lineHeight:1.1}}>Find Your<br /><em>Defensible Zone<sup style={{fontSize:"0.45em",verticalAlign:"super",fontStyle:"normal"}}>™</sup></em></h1>
-            <p style={{color:S.muted,fontSize:18,lineHeight:1.75,margin:0,maxWidth:540}}>
+            <p style={{color:S.muted,fontSize:16,lineHeight:1.75,margin:0,maxWidth:540}}>
               The AI threat to software engineering is not uniform. Where you sit, what you build, and how senior you are changes everything. This assessment is calibrated to your exact profile.
             </p>
           </div>
@@ -798,19 +795,16 @@ export default function Engineer() {
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
               <Label style={{marginBottom:0}}>WHAT TYPE OF ENGINEER ARE YOU?</Label>
               {devTypeReady && (
-                <span style={{fontFamily:S.mono,fontSize:11,color:S.green,fontWeight:700}}>✓ {devType==="other"?devTypeOther:DEV_TYPES.find(function(d){return d.id===devType;})?.label}</span>
+                <span style={{fontFamily:S.mono,fontSize:12,color:S.green,fontWeight:700}}>✓ {devType==="other"?devTypeOther:DEV_TYPES.find(function(d){return d.id===devType;})?.label}</span>
               )}
             </div>
             <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:8}}>
               {DEV_TYPES.map(function(dt) {
                 return (
                   <SelBtn key={dt.id} active={devType===dt.id} onClick={function() { setDevType(dt.id); }}>
-                    <div style={{display:"flex",alignItems:"center",gap:8}}>
-                      <span style={{fontSize:16}}>{dt.icon}</span>
-                      <div>
-                        <div style={{fontWeight:700,fontSize:13}}>{dt.label}</div>
-                        <div style={{fontSize:13,opacity:0.75,marginTop:1}}>{dt.desc}</div>
-                      </div>
+                    <div>
+                      <div style={{fontWeight:700,fontSize:16}}>{dt.label}</div>
+                      <div style={{fontSize:15,opacity:0.75,marginTop:1}}>{dt.desc}</div>
                     </div>
                   </SelBtn>
                 );
@@ -829,16 +823,16 @@ export default function Engineer() {
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
                 <Label style={{marginBottom:0}}>WHAT IS YOUR SENIORITY LEVEL?</Label>
                 {seniority && (
-                  <span style={{fontFamily:S.mono,fontSize:11,color:S.green,fontWeight:700}}>✓ {SENIORITY_LEVELS.find(function(s){return s.id===seniority;})?.label}</span>
+                  <span style={{fontFamily:S.mono,fontSize:12,color:S.green,fontWeight:700}}>✓ {SENIORITY_LEVELS.find(function(s){return s.id===seniority;})?.label}</span>
                 )}
               </div>
               <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(195px,1fr))",gap:8}}>
                 {SENIORITY_LEVELS.map(function(sl) {
                   return (
                     <SelBtn key={sl.id} active={seniority===sl.id} onClick={function(){setSeniority(sl.id);}}>
-                      <div style={{fontWeight:700,fontSize:13,marginBottom:2}}>{sl.label}</div>
-                      <div style={{fontSize:13,opacity:0.75}}>{sl.sub}</div>
-                      <div style={{fontSize:12,opacity:0.6,marginTop:2}}>{sl.note}</div>
+                      <div style={{fontWeight:700,fontSize:16,marginBottom:2}}>{sl.label}</div>
+                      <div style={{fontSize:15,opacity:0.75}}>{sl.sub}</div>
+                      <div style={{fontSize:14,opacity:0.6,marginTop:2}}>{sl.note}</div>
                     </SelBtn>
                   );
                 })}
@@ -851,11 +845,11 @@ export default function Engineer() {
             <Card style={{marginBottom:12}} className="reveal">
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:4}}>
                 <Label style={{marginBottom:0}}>WHAT DO YOU PRIMARILY WORK ON?</Label>
-                <span style={{fontFamily:S.mono,fontSize:11,color:workContexts.length>0?S.gold:S.dim,fontWeight:700}}>
+                <span style={{fontFamily:S.mono,fontSize:12,color:workContexts.length>0?S.gold:S.dim,fontWeight:700}}>
                   {workContexts.length > 0 ? workContexts.length+" selected" : "select all that apply"}
                 </span>
               </div>
-              <p style={{color:S.muted,fontSize:15,margin:"0 0 14px",lineHeight:1.7}}>
+              <p style={{color:S.muted,fontSize:16,margin:"0 0 14px",lineHeight:1.7}}>
                 This is the most important input — it's what changes your scores the most.
                 {devType && devType !== "other" && !showAllCtx && hiddenCount > 0 && (
                   <span style={{color:S.dim}}> Showing the {visibleCtx.length} most relevant contexts for {DEV_TYPES.find(function(d){return d.id===devType;})?.label} engineers.</span>
@@ -867,7 +861,7 @@ export default function Engineer() {
                 })}
               </div>
               {devType && devType !== "other" && !showAllCtx && hiddenCount > 0 && (
-                <button onClick={function(){setShowAllCtx(true);}} style={{background:"none",border:"1px dashed "+S.border,borderRadius:20,padding:"5px 14px",cursor:"pointer",fontFamily:S.mono,fontSize:11,color:S.dim,marginBottom:12}}>+ Show {hiddenCount} more contexts</button>
+                <button onClick={function(){setShowAllCtx(true);}} style={{background:"none",border:"1px dashed "+S.border,borderRadius:20,padding:"5px 14px",cursor:"pointer",fontFamily:S.mono,fontSize:12,color:S.dim,marginBottom:12}}>+ Show {hiddenCount} more contexts</button>
               )}
             </Card>
           )}
@@ -878,16 +872,16 @@ export default function Engineer() {
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
                 <Label style={{marginBottom:0}}>COMPANY CONTEXT <span style={{color:S.dim,fontWeight:400,textTransform:"none"}}>— optional</span></Label>
                 {companyType && (
-                  <span style={{fontFamily:S.mono,fontSize:11,color:S.green,fontWeight:700}}>✓ {COMPANY_TYPES.find(function(c){return c.id===companyType;})?.label}</span>
+                  <span style={{fontFamily:S.mono,fontSize:12,color:S.green,fontWeight:700}}>✓ {COMPANY_TYPES.find(function(c){return c.id===companyType;})?.label}</span>
                 )}
               </div>
-              <p style={{color:S.muted,fontSize:13,margin:"0 0 12px",lineHeight:1.6}}>Improves market demand scoring. A Staff engineer at an AI-first company has a very different market profile than one at a large enterprise.</p>
+              <p style={{color:S.muted,fontSize:16,margin:"0 0 12px",lineHeight:1.6}}>Improves market demand scoring. A Staff engineer at an AI-first company has a very different market profile than one at a large enterprise.</p>
               <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(185px,1fr))",gap:8}}>
                 {COMPANY_TYPES.map(function(ct) {
                   return (
                     <SelBtn key={ct.id} active={companyType===ct.id} onClick={function(){setCompanyType(companyType===ct.id?"":ct.id);}}>
-                      <div style={{fontWeight:700,fontSize:13}}>{ct.label}</div>
-                      <div style={{fontSize:13,opacity:0.75,marginTop:2}}>{ct.sub}</div>
+                      <div style={{fontWeight:700,fontSize:16}}>{ct.label}</div>
+                      <div style={{fontSize:15,opacity:0.75,marginTop:2}}>{ct.sub}</div>
                     </SelBtn>
                   );
                 })}
@@ -900,19 +894,19 @@ export default function Engineer() {
             <div className="reveal">
               {error && <p style={{color:S.red,fontSize:14,fontFamily:S.mono,fontWeight:600,marginBottom:12,textAlign:"center"}}>{error}</p>}
               <PrimaryBtn onClick={fetchLandscapeAndSkills} disabled={!canProceed}>GENERATE MY SKILL MAP →</PrimaryBtn>
-              <p style={{color:S.dim,fontSize:11,textAlign:"center",marginTop:12,fontFamily:S.mono}}>Takes about 60 seconds · Two steps · No account required</p>
+              <p style={{color:S.dim,fontSize:14,textAlign:"center",marginTop:12,fontFamily:S.mono}}>Takes about 60 seconds · Two steps · No account required</p>
             </div>
           )}
 
           {/* ── Nudge text when nothing selected yet ── */}
           {!devTypeReady && (
-            <p style={{color:S.dim,fontSize:12,fontFamily:S.mono,textAlign:"center",marginTop:8}}>Select your engineer type above to continue ↑</p>
+            <p style={{color:S.dim,fontSize:14,fontFamily:S.mono,textAlign:"center",marginTop:8}}>Select your engineer type above to continue ↑</p>
           )}
           {devTypeReady && !seniorityReady && (
-            <p style={{color:S.dim,fontSize:12,fontFamily:S.mono,textAlign:"center",marginTop:8}}>Now select your seniority level ↑</p>
+            <p style={{color:S.dim,fontSize:14,fontFamily:S.mono,textAlign:"center",marginTop:8}}>Now select your seniority level ↑</p>
           )}
           {seniorityReady && !contextsReady && (
-            <p style={{color:S.dim,fontSize:12,fontFamily:S.mono,textAlign:"center",marginTop:8}}>Select at least one work context to continue ↑</p>
+            <p style={{color:S.dim,fontSize:14,fontFamily:S.mono,textAlign:"center",marginTop:8}}>Select at least one work context to continue ↑</p>
           )}
 
         </div>
@@ -927,17 +921,17 @@ export default function Engineer() {
       <div style={{background:S.bg,minHeight:"100vh",fontFamily:S.font,padding:"32px 20px"}}>
         <div style={{maxWidth:680,margin:"0 auto"}}>
           <div style={{marginBottom:22}}>
-            <div style={{fontFamily:S.mono,fontSize:11,color:S.gold,letterSpacing:"0.1em",marginBottom:6,fontWeight:600}}>STEP 1 OF 2 · {profile1.summary.toUpperCase()}</div>
+            <div style={{fontFamily:S.mono,fontSize:12,color:S.gold,letterSpacing:"0.1em",marginBottom:6,fontWeight:600}}>STEP 1 OF 2 · {profile1.summary.toUpperCase()}</div>
             <h2 style={{fontFamily:S.serif,fontSize:30,color:S.text,margin:"0 0 6px"}}>Your AI Landscape</h2>
           </div>
           <div style={{background:"linear-gradient(135deg,rgba(26,29,46,.97),rgba(26,29,46,.92))",borderRadius:14,padding:22,marginBottom:18,position:"relative",overflow:"hidden"}}>
             <div style={{position:"absolute",top:0,right:0,width:160,height:160,background:"radial-gradient(circle,rgba(217,119,6,.15) 0%,transparent 70%)",pointerEvents:"none"}} />
-            <div style={{fontFamily:S.mono,fontSize:11,color:"rgba(217,119,6,.8)",letterSpacing:"0.1em",marginBottom:8,fontWeight:600}}>AI LANDSCAPE · {profile1.devLabel.toUpperCase()} ENGINEER · {profile1.seniorityLabel.toUpperCase()}</div>
-            <p style={{color:"rgba(240,242,248,.9)",fontSize:17,lineHeight:1.75,margin:0,fontStyle:"italic"}}>{landscape}</p>
+            <div style={{fontFamily:S.mono,fontSize:12,color:"rgba(217,119,6,.8)",letterSpacing:"0.1em",marginBottom:8,fontWeight:600}}>AI LANDSCAPE · {profile1.devLabel.toUpperCase()} ENGINEER · {profile1.seniorityLabel.toUpperCase()}</div>
+            <p style={{color:"rgba(240,242,248,.9)",fontSize:16,lineHeight:1.75,margin:0,fontStyle:"italic"}}>{landscape}</p>
           </div>
           <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:18}}>
             {profile1.workContextLabels.map(function(wc) {
-              return <span key={wc} style={{fontFamily:S.mono,fontSize:11,color:S.gold,background:"rgba(217,119,6,0.1)",border:"1px solid rgba(217,119,6,0.3)",borderRadius:12,padding:"3px 10px",fontWeight:600}}>{wc}</span>;
+              return <span key={wc} style={{fontFamily:S.mono,fontSize:12,color:S.gold,background:"rgba(217,119,6,0.1)",border:"1px solid rgba(217,119,6,0.3)",borderRadius:12,padding:"3px 10px",fontWeight:600}}>{wc}</span>;
             })}
           </div>
           <Card style={{marginBottom:14}}>
@@ -945,7 +939,7 @@ export default function Engineer() {
               <Label style={{marginBottom:0}}>YOUR SKILLS TO ASSESS</Label>
               <div style={{fontFamily:S.mono,fontSize:12,color:skills.length>=8?S.red:S.dim,fontWeight:700}}>{skills.length} / 8</div>
             </div>
-            <p style={{color:S.muted,fontSize:14,margin:"0 0 16px",lineHeight:1.6}}>
+            <p style={{color:S.muted,fontSize:16,margin:"0 0 16px",lineHeight:1.6}}>
               Generated for your exact profile. <strong style={{color:S.text}}>Edit any skill to be more specific</strong> — "React perf optimization for 50M MAU" scores better than "React".
             </p>
             <div style={{display:"flex",flexDirection:"column",gap:10}}>
@@ -953,18 +947,18 @@ export default function Engineer() {
                 return (
                   <div key={s.id} style={{display:"flex",alignItems:"flex-start",gap:10}}>
                     <div style={{width:26,height:26,borderRadius:"50%",background:S.accent,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:s.editing?9:10}}>
-                      <span style={{color:"white",fontSize:11,fontFamily:S.mono,fontWeight:700}}>{i+1}</span>
+                      <span style={{color:"white",fontSize:12,fontFamily:S.mono,fontWeight:700}}>{i+1}</span>
                     </div>
                     <div style={{flex:1}}>
                       {s.editing ? (
                         <div style={{display:"flex",gap:8}}>
                           <input autoFocus value={s.text} onChange={function(e){updateText(s.id,e.target.value);}} onKeyDown={function(e){if(e.key==="Enter"||e.key==="Escape")commitEdit(s.id);}} style={Object.assign({},inputStyle,{flex:1})} />
-                          <button onClick={function(){commitEdit(s.id);}} style={{background:S.accent,border:"none",color:"white",padding:"12px 16px",borderRadius:8,cursor:"pointer",fontFamily:S.mono,fontSize:13,fontWeight:700}}>✓</button>
+                          <button onClick={function(){commitEdit(s.id);}} style={{background:S.accent,border:"none",color:"white",padding:"12px 16px",borderRadius:8,cursor:"pointer",fontFamily:S.mono,fontSize:14,fontWeight:700}}>✓</button>
                         </div>
                       ) : (
                         <div style={{display:"flex",alignItems:"center",background:"#f2f4f8",border:"1px solid "+S.border,borderRadius:10,padding:"10px 14px",gap:10,minHeight:46}}>
-                          <span style={{color:S.text,fontSize:14,flex:1,fontWeight:500,lineHeight:1.4}}>{s.text}</span>
-                          <button onClick={function(){startEditing(s.id);}} style={{background:"none",border:"1px solid "+S.border,color:S.muted,cursor:"pointer",fontSize:11,padding:"4px 9px",borderRadius:6,fontFamily:S.mono,whiteSpace:"nowrap"}}>EDIT</button>
+                          <span style={{color:S.text,fontSize:16,flex:1,fontWeight:500,lineHeight:1.4}}>{s.text}</span>
+                          <button onClick={function(){startEditing(s.id);}} style={{background:"none",border:"1px solid "+S.border,color:S.muted,cursor:"pointer",fontSize:12,padding:"4px 9px",borderRadius:6,fontFamily:S.mono,whiteSpace:"nowrap"}}>EDIT</button>
                           <button onClick={function(){removeSkill(s.id);}} style={{background:"none",border:"none",color:S.dim,cursor:"pointer",fontSize:18,lineHeight:1,padding:0,flexShrink:0}}>×</button>
                         </div>
                       )}
@@ -993,9 +987,9 @@ export default function Engineer() {
         <style dangerouslySetInnerHTML={{__html:slCSS}} />
         <div style={{maxWidth:660,margin:"0 auto"}}>
           <div style={{marginBottom:24}}>
-            <div style={{fontFamily:S.mono,fontSize:11,color:S.purple,letterSpacing:"0.1em",marginBottom:8,fontWeight:600}}>STEP 2 OF 2 · AFFINITY & INVESTMENT</div>
+            <div style={{fontFamily:S.mono,fontSize:12,color:S.purple,letterSpacing:"0.1em",marginBottom:8,fontWeight:600}}>STEP 2 OF 2 · AFFINITY & INVESTMENT</div>
             <h2 style={{fontFamily:S.serif,fontSize:30,color:S.text,margin:"0 0 8px"}}>Two questions per skill. Be honest.</h2>
-            <p style={{color:S.muted,fontSize:15,margin:0,lineHeight:1.65}}>The first asks how much this skill feels like <em>you</em>. The second asks how actively you're deepening it. Together they reveal whether you're quietly drifting from a skill you're still being paid for.</p>
+            <p style={{color:S.muted,fontSize:16,margin:0,lineHeight:1.65}}>The first asks how much this skill feels like <em>you</em>. The second asks how actively you're deepening it. Together they reveal whether you're quietly drifting from a skill you're still being paid for.</p>
           </div>
           <div style={{display:"flex",flexDirection:"column",gap:18,marginBottom:20}}>
             {skills.map(function(s, i) {
@@ -1008,30 +1002,30 @@ export default function Engineer() {
                 <Card key={s.id} style={{padding:24}}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20}}>
                     <div style={{flex:1,paddingRight:14}}>
-                      <div style={{fontFamily:S.mono,fontSize:10,color:S.dim,letterSpacing:"0.06em",marginBottom:4,fontWeight:600}}>SKILL {i+1}</div>
-                      <div style={{color:S.text,fontSize:15,fontWeight:700,lineHeight:1.35}}>{s.text}</div>
+                      <div style={{fontFamily:S.mono,fontSize:12,color:S.dim,letterSpacing:"0.06em",marginBottom:4,fontWeight:600}}>SKILL {i+1}</div>
+                      <div style={{color:S.text,fontSize:16,fontWeight:700,lineHeight:1.35}}>{s.text}</div>
                     </div>
                     <div style={{textAlign:"right",flexShrink:0}}>
-                      <div style={{fontFamily:S.mono,fontSize:10,color:S.dim,marginBottom:2}}>COMPOSITE</div>
+                      <div style={{fontFamily:S.mono,fontSize:12,color:S.dim,marginBottom:2}}>COMPOSITE</div>
                       <div style={{fontFamily:S.mono,fontSize:28,fontWeight:700,color:c>=7?S.gold:c>=4?S.purple:S.red,lineHeight:1}}>{c}</div>
-                      <div style={{fontFamily:S.mono,fontSize:10,color:S.dim}}>/ 10</div>
+                      <div style={{fontFamily:S.mono,fontSize:12,color:S.dim}}>/ 10</div>
                     </div>
                   </div>
                   <div style={{marginBottom:20}}>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
                       <div style={{display:"flex",alignItems:"center",gap:7}}>
                         <div style={{width:9,height:9,borderRadius:"50%",background:S.purple}} />
-                        <span style={{fontFamily:S.mono,fontSize:11,color:S.purple,fontWeight:700}}>NATURAL AFFINITY</span>
+                        <span style={{fontFamily:S.mono,fontSize:12,color:S.purple,fontWeight:700}}>NATURAL AFFINITY</span>
                       </div>
-                      <span style={{fontFamily:S.mono,fontSize:17,fontWeight:700,color:S.purple}}>{na}<span style={{fontSize:11,color:S.dim}}>/10</span></span>
+                      <span style={{fontFamily:S.mono,fontSize:17,fontWeight:700,color:S.purple}}>{na}<span style={{fontSize:12,color:S.dim}}>/10</span></span>
                     </div>
                     <input type="range" min="0" max="10" step="1" value={na} className="sl-aff" onChange={function(e){setAffinities(function(p){return Object.assign({},p,{[s.id]:Number(e.target.value)});});}} style={{background:"linear-gradient(to right,"+S.purple+" "+naP+"%,#d0d7e8 "+naP+"%)"}} />
                     <div style={{display:"flex",justifyContent:"space-between",marginTop:6}}>
                       {AFFINITY_LABELS.map(function(l) {
                         return (
                           <div key={l.v} style={{textAlign:"center",width:"20%",opacity:Math.abs(na-l.v)<=1.5?1:0.2}}>
-                            <div style={{fontFamily:S.mono,fontSize:10,fontWeight:700,color:S.purple,marginBottom:1}}>{l.v}</div>
-                            <div style={{fontSize:9,color:S.muted,lineHeight:1.3}}>{l.label}</div>
+                            <div style={{fontFamily:S.mono,fontSize:12,fontWeight:700,color:S.purple,marginBottom:1}}>{l.v}</div>
+                            <div style={{fontSize:14,color:S.muted,lineHeight:1.3}}>{l.label}</div>
                           </div>
                         );
                       })}
@@ -1045,18 +1039,18 @@ export default function Engineer() {
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
                       <div style={{display:"flex",alignItems:"center",gap:7}}>
                         <div style={{width:9,height:9,borderRadius:"50%",background:"#0891b2"}} />
-                        <span style={{fontFamily:S.mono,fontSize:11,color:"#0891b2",fontWeight:700}}>INVESTMENT SIGNAL</span>
+                        <span style={{fontFamily:S.mono,fontSize:12,color:"#0891b2",fontWeight:700}}>INVESTMENT SIGNAL</span>
                       </div>
-                      <span style={{fontFamily:S.mono,fontSize:17,fontWeight:700,color:"#0891b2"}}>{inv}<span style={{fontSize:11,color:S.dim}}>/10</span></span>
+                      <span style={{fontFamily:S.mono,fontSize:17,fontWeight:700,color:"#0891b2"}}>{inv}<span style={{fontSize:12,color:S.dim}}>/10</span></span>
                     </div>
-                    <p style={{color:S.dim,fontSize:12,margin:"0 0 8px",lineHeight:1.5,fontStyle:"italic"}}>How actively are you deepening this skill — side projects, courses, new patterns, staying current?</p>
+                    <p style={{color:S.dim,fontSize:16,margin:"0 0 8px",lineHeight:1.5,fontStyle:"italic"}}>How actively are you deepening this skill — side projects, courses, new patterns, staying current?</p>
                     <input type="range" min="0" max="10" step="1" value={inv} className="sl-inv" onChange={function(e){setInvestments(function(p){return Object.assign({},p,{[s.id]:Number(e.target.value)});});}} style={{background:"linear-gradient(to right,#0891b2 "+invP+"%,#d0d7e8 "+invP+"%)"}} />
                     <div style={{display:"flex",justifyContent:"space-between",marginTop:6}}>
                       {INVESTMENT_LABELS.map(function(l) {
                         return (
                           <div key={l.v} style={{textAlign:"center",width:"20%",opacity:Math.abs(inv-l.v)<=1.5?1:0.2}}>
-                            <div style={{fontFamily:S.mono,fontSize:10,fontWeight:700,color:"#0891b2",marginBottom:1}}>{l.v}</div>
-                            <div style={{fontSize:9,color:S.muted,lineHeight:1.3}}>{l.label}</div>
+                            <div style={{fontFamily:S.mono,fontSize:12,fontWeight:700,color:"#0891b2",marginBottom:1}}>{l.v}</div>
+                            <div style={{fontSize:14,color:S.muted,lineHeight:1.3}}>{l.label}</div>
                           </div>
                         );
                       })}
@@ -1067,14 +1061,12 @@ export default function Engineer() {
                   </div>
                   {na<=3 && inv<=3 && (
                     <div style={{marginTop:14,background:"rgba(220,38,38,0.06)",border:"1px solid rgba(220,38,38,0.15)",borderRadius:8,padding:"9px 14px",display:"flex",gap:10}}>
-                      <span style={{fontSize:13,flexShrink:0}}>⚠️</span>
-                      <p style={{color:S.red,fontSize:14,margin:0,lineHeight:1.5,fontWeight:500}}>Low affinity + low investment. You won't fight to keep this skill, and AI is advancing on it.</p>
+                      <p style={{color:S.red,fontSize:16,margin:0,lineHeight:1.5,fontWeight:500}}>Low affinity + low investment. You won't fight to keep this skill, and AI is advancing on it.</p>
                     </div>
                   )}
                   {na>=6 && inv<=2 && (
                     <div style={{marginTop:14,background:"rgba(217,119,6,0.06)",border:"1px solid rgba(217,119,6,0.2)",borderRadius:8,padding:"9px 14px",display:"flex",gap:10}}>
-                      <span style={{fontSize:13,flexShrink:0}}>🔒</span>
-                      <p style={{color:S.gold,fontSize:14,margin:0,lineHeight:1.5,fontWeight:500}}>Golden cage. You feel wired for this but aren't investing — that gap is where AI catches up.</p>
+                      <p style={{color:S.gold,fontSize:16,margin:0,lineHeight:1.5,fontWeight:500}}>Golden cage. You feel wired for this but aren't investing — that gap is where AI catches up.</p>
                     </div>
                   )}
                 </Card>
@@ -1096,21 +1088,21 @@ export default function Engineer() {
     return (
       <div style={{background:S.bg,minHeight:"100vh",fontFamily:S.font,display:"flex",alignItems:"center",justifyContent:"center",padding:"24px"}}>
         <div style={{maxWidth:480,width:"100%",background:S.card,border:"1px solid "+S.border,borderRadius:16,padding:"40px 36px",textAlign:"center"}}>
-          <div style={{fontFamily:S.mono,fontSize:11,color:S.gold,letterSpacing:"0.14em",fontWeight:600,marginBottom:16}}>ONE LAST THING</div>
+          <div style={{fontFamily:S.mono,fontSize:12,color:S.gold,letterSpacing:"0.14em",fontWeight:600,marginBottom:16}}>ONE LAST THING</div>
           <h2 style={{fontFamily:S.serif,fontSize:26,color:S.text,margin:"0 0 12px",lineHeight:1.2}}>Want to save your results?</h2>
-          <p style={{color:S.muted,fontSize:15,lineHeight:1.7,margin:"0 0 28px"}}>Drop your email and we'll send you a copy. You'll also get occasional updates when the AI threat landscape shifts for your role. No spam.</p>
+          <p style={{color:S.muted,fontSize:16,lineHeight:1.7,margin:"0 0 28px"}}>Drop your email and we'll send you a copy. You'll also get occasional updates when the AI threat landscape shifts for your role. No spam.</p>
           <input
             type="email"
             placeholder="your@email.com"
             value={emailInput}
             onChange={function(e){setEmailInput(e.target.value);}}
-            style={{width:"100%",boxSizing:"border-box",padding:"14px 16px",fontSize:15,border:"1px solid "+(emailInput && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailInput) ? S.red : S.border),borderRadius:10,fontFamily:S.font,color:S.text,background:S.bg,marginBottom:4,outline:"none"}}
+            style={{width:"100%",boxSizing:"border-box",padding:"14px 16px",fontSize:16,border:"1px solid "+(emailInput && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailInput) ? S.red : S.border),borderRadius:10,fontFamily:S.font,color:S.text,background:S.bg,marginBottom:4,outline:"none"}}
           />
           {emailInput && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailInput) && (
-            <p style={{color:S.red,fontSize:12,fontFamily:S.mono,margin:"0 0 10px",textAlign:"left"}}>Please enter a valid email address.</p>
+            <p style={{color:S.red,fontSize:14,fontFamily:S.mono,margin:"0 0 10px",textAlign:"left"}}>Please enter a valid email address.</p>
           )}
           {!emailInput && (
-            <p style={{color:S.muted,fontSize:12,fontFamily:S.mono,margin:"0 0 10px",textAlign:"left"}}>&nbsp;</p>
+            <p style={{color:S.muted,fontSize:14,fontFamily:S.mono,margin:"0 0 10px",textAlign:"left"}}>&nbsp;</p>
           )}
           {emailInput && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailInput) && (
             <p style={{margin:"0 0 10px"}}>&nbsp;</p>
@@ -1137,33 +1129,32 @@ export default function Engineer() {
 
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:18,flexWrap:"wrap",gap:12}}>
             <div>
-              <div style={{fontFamily:S.mono,fontSize:11,color:S.muted,letterSpacing:"0.08em",marginBottom:5,fontWeight:600}}>DEFENSIBLE ZONE™ REPORT · {profile3.summary.toUpperCase()}</div>
+              <div style={{fontFamily:S.mono,fontSize:12,color:S.muted,letterSpacing:"0.08em",marginBottom:5,fontWeight:600}}>DEFENSIBLE ZONE™ REPORT · {profile3.summary.toUpperCase()}</div>
               <h1 style={{fontFamily:S.serif,fontSize:32,color:S.text,margin:0}}>Your Risk Profile</h1>
             </div>
             <div style={{display:"flex",gap:20,alignItems:"flex-end"}}>
               {benchmark && (
                 <div style={{textAlign:"right"}}>
                   <div style={{fontFamily:S.mono,fontSize:38,fontWeight:700,color:"#0891b2",lineHeight:1}}>{benchmark.percentile}<span style={{fontSize:18}}>%</span></div>
-                  <div style={{fontFamily:S.mono,fontSize:10,color:S.muted,letterSpacing:"0.08em",fontWeight:600,marginTop:2}}>PEER PERCENTILE</div>
+                  <div style={{fontFamily:S.mono,fontSize:12,color:S.muted,letterSpacing:"0.08em",fontWeight:600,marginTop:2}}>PEER PERCENTILE</div>
                 </div>
               )}
               <div style={{textAlign:"right"}}>
                 <div style={{fontFamily:S.mono,fontSize:38,fontWeight:700,color:dzColor(avgDZ),lineHeight:1}}>{avgDZ}</div>
-                <div style={{fontFamily:S.mono,fontSize:10,color:S.muted,letterSpacing:"0.08em",fontWeight:600,marginTop:2}}>AVG DZ SCORE</div>
+                <div style={{fontFamily:S.mono,fontSize:12,color:S.muted,letterSpacing:"0.08em",fontWeight:600,marginTop:2}}>AVG DZ SCORE</div>
               </div>
             </div>
           </div>
 
           <div style={{display:"flex",flexWrap:"wrap",gap:5,marginBottom:12}}>
             {[profile3.devLabel+" Engineer", profile3.seniorityLabel].concat(profile3.workContextLabels).concat(profile3.companyLabel?[profile3.companyLabel]:[]).map(function(tag) {
-              return <span key={tag} style={{fontFamily:S.mono,fontSize:10,color:S.muted,background:S.card2,border:"1px solid "+S.border,borderRadius:12,padding:"3px 10px",fontWeight:600}}>{tag}</span>;
+              return <span key={tag} style={{fontFamily:S.mono,fontSize:12,color:S.muted,background:S.card2,border:"1px solid "+S.border,borderRadius:12,padding:"3px 10px",fontWeight:600}}>{tag}</span>;
             })}
           </div>
 
           {benchmark && (
             <div style={{background:S.card,border:"1px solid #bae6fd",borderRadius:12,padding:"12px 18px",marginBottom:12,display:"flex",alignItems:"center",gap:12}}>
-              <span style={{fontSize:16,flexShrink:0}}>📊</span>
-              <p style={{color:"#0369a1",fontSize:14,margin:0,lineHeight:1.55,fontStyle:"italic"}}>{benchmark.summary}</p>
+              <p style={{color:"#0369a1",fontSize:16,margin:0,lineHeight:1.55,fontStyle:"italic"}}>{benchmark.summary}</p>
             </div>
           )}
 
@@ -1176,7 +1167,7 @@ export default function Engineer() {
                   return (
                     <div key={q.l} style={{display:"flex",alignItems:"center",gap:6}}>
                       <div style={{width:10,height:10,borderRadius:2,background:q.c,flexShrink:0}} />
-                      <span style={{fontFamily:S.mono,fontSize:10,color:S.dim}}>{q.l}</span>
+                      <span style={{fontFamily:S.mono,fontSize:12,color:S.dim}}>{q.l}</span>
                     </div>
                   );
                 })}
@@ -1190,8 +1181,8 @@ export default function Engineer() {
                   return (
                     <div key={s.name} onMouseEnter={function(){setHovered(s.name);}} onMouseLeave={function(){setHovered(null);}} style={{borderLeft:"3px solid "+dzColor(s.dz),paddingLeft:12,paddingTop:10,paddingBottom:10,cursor:"pointer",borderRadius:"0 8px 8px 0",background:hovered===s.name?S.card2:"transparent"}}>
                       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
-                        <span style={{color:S.text,fontSize:15,fontWeight:700,paddingRight:8,lineHeight:1.3}}>{s.name}</span>
-                        <span style={{fontFamily:S.mono,fontSize:11,padding:"2px 8px",borderRadius:20,flexShrink:0,color:dzColor(s.dz),background:dzColor(s.dz)+"18",fontWeight:700}}>{dzLabel(s.dz)}</span>
+                        <span style={{color:S.text,fontSize:16,fontWeight:700,paddingRight:8,lineHeight:1.3}}>{s.name}</span>
+                        <span style={{fontFamily:S.mono,fontSize:12,padding:"2px 8px",borderRadius:20,flexShrink:0,color:dzColor(s.dz),background:dzColor(s.dz)+"18",fontWeight:700}}>{dzLabel(s.dz)}</span>
                       </div>
                       <div style={{height:3,background:"#e8ecf5",borderRadius:2,marginBottom:8,overflow:"hidden"}}>
                         <div className="bar-anim" style={{height:"100%",width:s.dz+"%",background:"linear-gradient(90deg,"+dzColor(s.dz)+"99,"+dzColor(s.dz)+")",borderRadius:2}} />
@@ -1200,14 +1191,14 @@ export default function Engineer() {
                         {[["NA",s.naturalAffinity,S.purple],["Inv",s.investment,"#0891b2"],["Comp",s.affinity,S.accent],["AIR",s.ai_replaceability,S.red],["Mkt",s.market_demand,S.green]].map(function(item) {
                           return (
                             <div key={item[0]}>
-                              <div style={{fontFamily:S.mono,fontSize:10,color:S.dim}}>{item[0]}</div>
-                              <div style={{fontFamily:S.mono,fontSize:13,color:item[2],fontWeight:700}}>{item[1]}/10</div>
+                              <div style={{fontFamily:S.mono,fontSize:12,color:S.dim}}>{item[0]}</div>
+                              <div style={{fontFamily:S.mono,fontSize:14,color:item[2],fontWeight:700}}>{item[1]}/10</div>
                             </div>
                           );
                         })}
                       </div>
-                      {s.interface_span && <div style={{fontFamily:S.mono,fontSize:11,color:S.green,marginTop:4,fontWeight:700}}>+ Interface span bonus</div>}
-                      <p style={{color:S.muted,fontSize:13,margin:"8px 0 0",fontStyle:"italic",lineHeight:1.6}}>{s.rationale}</p>
+                      {s.interface_span && <div style={{fontFamily:S.mono,fontSize:12,color:S.green,marginTop:4,fontWeight:700}}>+ Interface span bonus</div>}
+                      <p style={{color:S.muted,fontSize:16,margin:"8px 0 0",fontStyle:"italic",lineHeight:1.6}}>{s.rationale}</p>
                     </div>
                   );
                 })}
@@ -1234,20 +1225,20 @@ export default function Engineer() {
                   <button
                     onClick={function(){ window.open("https://buy.stripe.com/00wdR93sSgHFadD5RIdQQ03","_blank"); }}
                     style={{background:S.gold,color:"white",border:"none",borderRadius:8,padding:"8px 18px",fontSize:12,fontFamily:S.mono,fontWeight:700,cursor:"pointer",letterSpacing:"0.06em",display:"flex",alignItems:"center",gap:6}}
-                  >⬇ DOWNLOAD PDF REPORT</button>
+                  >DOWNLOAD PDF REPORT</button>
                 </div>
               )}
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
                 <button onClick={function(){setShowRecs(!showRecs);}} className="no-print" style={{background:"none",border:"none",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center",padding:0,flex:1}}>
                   <Label style={{marginBottom:0}}>STRATEGIC RECOMMENDATIONS · {profile3.seniorityLabel.toUpperCase()} {profile3.devLabel.toUpperCase()} ENGINEER</Label>
-                  <span style={{color:S.muted,fontSize:11,fontFamily:S.mono,fontWeight:600,marginLeft:12}}>{showRecs?"▲ COLLAPSE":"▼ EXPAND"}</span>
+                  <span style={{color:S.muted,fontSize:12,fontFamily:S.mono,fontWeight:600,marginLeft:12}}>{showRecs?"▲ COLLAPSE":"▼ EXPAND"}</span>
                 </button>
                 {showRecs && (
                   <button
                     className="no-print"
                     onClick={function(){ window.print(); }}
                     style={{background:S.bg,border:"1px solid "+S.border,borderRadius:8,padding:"7px 14px",fontSize:12,fontFamily:S.mono,fontWeight:700,color:S.muted,cursor:"pointer",letterSpacing:"0.06em",marginLeft:12,flexShrink:0,display:"flex",alignItems:"center",gap:5}}
-                  >⎙ Save as PDF</button>
+                  >Save as PDF</button>
                 )}
               </div>
             {showRecs && (
@@ -1266,7 +1257,7 @@ export default function Engineer() {
                         <span style={{color:S.text,fontSize:16,fontWeight:700,lineHeight:1.3}}>{rec.title}</span>
                       </div>
                       {rec.names.length>0 && (
-                        <div style={{fontFamily:S.mono,fontSize:11,color:rec.color,marginBottom:12,fontWeight:700,paddingLeft:18}}>
+                        <div style={{fontFamily:S.mono,fontSize:12,color:rec.color,marginBottom:12,fontWeight:700,paddingLeft:18}}>
                           {rec.names.join(" · ")}
                         </div>
                       )}
@@ -1292,7 +1283,7 @@ export default function Engineer() {
           <Card style={{padding:22,marginBottom:10}}>
             <button onClick={function(){setShowAlgo(!showAlgo);}} style={{background:"none",border:"none",cursor:"pointer",width:"100%",display:"flex",justifyContent:"space-between",alignItems:"center",padding:0}}>
               <Label style={{marginBottom:0}}>ALGORITHM ASSUMPTIONS & KNOWN LIMITATIONS</Label>
-              <span style={{color:S.muted,fontSize:11,fontFamily:S.mono,fontWeight:600}}>{showAlgo?"▲ COLLAPSE":"▼ SHOW WORK"}</span>
+              <span style={{color:S.muted,fontSize:12,fontFamily:S.mono,fontWeight:600}}>{showAlgo?"▲ COLLAPSE":"▼ SHOW WORK"}</span>
             </button>
             {showAlgo && (
               <div style={{marginTop:16,display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))",gap:10}}>
@@ -1300,10 +1291,10 @@ export default function Engineer() {
                   return (
                     <div key={a.id} style={{background:S.bg,border:"1px solid "+S.border,borderRadius:10,padding:12}}>
                       <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
-                        <span style={{fontFamily:S.mono,fontSize:10,fontWeight:700,background:a.color,color:"white",padding:"2px 8px",borderRadius:4}}>{a.id}</span>
+                        <span style={{fontFamily:S.mono,fontSize:12,fontWeight:700,background:a.color,color:"white",padding:"2px 8px",borderRadius:4}}>{a.id}</span>
                         <span style={{fontSize:12,fontWeight:700,color:S.text}}>{a.title}</span>
                       </div>
-                      <p style={{color:S.muted,fontSize:11,margin:0,lineHeight:1.65,fontFamily:S.mono}}>{a.desc}</p>
+                      <p style={{color:S.muted,fontSize:12,margin:0,lineHeight:1.65,fontFamily:S.mono}}>{a.desc}</p>
                     </div>
                   );
                 })}
@@ -1314,7 +1305,7 @@ export default function Engineer() {
           <Card style={{padding:22,marginBottom:16}}>
             <button onClick={function(){setShowSources(!showSources);}} style={{background:"none",border:"none",cursor:"pointer",width:"100%",display:"flex",justifyContent:"space-between",alignItems:"center",padding:0}}>
               <Label style={{marginBottom:0}}>METHODOLOGY & SOURCES</Label>
-              <span style={{color:S.muted,fontSize:11,fontFamily:S.mono,fontWeight:600}}>{showSources?"▲ COLLAPSE":"▼ VIEW SOURCES"}</span>
+              <span style={{color:S.muted,fontSize:12,fontFamily:S.mono,fontWeight:600}}>{showSources?"▲ COLLAPSE":"▼ VIEW SOURCES"}</span>
             </button>
             {showSources && (
               <div style={{marginTop:16}}>
@@ -1325,10 +1316,10 @@ export default function Engineer() {
                   {SOURCES.map(function(src) {
                     return (
                       <div key={src.id} style={{display:"flex",gap:12,padding:"10px 14px",background:S.bg,borderRadius:8,border:"1px solid "+S.border}}>
-                        <span style={{fontFamily:S.mono,fontSize:10,fontWeight:700,background:S.accent,color:"white",padding:"2px 7px",borderRadius:4,flexShrink:0,height:"fit-content"}}>{src.id}</span>
+                        <span style={{fontFamily:S.mono,fontSize:12,fontWeight:700,background:S.accent,color:"white",padding:"2px 7px",borderRadius:4,flexShrink:0,height:"fit-content"}}>{src.id}</span>
                         <div>
                           <div style={{fontSize:12,fontWeight:700,color:S.text,marginBottom:3}}>{src.label}</div>
-                          <div style={{fontFamily:S.mono,fontSize:10,color:S.dim,lineHeight:1.6}}>{src.cite}</div>
+                          <div style={{fontFamily:S.mono,fontSize:12,color:S.dim,lineHeight:1.6}}>{src.cite}</div>
                         </div>
                       </div>
                     );
@@ -1338,7 +1329,7 @@ export default function Engineer() {
             )}
           </Card>
 
-          <button onClick={resetAll} style={{width:"100%",background:"transparent",border:"1px solid "+S.border,color:S.muted,borderRadius:12,padding:"15px 0",fontSize:13,fontFamily:S.mono,cursor:"pointer",letterSpacing:"0.08em",fontWeight:600,marginBottom:28}}>← START OVER</button>
+          <button onClick={resetAll} style={{width:"100%",background:"transparent",border:"1px solid "+S.border,color:S.muted,borderRadius:12,padding:"15px 0",fontSize:14,fontFamily:S.mono,cursor:"pointer",letterSpacing:"0.08em",fontWeight:600,marginBottom:28}}>← START OVER</button>
 
           <div style={{background:"#fef9ec",border:"1px solid #f0c060",borderRadius:12,padding:"16px 20px",marginBottom:16,textAlign:"center"}}>
             <div style={{fontFamily:S.mono,fontSize:12,color:"#92400e",fontWeight:700,marginBottom:4,letterSpacing:"0.06em"}}>IMPORTANT — PLEASE READ</div>
@@ -1348,8 +1339,8 @@ export default function Engineer() {
           </div>
 
           <div style={{paddingTop:14,textAlign:"center"}}>
-            <span style={{fontFamily:S.mono,fontSize:11,color:S.dim,display:"block",marginBottom:4}}>DEFENSIBLE ZONE&#8482; is a trademark of its creator. All rights reserved.</span>
-            <span style={{fontFamily:S.mono,fontSize:11,color:S.dim,display:"block"}}>&copy; 2026</span>
+            <span style={{fontFamily:S.mono,fontSize:12,color:S.dim,display:"block",marginBottom:4}}>DEFENSIBLE ZONE&#8482; is a trademark of its creator. All rights reserved.</span>
+            <span style={{fontFamily:S.mono,fontSize:12,color:S.dim,display:"block"}}>&copy; 2026</span>
           </div>
         </div>
       </div>
