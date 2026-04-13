@@ -202,7 +202,7 @@ const SD = {
       { name:"Spine surgery fundamentals",                             aiR:2, mkt:8 },
       { name:"Rehabilitation planning & functional restoration",       aiR:2, mkt:7 }
     ]},
-  "Family Medicine":{ t:"moderate", n:"AI supports documentation and screening. Whole-person care, continuity relationships, and undifferentiated illness management are deeply human. Scope breadth is a natural defensible zone&#8482;.",
+  "Family Medicine":{ t:"moderate", n:"AI supports documentation and screening. Whole-person care, continuity relationships, and undifferentiated illness management are deeply human. Scope breadth is a natural defensible zone™.",
     s:[
       { name:"Continuity & longitudinal whole-person care",            aiR:1, mkt:8 },
       { name:"Preventive care & population health management",         aiR:3, mkt:8 },
@@ -476,7 +476,7 @@ const THREAT = {
   low:      { col:"#059669", label:"Low AI Threat",      desc:"Human presence, relationship, and tactile skill dominate. AI is an assistant, not a threat." },
   moderate: { col:"#d97706", label:"Moderate AI Threat", desc:"AI is automating specific tasks. Core clinical judgment remains defensible." },
   high:     { col:"#f97316", label:"High AI Threat",     desc:"Multiple AI systems are FDA-cleared in this specialty. Defensible skills require deliberate investment." },
-  critical: { col:"#dc2626", label:"Critical AI Threat", desc:"AI matches or exceeds specialist performance on core tasks. The defensible zone&#8482; must be actively constructed." }
+  critical: { col:"#dc2626", label:"Critical AI Threat", desc:"AI matches or exceeds specialist performance on core tasks. The defensible zone™ must be actively constructed." }
 };
 
 const T = {
@@ -584,9 +584,9 @@ const LEVEL_ACTIONS = {
   "Attending Physician": {
     cme:         "Complete targeted CME in this skill area through AMA PRA Category 1 credits. Specialty society annual meetings offer the highest-density, peer-reviewed CME in subspecialty domains.",
     mentor:      "Find a peer learning partner — another attending at your institution or via your specialty society — for structured case review in this area. Peer learning at the attending level is underutilized and highly effective.",
-    complexity:  "Deliberately accept referrals for the most complex presentations in this domain from your community colleagues. Your defensible zone&#8482; deepens fastest at the edge of your competency, not in the routine cases.",
+    complexity:  "Deliberately accept referrals for the most complex presentations in this domain from your community colleagues. Your defensible zone™ deepens fastest at the edge of your competency, not in the routine cases.",
     teach:       "Formal teaching of residents and fellows in this skill area is among the most reliable methods of maintaining and deepening attending-level expertise. Apply for a faculty appointment or clinical educator role if you have not already.",
-    leadership:  "Pursue a quality committee, credentialing committee, or clinical protocol leadership role in this skill area at your institution. Systems-level influence is a defensible zone&#8482; AI cannot reach."
+    leadership:  "Pursue a quality committee, credentialing committee, or clinical protocol leadership role in this skill area at your institution. Systems-level influence is a defensible zone™ AI cannot reach."
   }
 };
 
@@ -597,7 +597,7 @@ const SKILL_RESOURCES = {
     "Pursue the most complex and atypical cases in this domain — edge cases where AI fails are where human expertise retains the highest premium."
   ],
   aiR_low: [
-    "This skill has very low AI replaceability — it is a natural defensible zone&#8482;. Your investment here compounds with every year of practice in ways AI cannot replicate.",
+    "This skill has very low AI replaceability — it is a natural defensible zone™. Your investment here compounds with every year of practice in ways AI cannot replicate.",
     "Build explicit mastery metrics: track your outcomes, complication rates, or patient satisfaction scores in this domain. Quantified expertise is more defensible than informal reputation.",
     "Seek opportunities to publish cases or outcomes in this area. The literature on skills with low AI replaceability is where human expertise remains most visible and valued."
   ],
@@ -626,7 +626,7 @@ function buildRecs(results, specialty, level, degree) {
   if (doubleDown.length > 0) {
     recs.push({
       icon: "✦", col: "#059669",
-      title: "Protect and deepen — your current defensible zone&#8482;",
+      title: "Protect and deepen — your current defensible zone™",
       skills: doubleDown.map(r => r.name),
       actions: [
         la.complexity,
@@ -707,18 +707,18 @@ function buildRecs(results, specialty, level, degree) {
     high: [
       "Multiple FDA-cleared AI systems are operating in your specialty right now. The AMA's 2023 Augmented Intelligence Policy identifies physician oversight of AI as a core professional responsibility — build this competency explicitly.",
       "The skills with the highest defensibility in your specialty are those requiring clinical judgment, procedural skill, and therapeutic relationships. Identify your top two and treat them as primary professional development priorities for the next 3 years.",
-      "Join your specialty society's AI task force or digital health committee. Physicians shaping AI policy and clinical guidelines in their specialty are building a defensible zone&#8482; that no algorithm can replicate.",
+      "Join your specialty society's AI task force or digital health committee. Physicians shaping AI policy and clinical guidelines in their specialty are building a defensible zone™ that no algorithm can replicate.",
       degree === "DO" ? "Your OPP training positions you to practice integrative, whole-person medicine that AI-assisted specialists may lack. This is a competitive advantage in complex, multi-system cases." : "Consider an added qualification in clinical informatics through ABPM or your specialty board. The intersection of clinical expertise and AI literacy is one of the fastest-growing and most defensible niches in medicine."
     ],
     moderate: [
       "AI is entering your specialty but has not yet threatened its core competencies. The ACGME's 2024 Milestones 2.0 framework explicitly includes AI literacy and health systems science — engage with these requirements as developmental opportunities, not checkboxes.",
-      "Your longitudinal patient relationships, diagnostic reasoning, and clinical communication are your primary defensible zone&#8482;. These are supported by evidence: patient-centered communication is associated with better outcomes, higher adherence, and lower malpractice risk (Stewart et al., J Fam Pract 2000).",
+      "Your longitudinal patient relationships, diagnostic reasoning, and clinical communication are your primary defensible zone™. These are supported by evidence: patient-centered communication is associated with better outcomes, higher adherence, and lower malpractice risk (Stewart et al., J Fam Pract 2000).",
       "Invest in point-of-care ultrasound (POCUS) skills if relevant to your specialty. POCUS is a concrete procedural skill with growing market demand that extends clinical reach and is supported by multiple ACGME milestones.",
       level === "Medical Student" || level === "Resident" ? "As you train, seek diagnostic ambiguity deliberately. The cases where the diagnosis is unclear are where clinical reasoning — your most defensible competency — develops fastest (Mamede et al., Med Educ 2012)." : "Consider developing a quality improvement, clinical education, or health systems leadership role alongside your clinical practice. These human-systems roles grow in value as AI handles more routine clinical tasks."
     ],
     low: [
       "You are in one of the most defensible specialties in medicine. The human dimensions of your work — therapeutic relationship, presence, tactile skill, and complex judgment — are genuinely difficult for AI to replicate and are explicitly recognized as such in the clinical AI literature (Shehab et al., PMC 2024).",
-      "Your defensible zone&#8482; is wide but requires active maintenance. Invest in communication skills deliberately: the American Academy on Communication in Healthcare (aachonline.org) offers evidence-based training in therapeutic communication and shared decision-making.",
+      "Your defensible zone™ is wide but requires active maintenance. Invest in communication skills deliberately: the American Academy on Communication in Healthcare (aachonline.org) offers evidence-based training in therapeutic communication and shared decision-making.",
       "AI will automate documentation and administrative burden in your field — embrace this and use the time it frees for the high-value human work that defines your specialty. The AMA's 2024 Physician Health report found documentation burden is the leading driver of burnout.",
       degree === "DO" ? "Your OPP competencies — somatic dysfunction assessment and OMT — are among the most AI-resistant skills in all of medicine. They are core to your professional identity and a genuine competitive advantage in an increasingly AI-mediated healthcare system." : "Use the time AI saves on routine tasks to pursue the most complex presentations in your specialty. Expertise in rare and challenging cases is the form of human excellence most resistant to AI displacement."
     ]
