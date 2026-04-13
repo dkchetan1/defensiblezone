@@ -117,7 +117,7 @@ var ALGO_NOTES = [
   { id:"A5", color:"#d97706", title:"Market Demand",      desc:"Estimated for your role type and company context. Based on BLS OOH data and WEF Future of Jobs 2025. Not real-time — production upgrade: live job posting data via BLS/Indeed API." },
   { id:"A6", color:"#2563eb", title:"Skill Suggestions",  desc:"Generated from your dev type + seniority + work context. More targeted than a generic engineer profile. You can edit any skill to be more specific." },
   { id:"A7", color:"#059669", title:"Benchmarking",       desc:"Estimated percentile vs engineers at your level and role type. No real cohort data yet — estimate only. Production: anonymized Defensible Zone™ cohort data." },
-  { id:"A8", color:"#ea580c", title:"DZ Formula",         desc:"DZ = [(composite/10) x ((10-aiR)/10) x (market/10)] x 100 + interface_bonus(15). Multiplicative — weakness in any dimension collapses the overall score." },
+  { id:"A8", color:"#ea580c", title:"DZ Formula",         desc:"DZ = 100 x (affinity/10)^0.35 x ((10-aiR)/10)^0.40 x (market/10)^0.25, capped at 100 (Cobb-Douglas). The former interface_bonus term has been removed. Multiplicative — weakness in any dimension still drags the score." },
   { id:"A9", color:"#64748b", title:"Risk Matrix Placement",desc:"Skills placed on 2x2 by AI Replaceability (x-axis) and Market Demand (y-axis). Bubble size = natural affinity. Color = DZ score. Quadrant labels are strategic not prescriptive." },
 ];
 
@@ -134,9 +134,9 @@ var S = {
 
 // ── MATH ───────────────────────────────────────────────────────────────
 function compAffinity(na, inv) { return Math.round((na * 0.6 + inv * 0.4) * 10) / 10; }
-function calcDZ(aff, aiR, mkt, iface) {
-  var base = (aff / 10) * ((10 - aiR) / 10) * (mkt / 10) * 100;
-  return Math.min(100, Math.round(base + (iface ? 15 : 0)));
+function calcDZ(aff, aiR, mkt) {
+  var v = 100 * Math.pow(aff / 10, 0.35) * Math.pow((10 - aiR) / 10, 0.40) * Math.pow(mkt / 10, 0.25);
+  return Math.min(100, Math.round(v));
 }
 function dzColor(dz) {
   if (dz >= 70) return S.gold;
@@ -751,7 +751,7 @@ export default function Engineer() {
         var na  = id && affinities[id]!=null  ? affinities[id]  : 5;
         var inv = id && investments[id]!=null ? investments[id] : 5;
         var aff = compAffinity(na, inv);
-        var dz  = calcDZ(aff, skill.ai_replaceability, skill.market_demand, skill.interface_span);
+        var dz  = calcDZ(aff, skill.ai_replaceability, skill.market_demand);
         return Object.assign({}, skill, { naturalAffinity:na, investment:inv, affinity:aff, dz:dz });
       });
       setBenchmark(parsed.benchmark);
@@ -774,7 +774,7 @@ export default function Engineer() {
             var na2  = id2 && affinities[id2]!=null  ? affinities[id2]  : 5;
             var inv2 = id2 && investments[id2]!=null ? investments[id2] : 5;
             var aff2 = compAffinity(na2, inv2);
-            var dz2  = calcDZ(aff2, skill.ai_replaceability, skill.market_demand, skill.interface_span);
+            var dz2  = calcDZ(aff2, skill.ai_replaceability, skill.market_demand);
             return Object.assign({}, skill, { naturalAffinity:na2, investment:inv2, affinity:aff2, dz:dz2 });
           });
           setBenchmark(parsed2.benchmark);
