@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import PDFButton from "./PDFButton";
 
 // ══════════════════════════════════════════════════════════════════
 // SPECIALTY DATA — evidence-grounded, fully local scoring
@@ -514,8 +515,6 @@ function compAff(conscience, pull, fluency) {
   return Math.round((conscience * 0.35 + pull * 0.35 + fluency * 0.3) * 10) / 10;
 }
 function calcDZ(aff, aiR, mkt) { return Math.min(100, Math.round(100 * Math.pow(aff/10, 0.35) * Math.pow((10-aiR)/10, 0.40) * Math.pow(mkt/10, 0.25))); }
-function dzCol(s) { if(s>=70)return T.grn; if(s>=45)return T.amb; if(s>=25)return T.org; return T.red; }
-function dzLbl(s) { if(s>=70)return"Defensible"; if(s>=45)return"Moderate Risk"; if(s>=25)return"Growth Area"; return"Needs Attention"; }
 
 function MCard({children,style,className}){ return <div className={className} style={{background:T.card,border:"1px solid "+T.bdr,borderRadius:14,padding:24,...style}}>{children}</div>; }
 function MLbl({children,col,style}){ return <div style={{fontFamily:T.mono,fontSize:11,color:col||T.amb,letterSpacing:".1em",fontWeight:700,textTransform:"uppercase",marginBottom:10,...style}}>{children}</div>; }
@@ -525,220 +524,6 @@ function MBtn({children,onClick,disabled,style}){
   return <button onClick={onClick} disabled={disabled} style={{background:disabled?T.surf:T.amb,color:disabled?T.dim:"#ffffff",border:"1px solid "+(disabled?T.bdr:T.amb),borderRadius:10,padding:"14px 24px",fontFamily:T.mono,fontSize:13,fontWeight:700,letterSpacing:".06em",cursor:disabled?"not-allowed":"pointer",opacity:disabled?0.5:1,transition:"all .15s",...style}}>{children}</button>;
 }
 function MGhost({children,onClick,style}){ return <button onClick={onClick} style={{background:"transparent",color:T.mut,border:"1px solid "+T.bdr,borderRadius:10,padding:"12px 20px",fontFamily:T.mono,fontSize:12,fontWeight:600,cursor:"pointer",...style}}>{children}</button>; }
-
-function ThreatBar({level}){
-  const pos={low:12.5,moderate:37.5,high:62.5,critical:87.5};
-  const pct=pos[level]||37.5;
-  const col=(THREAT[level]||THREAT.moderate).col;
-  return(
-    <svg viewBox="0 0 400 44" style={{width:"100%",display:"block",marginBottom:8}}>
-      <defs><linearGradient id="tg" x1="0%" y1="0%" x2="100%" y2="0%">
-        <stop offset="0%" stopColor="#059669"/>
-        <stop offset="33%" stopColor="#d97706"/>
-        <stop offset="66%" stopColor="#f97316"/>
-        <stop offset="100%" stopColor="#dc2626"/>
-      </linearGradient></defs>
-      <rect x="0" y="10" width="400" height="14" rx="7" fill="url(#tg)" opacity="0.18"/>
-      <rect x="0" y="10" width={pct*4} height="14" rx="7" fill="url(#tg)" opacity="0.7"/>
-      <circle cx={pct*4} cy="17" r="9" fill={col} stroke="white" strokeWidth="2.5"/>
-      <text x="2"   y="40" fontFamily="DM Mono,monospace" fontSize="9" fill="#9aa3b2">Low</text>
-      <text x="120" y="40" fontFamily="DM Mono,monospace" fontSize="9" fill="#9aa3b2">Moderate</text>
-      <text x="244" y="40" fontFamily="DM Mono,monospace" fontSize="9" fill="#9aa3b2">High</text>
-      <text x="358" y="40" fontFamily="DM Mono,monospace" fontSize="9" fill="#9aa3b2">Critical</text>
-    </svg>
-  );
-}
-
-
-// ── LOCAL RECOMMENDATION ENGINE ──────────────────────────────────
-// Actions are grounded in published evidence and real resources:
-// - Ericsson KA. Deliberate Practice. Psych Review 1993.
-// - Warm EJ et al. Entrustment and Competency. J Grad Med Educ 2014.
-// - Densen P. Challenges and Opportunities Facing Medical Education. Trans Am Clin Climatol Assoc 2011.
-// - ACGME Milestones 2.0 developmental progression framework
-// - CanMEDS 2015 Scholar and Health Advocate roles
-// ─────────────────────────────────────────────────────────────────
-
-const LEVEL_ACTIONS = {
-  "Medical Student": {
-    portfolio:   "By each Sunday of clerkship, add one structured write-up using an AAMC MedEdPORTAL peer-reviewed teaching resource as your outline (browse and download templates at mededportal.org), then mirror the same case in your school’s required portfolio or ERAS-compatible document so program directors see concrete evidence on interview day.",
-    mentor:      "Within two weeks, email your clerkship coordinator to request pairing with a resident or fellow (not only an attending) who covers this competency weekly; schedule a recurring 20-minute monthly check-in. Near-peer mentors give more actionable, less idealized advice (Buddeberg-Fischer et al., Swiss Med Wkly 2006).",
-    complexity:  "Each clerkship week, ask your attending to assign you lead on one deliberately complex patient note in this domain (multi-organ, atypical, or conflicting data). Direct exposure to diagnostic uncertainty is where clinical reasoning develops (Schmidt & Mamede, Med Educ 2015); within 24 hours of discharge or sign-out, add one sentence to your portfolio on what changed your thinking.",
-    read:        "Every Sunday, run PubMed (pubmed.ncbi.nlm.nih.gov) with the “Sort by: Best match” or “Publication date” filter plus a saved alert for your competency keywords; read one full article and archive the PDF with a three-bullet summary in Zotero or Paperpile before Monday rounds.",
-    board:       "Block 45 minutes on three fixed weekdays each week for UWorld or AMBOSS (uworld.com or amboss.com) question sets filtered to this competency domain. Active recall during training builds long-term retention far more effectively than passive reading (Kornell & Bjork, Psych Sci 2008)."
-  },
-  "Resident": {
-    portfolio:   "Within 48 hours of each qualifying encounter, enter the case in your ACGME Case Log System with diagnosis, procedure, and your role spelled out (access via your program’s GME office link to the specialty-specific ACGME Case Log portal) so fellowship directors can verify breadth and complexity at annual review.",
-    mentor:      "On the first of each month, secure one direct-observation session with an attending who models this competency and complete a written mini-CEX or equivalent structured feedback form the same week. Feedback frequency, not just quality, is the strongest predictor of skill development (Veloski et al., Acad Med 2006).",
-    complexity:  "Each rotation, volunteer first for the atypical admission or consult in this domain—the patient your attending would usually manage solo—and debrief for 10 minutes after handoff; add one line to your patient list about which judgment call stretched you.",
-    read:        "Reserve a weekly Wednesday block to read one original investigation from NEJM (nejm.org), JAMA (jamanetwork.com/journals/jama), or The Lancet (thelancet.com), or from your ABMS specialty board’s affiliated flagship journal (find the exact title under “Publications” on your board or society homepage—e.g., American College of Radiology → Journal of the American College of Radiology at jacr.org). Read methods and results, not only the discussion.",
-    teach:       "On every inpatient or clinic team, deliver one 15-minute chalk talk to a medical student on this skill with two practice questions you wrote yourself. The protege effect — teaching to learn — produces measurably deeper retention and understanding (Nestojko et al., Memory & Cognition 2014)."
-  },
-  "Fellow": {
-    portfolio:   "Before fellowship graduation, assemble a de-identified case series or QI dataset of at least five patients in this competency with local IRB or QI exemption as required, and submit an abstract through your specialty society’s annual meeting portal (e.g., AHA, ATS, RSNA submission sites) or a PubMed-indexed case outlet using that society’s author instructions.",
-    mentor:      "When your specialty society posts its annual scientific program (online registration site), register within two weeks and add three hands-on workshops or named expert symposia mapped to this competency; attend debrief notes within 48 hours to lock learning.",
-    complexity:  "Each month, coordinate with your program director to lead work-up on one referral that would typically go to a tertiary center; within one week of disposition, present a single-slide summary at fellow conference summarizing decision forks.",
-    research:    "Within six months, charter a single-site QI or outcomes project with a clear denominator, start date, and end date; plan dissemination to a society-affiliated journal or Implementation Science Communications (implementationsciencecom.biomedcentral.com) so your attending-job CV shows subspecialty depth beyond clinical volume alone.",
-    network:     "Within 30 days, activate trainee membership in the subspecialty society that matches your pathway (examples: Society for Cardiovascular Angiography and Interventions at scai.org; American Association for the Study of Liver Diseases at aasld.org; Society of Nuclear Medicine and Molecular Imaging at snmimaging.org) and complete one live webinar plus one discussion board introduction in their trainee community."
-  },
-  "Attending Physician": {
-    cme:         "In the next 90 days, complete at least 8 AMA PRA Category 1 Credit™ hours in this competency through your specialty society’s CME catalog (e.g., American College of Cardiology ACC Anywhere at acc.org; American College of Radiology education at acr.org/Education) or the society’s annual meeting transcript upload.",
-    mentor:      "By month’s end, recruit one peer from your medical staff roster or the society member directory for a bimonthly 45-minute structured case swap (send the case summary 48 hours ahead); alternate sites if you practice at more than one hospital.",
-    complexity:  "Each quarter, accept at least two community referrals explicitly flagged complex in this domain and document your consultant note in the EHR within your group’s published turnaround window. Your defensible zone™ deepens fastest at the edge of competency, not from routine volume alone.",
-    teach:       "Before the next academic year, propose one resident or fellow didactic (grand rounds or noon conference) on this competency and, if available, apply for voluntary faculty or clinical educator designation through your GME office so teaching enters your promotion dossier—formal teaching is among the most reliable ways to maintain attending-level mastery.",
-    leadership:  "Within 90 days, ask your chair or chief medical officer which committee—quality, credentials, or clinical standards—touches this competency, and request appointment or a 90-day pilot charter with one measurable endpoint (e.g., adherence metric or safety event rate) tied to CanMEDS Leader and Health Advocate roles (Frank et al., CanMEDS 2015)."
-  }
-};
-
-const SKILL_RESOURCES = {
-  aiR_high: [
-    "Within 60 days, enroll in your specialty society’s AI curriculum (examples: ACR AI-LAB learning modules at ailab.acr.org/Learn/Index; American College of Cardiology search “artificial intelligence” at acc.org; American Academy of Neurology online education at aan.com) and complete the module block on error modes and clinician oversight; spend one hour monthly maintaining that competency.",
-    "Within two weeks, read the FDA webpage “Artificial Intelligence and Machine Learning (AI/ML)-Enabled Medical Devices” and download the linked AI/ML Software as a Medical Device Action Plan PDF from fda.gov/medical-devices/software-medical-device-samd/artificial-intelligence-and-machine-learning-aiml-enabled-medical-devices; bookmark the public device list entries that match your specialty so you know labeling limits before deployment.",
-    "Each month, lead debrief on one atypical case in this domain where an AI suggestive output was wrong, incomplete, or ignored context; document the human override rationale in your standard sign-out or M&M template. Oversight of such exceptions is the clinical surface ACGME Milestones 2.0 and society AI statements now treat as core professional work."
-  ],
-  aiR_low: [
-    "Quarterly, add one tangible artifact to your promotion or credentialing file for this competency—complication review summary, patient-reported outcome snippet, or peer-solicited letter—so low AI replaceability shows up as evidence, not assumption. Human judgment in ambiguous care remains comparatively advantaged in recent specialty-level reviews (Shehab et al., PMC 2024).",
-    "Pick one metric your EHR or registry already exports (complications, length of stay, or selected patient experience scores), filter to this clinical domain, and review a six-month run chart with your division chief or quality lead once per quarter; set one tweak for the next quarter based on the trend.",
-    "Within 12 months, target a PubMed-indexed case report, outcomes note, or QI brief in this area using your society’s author instructions (posted on the society website); co-authorship is fine—the goal is a durable public signal that your expertise is current."
-  ],
-  mkt_high: [
-    "Within 14 days, update your LinkedIn, Doximity, and hospital faculty profile with this competency as a keyword-rich capability bullet plus one hyperlink to a talk, project, or metric. PwC’s 2025 AI Jobs Barometer reported workers who could demonstrate high-demand analytical and digital skills earned roughly 56% more than peers without those signals—make yours machine- and human-readable.",
-    "On the last Friday of each month, send a one-page “clinical pearl” email to your top ten referring physicians or post a slide to your department’s shared drive illustrating how you apply this skill, so demand converts into referrals and committee invitations.",
-    "Within six months, confirm at abms.org and your specialty board’s website whether added or subspecialty certification exists for this domain; if eligible, map examination or case-log deadlines onto your calendar with your program director, coach, or board liaison."
-  ],
-  mkt_low: [
-    "Unless this competency anchors your mission, cap optional development at employer or board minima and reallocate at least four hours monthly to a higher-market-demand skill flagged elsewhere on your report.",
-    "If you must improve, complete only named AMA PRA Category 1 activities tied to a regulatory or safety mandate (document the activity ID on your transcript) rather than open-ended fellowship-style study."
-  ]
-};
-
-function buildRecs(results, specialty, level, degree) {
-  const threat = (SD[specialty] || {}).t || "moderate";
-  const la = LEVEL_ACTIONS[level] || LEVEL_ACTIONS["Resident"];
-  const recs = [];
-
-  const doubleDown = results.filter(r => r.dz >= 70);
-  const strengthen = results.filter(r => r.dz >= 45 && r.dz < 70 && r.naturalAffinity >= 6);
-  const pivot      = results.filter(r => r.dz < 45 && r.naturalAffinity >= 6 && r.aiR >= 7);
-  const upskill    = results.filter(r => r.dz < 65 && r.naturalAffinity >= 6 && r.aiR < 7 && r.mkt >= 7);
-  const reassess   = results.filter(r => r.dz < 35 && r.naturalAffinity < 4 && r.aiR >= 7);
-
-  if (doubleDown.length > 0) {
-    recs.push({
-      icon: "",
-      col: "#059669",
-      title: "Protect and deepen your current defensible zone™",
-      skills: doubleDown.map(r => r.name),
-      actions: [
-        la.complexity,
-        la.portfolio,
-        SKILL_RESOURCES.aiR_low[1],
-        level === "Attending Physician" ? la.teach : la.mentor,
-        SKILL_RESOURCES.mkt_high[0]
-      ]
-    });
-  }
-
-  if (strengthen.length > 0) {
-    recs.push({
-      icon: "",
-      col: "#d97706",
-      title: "Strengthen affinity into documented mastery",
-      skills: strengthen.map(r => r.name),
-      actions: [
-        la.mentor,
-        la.complexity,
-        la.read,
-        "By the end of this month, download your specialty’s ACGME Milestones 2.0 PDF from acgme.org, highlight the Level 4 narrative examples for these skills, and add one planned behavior per skill you will demonstrate on your next rotation or clinic block.",
-        SKILL_RESOURCES.mkt_high[1]
-      ]
-    });
-  }
-
-  if (pivot.length > 0) {
-    recs.push({
-      icon: "",
-      col: "#f97316",
-      title: "Pivot toward the complex edge of work you already enjoy",
-      skills: pivot.map(r => r.name),
-      actions: [
-        "Within the next 90 days, own work-up on two presentations in this competency that involve rare diagnoses, conflicting data, or multisystem decision-making—patterns underrepresented in publicly listed FDA-cleared AI/ML device training data (review summaries at fda.gov/medical-devices/software-medical-device-samd/artificial-intelligence-and-machine-learning-aiml-enabled-medical-devices); schedule attending review within 48 hours of key decisions.",
-        SKILL_RESOURCES.aiR_high[0],
-        SKILL_RESOURCES.aiR_high[2],
-        "Before your next semi-annual learning-plan update, start the American Board of Artificial Intelligence in Medicine pathway (abaim.org) or your program’s mapped AI curriculum, and cite ACGME Milestones 2.0 expectations for systems-based practice and emerging technology when you meet with your advisor.",
-        degree === "DO" ? "On your next two complex admissions, dictate or write the assessment section to foreground osteopathic structural and whole-person findings (per COCA and ACGME Osteopathic Recognition expectations) so your chart mirrors the clinical lens pattern-recognition AI lacks." : la.teach
-      ]
-    });
-  }
-
-  if (upskill.length > 0) {
-    recs.push({
-      icon: "",
-      col: "#2563eb",
-      title: "Invest now where demand and human premium align",
-      skills: upskill.map(r => r.name),
-      actions: [
-        "Treat this cluster as your highest-return portfolio lane for the next 36 months: pairing strong market demand with low AI substitution lets you compound reputation, referrals, and leadership opportunities faster than in commoditized tasks.",
-        la.cme || la.read,
-        la.mentor,
-        SKILL_RESOURCES.mkt_high[2],
-        "Densen (Trans Am Clin Climatol Assoc 2011) estimated medical knowledge doubles roughly every 73 days; protect your wage premium by blocking a recurring 90-minute Friday session for deliberate reading or simulation in these skills, tracked on your calendar like a procedure day."
-      ]
-    });
-  }
-
-  if (reassess.length > 0) {
-    recs.push({
-      icon: "",
-      col: "#dc2626",
-      title: "Channel growth through strengths that motivate you",
-      skills: reassess.map(r => r.name),
-      actions: [
-        "Pair future study hours with competencies you rated high on natural affinity: Ericsson’s deliberate-practice evidence (Psychol Rev 1993) shows motivation gates depth, so you will climb faster by investing where curiosity already pulls you while still meeting baseline expectations here.",
-        "Within two weeks, review the ACGME Milestones 2.0 minimum entrustment behaviors and your specialty board maintenance-of-certification requirements for this area (posted on acgme.org and your board site); document only what satisfies patient safety and credentialing, then pause discretionary projects.",
-        SKILL_RESOURCES.mkt_low[1],
-        "Reallocate the time you might have spent chasing mastery here toward the high-affinity, high-demand, low-AI-risk skills elsewhere in this report; schedule that swap on your calendar so the hours actually move."
-      ]
-    });
-  }
-
-  const strategyMap = {
-    critical: [
-      "Over the next 12 months, position yourself to co-lead safe AI deployment: your specialty sits among the densest concentrations of FDA-cleared AI/ML-enabled devices (historically about three-quarters of listed devices tied to imaging-related indications in public FDA inventories). Within 90 days, finish either the ACR AI-LAB learning track at ailab.acr.org/Learn/Index or your own specialty society’s AI curriculum page under its Education tab, then bring one governance slide to division meeting.",
-      "Within 60 days, finish the society module track you chose above and add a one-page cheat sheet to your department wiki listing when to trust, adjust, or turn off algorithm output for your common workflows.",
-      "Before the next academic year, enroll in one hands-on simulation or cadaver/procedure lab block that demands real-time tactile feedback and complication rescue; pair it with Entrustable Professional Activities from your ACGME specialty milestones so entrustment keeps pace with procedural depth.",
-      degree === "DO" ? "Starting this month, template your consult or procedure note so osteopathic whole-person assessment (per ACGME Osteopathic Recognition and AACOM UME guidance) appears in every complex case discussion—making your distinct clinical reasoning visible alongside imaging AI outputs." : "Within six months, declare a written professional development plan naming the most complex or procedurally intensive niche in your field (society curriculum pathway + mentor sign-off) so depth, not breadth, becomes your public brand as algorithms absorb routine reads."
-    ],
-    high: [
-      "Within 30 days, read the AMA’s Augmented Intelligence in Health Care policy report PDF (https://www.ama-assn.org/system/files/2019-01/augmented-intelligence-policy-report.pdf) plus the 2024 AMA AI principles PDF (https://www.ama-assn.org/system/files/ama-ai-principles.pdf); list three AI tools your department actually uses and assign yourself oversight checkpoints for each tool by quarter-end.",
-      "Pick the two competencies in your report that demand clinical judgment, negotiated care, or manual skill, and book recurring mentorship or simulation for them through your GME office or society for the next three academic years.",
-      "Before the next society business meeting, email the staff liaison for the artificial intelligence, informatics, or digital health committee (contact info on the society website) to volunteer for a 90-day workgroup; contributing to guidelines is a durable defensible zone™ alongside bedside work.",
-      degree === "DO" ? "Within the quarter, present one complex multi-system case at conference that weaves OPP with subspecialty data, citing how whole-person framing changes management—this is the integrative edge AI-assisted silos often miss." : "Within 12 months, explore Added Qualification in Clinical Informatics via the American Board of Preventive Medicine (abpm.org) or your primary board’s informatics pathway, pairing exam deadlines with your institution’s informatics grand rounds schedule."
-    ],
-    moderate: [
-      "This quarter, map ACGME Milestones 2.0 systems-based practice and emerging technology sub-competencies (2024 publications on acgme.org) onto your rotation or clinic goals so AI literacy becomes a documented growth trajectory rather than a checkbox.",
-      "Weekly for eight weeks, record one patient interaction where you used shared decision-making or agenda-setting, then compare your language to the patient-centered communication behaviors tied to better outcomes in Stewart et al. (J Fam Pract 2000); adjust one phrase before the next visit.",
-      "If POCUS applies to your specialty, register for Society of Point-of-Care Ultrasound (spocus.org) or American College of Emergency Physicians (acep.org) POCUS coursework within 60 days and log 25 supervised scans against your specialty’s milestone entrustment targets.",
-      level === "Medical Student" || level === "Resident" ? "Each week, identify one case where your initial diagnosis was wrong or incomplete and, before Friday, write a three-sentence reflection on what misled you—this mirrors the reflective-diagnosis exercise Mamede et al. (Med Educ 2012) showed accelerates accuracy gains faster than additional factual reading alone." : "Before year-end, charter a 120-day quality, education, or patient-safety project with your chair, citing CanMEDS Leader and Scholar roles (Frank et al., CanMEDS 2015) and ACGME systems-based practice milestones; present interim data at your service’s business meeting."
-    ],
-    low: [
-      "Your specialty’s human core—relationship, presence, nuanced negotiation—remains comparatively resistant to substitution in recent cross-specialty analyses (Shehab et al., PMC 2024); plan quarterly storytelling or communication drills so those strengths stay sharp as documentation AI expands.",
-      "Within 60 days, register for an American Academy on Communication in Healthcare course (aachonline.org/courses) or workshop and implement two scripted communication behaviors (agenda setting, teach-back) in clinic the following week.",
-      "This month, pilot one ambient or speech-enabled documentation tool your health system approves (vendor workflow with IT) and reinvest the saved Tuesday afternoon block into uninterrupted patient education or shared decision-making—AMA physician practice and health resources (ama-assn.org/practice-management/physician-health) continue to highlight documentation burden as a major wellness strain you can redesign deliberately.",
-      degree === "DO" ? "Add OMT or osteopathic structural exam documentation to every eligible patient this quarter using AACOM/COCA vocabulary so payers and consult teams see tactile, low-automation value that anchors your professional identity." : "Each quarter, accept or request one referral your partners label “difficult” or rare, and publish a de-identified teaching point to your division list—deep expertise in exceptions remains the most durable human niche as AI absorbs averages."
-    ]
-  };
-
-  recs.push({
-    icon: "",
-    col: "#7c3aed",
-    title: "Overall strategy — " + level + " in " + specialty,
-    skills: [],
-    actions: strategyMap[threat] || strategyMap.moderate
-  });
-
-  return recs;
-}
 
 // ── PROMO CODES ────────────────────────────────────────────────────────
 const PROMO_CODES_MED = ["DZFRIEND", "DZPREVIEW", "DZTEST"];
@@ -852,7 +637,9 @@ export default function DefensibleZoneMedical(){
   const [showGuide,   setShowGuide]   = useState(true);
   const [showDO,      setShowDO]      = useState(false);
   const [showCite,    setShowCite]    = useState(false);
-  const [showRecs,    setShowRecs]    = useState(true);
+  const [recsLoading, setRecsLoading] = useState(false);
+  const [recsError,   setRecsError]   = useState(null);
+  const [recommendations, setRecommendations] = useState(null);
   const [tier,        setTier]        = useState(0); // 0=free, 2=recs, 3=pdf
   const [promoUsed,   setPromoUsed]   = useState(false);
   const [emailInput,  setEmailInput]  = useState("");
@@ -896,6 +683,82 @@ export default function DefensibleZoneMedical(){
   }
 
   function handleUnlock(t, isPromo) { setTier(t); if (isPromo) setPromoUsed(true); }
+
+  async function fetchRecommendations(scoredResults) {
+    setRecsLoading(true);
+    setRecsError(null);
+    var skillSummary = scoredResults
+      .map(function (r, i) {
+        var sid = r.id != null ? r.id : "s" + i;
+        return (
+          i +
+          1 +
+          ". " +
+          r.name +
+          " (id: " +
+          sid +
+          ") — DZ " +
+          r.dz +
+          "/100, Affinity " +
+          r.affinity +
+          "/10, AI Involvement " +
+          r.aiR +
+          "/10, Market Demand " +
+          r.mkt +
+          "/10"
+        );
+      })
+      .join("\n");
+    var prompt =
+      "You are a senior physician career and professional development strategist. A " +
+      degree +
+      " physician at training level \"" +
+      level +
+      "\" in specialty \"" +
+      specialty +
+      "\" just completed a Defensible Zone™ Medical Edition assessment.\n\n" +
+      "Skills with scores (each line is one skill; use the id field in your JSON output):\n" +
+      skillSummary +
+      "\n\n" +
+      "For EACH skill listed, write ONE personalized recommendation. Be specific to this physician's degree (" +
+      degree +
+      "), level (" +
+      level +
+      "), and specialty (" +
+      specialty +
+      "). Use plain English. Do not use fear-based language. Do not use the word 'threat'. " +
+      "Tone: forward-looking, practical, confidence-building.\n\n" +
+      "Each recommendation must include: id (same as in the list, e.g. s0), skillName (exact skill name), headline (5-7 word action title), " +
+      "action (one specific concrete thing to do in the next 90 days — name a real resource, program, or publication), " +
+      "why (one sentence grounded in evidence or named literature).\n\n" +
+      "Return ONLY valid JSON, no preamble:\n" +
+      '{"recommendations":[{"id":"s0","skillName":"...","headline":"...","action":"...","why":"..."},{"id":"s1",...}]}';
+    try {
+      var res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-6",
+          max_tokens: 2000,
+          messages: [{ role: "user", content: prompt }],
+        }),
+      });
+      var data = await res.json();
+      if (!data.content) throw new Error(data.error || "API error");
+      var raw = data.content
+        .map(function (b) {
+          return b.text || "";
+        })
+        .join("");
+      var m = raw.match(/\{[\s\S]*\}/);
+      if (!m) throw new Error("No JSON in response");
+      setRecommendations(JSON.parse(m[0]));
+      setRecsLoading(false);
+    } catch (e) {
+      setRecsError("Could not load recommendations. Please try again.");
+      setRecsLoading(false);
+    }
+  }
 
   // ── Payment verification ────────────────────────────────────────────────
   useEffect(() => {
@@ -959,10 +822,11 @@ export default function DefensibleZoneMedical(){
       const f   = fluencies[i] !== undefined ? fluencies[i] : getSeed(conscience, pull);
       const aff = compAff(conscience, pull, f);
       const dz  = calcDZ(aff, sk.aiR, sk.mkt);
-      return { name:sk.name, naturalAffinity:aff, investment:f, affinity:aff, aiR:sk.aiR, mkt:sk.mkt, dz };
+      return { id: "s" + i, name: sk.name, naturalAffinity: aff, investment: f, affinity: aff, aiR: sk.aiR, mkt: sk.mkt, dz };
     });
     setResults(scored);
     setStep(3);
+    fetchRecommendations(scored);
   }
 
   function reset(){
@@ -970,6 +834,9 @@ export default function DefensibleZoneMedical(){
     setConscience(5); setPull(5); setFluencies({}); setAdjustedSkills(new Set());
     adjustedSkillsRef.current = new Set();
     setResults(null); setTier(0); setPromoUsed(false);
+    setRecommendations(null);
+    setRecsLoading(false);
+    setRecsError(null);
   }
 
   // ── Step 0 ──────────────────────────────────────────────────────
@@ -1249,100 +1116,221 @@ export default function DefensibleZoneMedical(){
 
   // ── Step 3 ──────────────────────────────────────────────────────
   if(step===3&&results){
-    const sd    = SD[specialty]||{};
-    const tm    = THREAT[sd.t||"moderate"];
+    const sd = SD[specialty]||{};
+    const tm = THREAT[sd.t||"moderate"];
     const avgDZ = Math.round(results.reduce((s,r)=>s+r.dz,0)/(results.length||1));
-    const def   = results.filter(r=>r.dz>=70).length;
-    const risk  = results.filter(r=>r.dz<45).length;
-    const sorted = [...results].sort((a,b)=>b.dz-a.dz);
+    const sortedDZ = [...results].sort((a,b)=>b.dz-a.dz);
+    const topSkills = sortedDZ.slice(0, 3);
+    const atRisk = sortedDZ.slice(-3);
+    function dzColor(score) {
+      if (score >= 65) return T.grn;
+      if (score >= 40) return T.amb;
+      return T.red;
+    }
+    const dzLabelColor = avgDZ >= 70 ? T.grn : avgDZ >= 50 ? T.amb : avgDZ >= 30 ? T.org : T.red;
+    const dzLabel =
+      avgDZ >= 70 ? "Highly Defensible" : avgDZ >= 50 ? "Moderately Defensible" : avgDZ >= 30 ? "Mixed Territory" : "Needs Attention";
     const showAllRecs = tier >= 2 || promoUsed;
     const showUpsell = tier === 0 && !promoUsed;
-    const recList = buildRecs(results, specialty, level, degree);
-    return(
-      <div style={{minHeight:"100vh",background:T.bg,padding:"40px 24px",fontFamily:T.font,color:T.txt}}>
-        <style>{GCSS}</style>
-        <div style={{maxWidth:820,margin:"0 auto"}}>
-          <div style={{marginBottom:24}}>
-            <MMono style={{color:T.amb,letterSpacing:".14em",display:"block",marginBottom:10}}>DEFENSIBLE ZONE&#8482; &mdash; RESULTS</MMono>
-            <h1 style={{fontFamily:T.disp,fontSize:32,fontWeight:400,marginBottom:8}}>{specialty}</h1>
-            <div style={{display:"flex",gap:8,flexWrap:"wrap"}}><MTag col={T.amb}>{degree}</MTag><MTag col={T.blu}>{level}</MTag></div>
-          </div>
 
-          <MCard style={{marginBottom:14,background:tm.col+"08",border:"1px solid "+tm.col+"30"}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,flexWrap:"wrap",gap:8}}>
-              <MLbl col={tm.col} style={{marginBottom:0}}>AI Landscape Assessment &mdash; {specialty}</MLbl>
-              <MTag col={tm.col}>{tm.label}</MTag>
+    var rawRecsFull = recommendations && recommendations.recommendations ? recommendations.recommendations.slice() : [];
+    var byIdRec = {};
+    rawRecsFull.forEach(function (r) {
+      if (r.id) byIdRec[r.id] = r;
+    });
+
+    var actionPlanBlock;
+    if (recsLoading) {
+      actionPlanBlock = (
+        <div style={{ background: "#f8f9fc", minHeight: 320, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "40px 20px", fontFamily: T.font, marginBottom: 28 }}>
+          <style dangerouslySetInnerHTML={{ __html: "@keyframes dzDoctorDots{0%,100%{opacity:0.25}50%{opacity:1}}" }} />
+          <div style={{ fontFamily: T.mono, fontSize: 12, letterSpacing: "0.12em", color: T.amb, marginBottom: 32, fontWeight: 600 }}>DEFENSIBLE ZONE&#8482; · MEDICAL EDITION</div>
+          <h2 style={{ fontFamily: T.disp, fontSize: 28, color: T.txt, margin: 0, lineHeight: 1.2 }}>Building your action plan.</h2>
+          <p style={{ fontSize: 16, lineHeight: 1.7, color: "#6b7280", maxWidth: 380, textAlign: "center", marginTop: 12, marginBottom: 0 }}>
+            We&apos;re analyzing your scores against ACGME and CanMEDS competencies and calibrating recommendations to your level and specialty. This takes a few seconds.
+          </p>
+          <div style={{ display: "flex", gap: 10, marginTop: 32, alignItems: "center", justifyContent: "center" }}>
+            <span style={{ fontSize: 36, color: T.amb, animation: "dzDoctorDots 1s ease-in-out infinite" }}>.</span>
+            <span style={{ fontSize: 36, color: T.amb, animation: "dzDoctorDots 1s ease-in-out 0.2s infinite" }}>.</span>
+            <span style={{ fontSize: 36, color: T.amb, animation: "dzDoctorDots 1s ease-in-out 0.4s infinite" }}>.</span>
+          </div>
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: "center", marginTop: 40 }}>
+            <span style={{ background: "white", border: "1px solid #d0d7e8", borderRadius: 20, padding: "8px 16px", fontSize: 13, color: "#6b7280", fontFamily: T.font }}>{results.length} skills assessed</span>
+            <span style={{ background: "white", border: "1px solid #d0d7e8", borderRadius: 20, padding: "8px 16px", fontSize: 13, color: "#6b7280", fontFamily: T.font }}>Grounded in ACGME + CanMEDS</span>
+            <span style={{ background: "white", border: "1px solid #d0d7e8", borderRadius: 20, padding: "8px 16px", fontSize: 13, color: "#6b7280", fontFamily: T.font }}>Calibrated to your level</span>
+          </div>
+        </div>
+      );
+    } else if (recsError) {
+      actionPlanBlock = (
+        <div style={{ textAlign: "center", maxWidth: 400, margin: "24px auto 28px" }}>
+          <p style={{ color: T.red, fontSize: 16, margin: "0 0 20px" }}>{recsError}</p>
+          <button
+            type="button"
+            onClick={function () {
+              fetchRecommendations(results);
+            }}
+            style={{
+              background: "#D97706",
+              color: "#fff",
+              border: "none",
+              borderRadius: 12,
+              padding: "14px 32px",
+              fontSize: 16,
+              fontFamily: T.font,
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+          >
+            Try again
+          </button>
+        </div>
+      );
+    } else {
+      actionPlanBlock = (
+        <div style={{ marginTop: 24 }}>
+          <div style={{ marginBottom: 28 }}>
+            <h2 style={{ fontFamily: T.disp, fontSize: 28, fontWeight: 600, color: T.txt, margin: "0 0 10px", lineHeight: 1.2 }}>Your 90-Day Action Plan</h2>
+            <p style={{ fontSize: 16, color: "#6b7280", lineHeight: 1.6, margin: 0 }}>
+              One specific action for each skill — ranked by what will move the needle most for {level} in {specialty}.
+            </p>
+          </div>
+          <div id="dz-doctor-report" style={{ marginBottom: showUpsell ? 0 : 28 }}>
+            {results.map(function (skillRow, idx) {
+              var rec = byIdRec[skillRow.id] || {};
+              var lockedBlur = !showAllRecs && idx > 0;
+              var barColor = dzColor(skillRow.dz);
+              return (
+                <div
+                  key={skillRow.id + "-" + idx}
+                  style={{
+                    display: "flex",
+                    background: "#ffffff",
+                    border: "1px solid #d0d7e8",
+                    borderRadius: 12,
+                    marginBottom: 12,
+                    overflow: "hidden",
+                    filter: lockedBlur ? "blur(5px)" : "none",
+                    userSelect: lockedBlur ? "none" : "auto",
+                    pointerEvents: lockedBlur ? "none" : "auto",
+                  }}
+                >
+                  <div style={{ width: 4, background: barColor, flexShrink: 0 }} />
+                  <div style={{ padding: "20px 22px", flex: 1, minWidth: 0 }}>
+                    <div style={{ fontFamily: T.mono, fontSize: 12, textTransform: "uppercase", letterSpacing: "0.06em", color: "#6b7280", marginBottom: 8 }}>{skillRow.name}</div>
+                    <div style={{ fontFamily: T.disp, fontSize: 20, fontWeight: 600, color: T.txt, lineHeight: 1.3, marginBottom: 10 }}>{rec.headline || "—"}</div>
+                    <div style={{ fontSize: 16, color: T.txt, lineHeight: 1.6, marginBottom: 10 }}>{rec.action}</div>
+                    <div style={{ fontSize: 14, color: "#6b7280", fontStyle: "italic", lineHeight: 1.55 }}>{rec.why}</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          {tier >= 2 || promoUsed ? (
+            <div style={{ marginTop: 20, marginBottom: 4, textAlign: "center" }}>
+              <PDFButton contentId="dz-doctor-report" label="Save as PDF" />
             </div>
-            <ThreatBar level={sd.t||"moderate"}/>
-            <p style={{color:T.mut,fontSize:13,lineHeight:1.75,margin:0}}>{sd.n||tm.desc}</p>
-          </MCard>
+          ) : null}
+        </div>
+      );
+    }
 
-          <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:14}}>
-            {[["Avg DZ Score",avgDZ,dzCol(avgDZ)],["Defensible",def,T.grn],["Needs Attention",risk,T.red],["Skills Assessed",results.length,T.blu]].map(([l,v,c])=>(
-              <div key={l} style={{background:T.card,border:"1px solid "+T.bdr,borderRadius:12,padding:"14px 16px"}}>
-                <div style={{fontFamily:T.disp,fontSize:28,color:c,lineHeight:1,marginBottom:4}}>{v}</div>
-                <MMono style={{color:T.dim,fontSize:11,letterSpacing:".06em"}}>{String(l).toUpperCase()}</MMono>
-              </div>
-            ))}
+    return(
+      <div style={{ background: "#f8f9fc", minHeight: "100vh", padding: "32px 20px", fontFamily: T.font, color: T.txt }}>
+        <style>{GCSS}</style>
+        <div style={{ maxWidth: 680, margin: "0 auto" }}>
+          <div style={{ fontFamily: T.mono, fontSize: 12, color: T.amb, letterSpacing: "0.12em", marginBottom: 20, fontWeight: 600 }}>DEFENSIBLE ZONE&#8482; · MEDICAL EDITION</div>
+          <h1 style={{ fontFamily: T.disp, fontSize: 34, color: T.txt, margin: "0 0 6px", lineHeight: 1.15, fontWeight: 600 }}>Your Defensible Zone&#8482;</h1>
+          <p style={{ color: "#6b7280", fontSize: 16, lineHeight: 1.6, margin: "0 0 8px" }}>
+            {specialty} · {degree} · {level}
+          </p>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: "12px" }}>
+            <MTag col={tm.col}>{tm.label}</MTag>
+          </div>
+          {sd.n ? <p style={{ color: T.mut, fontSize: 14, lineHeight: 1.7, margin: "0 0 28px" }}>{sd.n}</p> : null}
+
+          <div style={{ background: "#ffffff", border: "1px solid #d0d7e8", borderRadius: 16, padding: "28px", marginBottom: 24, display: "flex", alignItems: "center", gap: 28 }}>
+            <div style={{ width: 96, height: 96, borderRadius: "50%", border: "4px solid " + dzLabelColor, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <span style={{ fontSize: 32, fontWeight: 700, color: dzLabelColor, lineHeight: 1, fontFamily: T.mono }}>{avgDZ}</span>
+              <span style={{ fontSize: 12, color: "#9ca3af", fontFamily: T.mono, marginTop: 2 }}>/ 100</span>
+            </div>
+            <div>
+              <div style={{ fontFamily: T.mono, fontSize: 12, color: "#9ca3af", letterSpacing: "0.08em", marginBottom: 6 }}>OVERALL DZ SCORE</div>
+              <div style={{ fontSize: 22, fontWeight: 700, color: dzLabelColor, marginBottom: 6, fontFamily: T.disp }}>{dzLabel}</div>
+              <p style={{ fontSize: 15, color: "#6b7280", lineHeight: 1.55, margin: 0 }}>
+                Across your assessed skills, this is how defensible your practice is against AI displacement right now.
+              </p>
+            </div>
           </div>
 
-          <MCard style={{marginBottom:14}}>
-            <MLbl>Skill Risk Matrix</MLbl>
-            <p style={{color:T.dim,fontSize:13,fontFamily:T.mono,marginBottom:16,marginTop:-6}}>Sorted by DZ score. AI risk and market demand are evidence-based estimates for {level} in {specialty}.</p>
-            <div style={{display:"flex",flexDirection:"column",gap:10}}>
-              {sorted.map((sk,i)=>{
-                const col=dzCol(sk.dz);
-                return(
-                  <div key={i} style={{borderLeft:"4px solid "+col,borderRadius:"0 12px 12px 0",background:col+"07",border:"1px solid "+col+"25",borderLeftWidth:4,padding:"16px 20px"}}>
-                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10,flexWrap:"wrap",gap:8}}>
-                      <span style={{fontSize:15,fontWeight:700,color:T.txt,flex:1,paddingRight:8}}>{sk.name}</span>
-                      <div style={{display:"flex",gap:8,alignItems:"center",flexShrink:0}}>
-                        <div style={{textAlign:"center"}}>
-                          <div style={{fontFamily:T.disp,fontSize:26,color:col,lineHeight:1}}>{sk.dz}</div>
-                          <MMono style={{color:T.dim,fontSize:11,letterSpacing:".04em"}}>DZ</MMono>
-                        </div>
-                        <MTag col={col}>{dzLbl(sk.dz)}</MTag>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 28 }}>
+            <div style={{ background: "#ffffff", border: "1px solid #d0d7e8", borderRadius: 14, padding: "20px 18px" }}>
+              <div style={{ fontFamily: T.mono, fontSize: 12, color: T.grn, letterSpacing: "0.1em", marginBottom: 14, fontWeight: 700 }}>MOST DEFENSIBLE</div>
+              {topSkills.map(function (s) {
+                return (
+                  <div key={s.id} style={{ marginBottom: 12 }}>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: T.txt, lineHeight: 1.35, marginBottom: 4 }}>{s.name}</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <div style={{ flex: 1, height: 6, background: "#f0f0f0", borderRadius: 3, overflow: "hidden" }}>
+                        <div style={{ width: s.dz + "%", height: "100%", background: T.grn, borderRadius: 3 }} />
                       </div>
-                    </div>
-                    <div style={{height:5,background:T.bdr,borderRadius:3,marginBottom:12,overflow:"hidden"}}>
-                      <div style={{height:"100%",width:sk.dz+"%",background:"linear-gradient(90deg,"+col+"55,"+col+")",borderRadius:3}}/>
-                    </div>
-                    <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}}>
-                      {[["Natural Affinity",sk.naturalAffinity+"/10",T.blu],["Investment",sk.investment+"/10",T.amb],["AI Risk",sk.aiR+"/10",T.red],["Mkt Demand",sk.mkt+"/10",T.grn]].map(([l,v,c])=>(
-                        <div key={l}>
-                          <MMono style={{color:T.dim,fontSize:11,display:"block",marginBottom:3}}>{l}</MMono>
-                          <MMono style={{color:c,fontWeight:700,fontSize:13}}>{v}</MMono>
-                        </div>
-                      ))}
+                      <span style={{ fontFamily: T.mono, fontSize: 12, color: T.grn, fontWeight: 700, minWidth: 28, textAlign: "right" }}>{s.dz}</span>
                     </div>
                   </div>
                 );
               })}
             </div>
-            <div style={{display:"flex",gap:14,marginTop:16,paddingTop:14,borderTop:"1px solid "+T.bdr,flexWrap:"wrap"}}>
-              {[{s:70,l:"70+ Defensible"},{s:45,l:"45-69 Moderate"},{s:25,l:"25-44 Growth Area"},{s:0,l:"Under 25 Needs Attention"}].map(({s,l})=>(
-                <div key={l} style={{display:"flex",alignItems:"center",gap:5}}>
-                  <div style={{width:10,height:10,borderRadius:2,background:dzCol(s)}}/>
-                  <MMono style={{color:T.dim,fontSize:11}}>{l}</MMono>
-                </div>
-              ))}
+            <div style={{ background: "#ffffff", border: "1px solid #d0d7e8", borderRadius: 14, padding: "20px 18px" }}>
+              <div style={{ fontFamily: T.mono, fontSize: 12, color: T.red, letterSpacing: "0.1em", marginBottom: 14, fontWeight: 700 }}>MOST EXPOSED</div>
+              {atRisk.map(function (s) {
+                return (
+                  <div key={s.id} style={{ marginBottom: 12 }}>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: T.txt, lineHeight: 1.35, marginBottom: 4 }}>{s.name}</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <div style={{ flex: 1, height: 6, background: "#f0f0f0", borderRadius: 3, overflow: "hidden" }}>
+                        <div style={{ width: s.dz + "%", height: "100%", background: dzColor(s.dz), borderRadius: 3 }} />
+                      </div>
+                      <span style={{ fontFamily: T.mono, fontSize: 12, color: dzColor(s.dz), fontWeight: 700, minWidth: 28, textAlign: "right" }}>{s.dz}</span>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-          </MCard>
+          </div>
 
-          <div style={{ background: "#f2f4f8", borderRadius: 12, padding: "16px 20px", marginTop: 8, marginBottom: 14 }}>
-            <div
-              style={{
-                fontFamily: T.mono,
-                fontSize: 12,
-                textTransform: "uppercase",
-                color: T.dim,
-                letterSpacing: "0.06em",
-                marginBottom: 10,
-                fontWeight: 700,
-              }}
-            >
-              HOW YOUR SCORE IS CALCULATED
-            </div>
+          <div style={{ fontFamily: T.mono, fontSize: 12, textTransform: "uppercase", letterSpacing: "0.06em", color: T.dim, marginBottom: 14 }}>FULL SKILL BREAKDOWN</div>
+
+          {results.map(function (s) {
+            var col = dzColor(s.dz);
+            return (
+              <div key={s.id} style={{ background: "#ffffff", border: "1px solid #d0d7e8", borderRadius: 12, padding: "16px 18px", marginBottom: 8 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+                  <div style={{ fontSize: 16, fontWeight: 600, color: T.txt, flex: 1, paddingRight: 12, lineHeight: 1.35 }}>{s.name}</div>
+                  <div style={{ fontFamily: T.mono, fontSize: 22, fontWeight: 700, color: col, flexShrink: 0, lineHeight: 1 }}>{s.dz}</div>
+                </div>
+                <div style={{ height: 8, background: "#f0f0f0", borderRadius: 4, overflow: "hidden", marginBottom: 10 }}>
+                  <div style={{ width: s.dz + "%", height: "100%", background: col, borderRadius: 4 }} />
+                </div>
+                <div style={{ display: "flex", gap: 18, marginBottom: 0 }}>
+                  <div>
+                    <div style={{ fontFamily: T.mono, fontSize: 11, color: "#9ca3af", letterSpacing: "0.06em" }}>AFFINITY</div>
+                    <div style={{ fontFamily: T.mono, fontSize: 12, fontWeight: 700, color: "#7c3aed" }}>{s.affinity}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontFamily: T.mono, fontSize: 11, color: "#9ca3af", letterSpacing: "0.06em" }}>AI INVOLVEMENT</div>
+                    <div style={{ fontFamily: T.mono, fontSize: 12, fontWeight: 700, color: s.aiR >= 7 ? T.red : s.aiR >= 5 ? T.amb : T.grn }}>{s.aiR}/10</div>
+                  </div>
+                  <div>
+                    <div style={{ fontFamily: T.mono, fontSize: 11, color: "#9ca3af", letterSpacing: "0.06em" }}>DEMAND</div>
+                    <div style={{ fontFamily: T.mono, fontSize: 12, fontWeight: 700, color: T.blu }}>{s.mkt}/10</div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+
+          <div style={{ background: "#f2f4f8", borderRadius: 12, padding: "16px 20px", marginTop: 8, marginBottom: 28 }}>
+            <div style={{ fontFamily: T.mono, fontSize: 12, textTransform: "uppercase", color: T.dim, letterSpacing: "0.06em", marginBottom: 10, fontWeight: 700 }}>HOW YOUR SCORE IS CALCULATED</div>
             <p style={{ fontSize: 16, lineHeight: 1.75, color: "#3d4a6b", margin: "0 0 12px" }}>
               Your DZ score combines three inputs. Affinity reflects how naturally this clinical work fits you — composed of Craft Conscience, Intrinsic Pull,
               and Felt Fluency. AI Resistance is how hard it is for current AI systems to replicate this clinical skill at this physician&apos;s level. Market
@@ -1355,70 +1343,8 @@ export default function DefensibleZoneMedical(){
             </p>
           </div>
 
-          <MCard style={{marginBottom:14}}>
-              <style>{`@media print{body *{visibility:hidden}#dz-med-print,#dz-med-print *{visibility:visible}#dz-med-print{position:absolute;left:0;top:0;width:100%}.no-print{display:none!important}}`}</style>
-              <div id="dz-med-print">
-              {tier >= 3 && !promoUsed && (
-                <div style={{display:"flex",justifyContent:"flex-end",marginBottom:12}}>
-                  <button
-                    onClick={()=>window.open("https://buy.stripe.com/00waEX4wWdvtdpP7ZQdQQ05","_blank")}
-                    style={{background:T.amb,color:"white",border:"none",borderRadius:8,padding:"8px 18px",fontSize:12,fontFamily:T.mono,fontWeight:700,cursor:"pointer",letterSpacing:"0.06em",display:"flex",alignItems:"center",gap:6}}
-                  >⬇ Download PDF Report</button>
-                </div>
-              )}
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
-                <button onClick={()=>setShowRecs(v=>!v)} className="no-print" style={{background:"none",border:"none",cursor:"pointer",padding:0,flex:1,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                  <MLbl style={{marginBottom:0}}>What To Do &mdash; Strengthening Your Defensible Zone&#8482;</MLbl>
-                  <MMono style={{color:T.dim}}>{showRecs?"▲ Collapse":"▼ Expand"}</MMono>
-                </button>
-                {showRecs && showAllRecs && (
-                  <button
-                    className="no-print"
-                    onClick={()=>window.print()}
-                    style={{background:T.bg,border:"1px solid "+T.bdr,borderRadius:8,padding:"7px 14px",fontSize:12,fontFamily:T.mono,fontWeight:700,color:T.dim,cursor:"pointer",letterSpacing:"0.06em",marginLeft:12,flexShrink:0,display:"flex",alignItems:"center",gap:5}}
-                  >⎙ Save as PDF</button>
-                )}
-              </div>
-            {showRecs&&(
-              <div style={{marginTop:16,display:"flex",flexDirection:"column",gap:0}}>
-                {recList.map(function(rec, ri){
-                  var lockedBlur = !showAllRecs && ri > 0;
-                  return (
-                  <div key={ri} style={{
-                    borderLeft:"4px solid "+rec.col,
-                    paddingLeft:20, paddingTop:16, paddingBottom:16,
-                    marginBottom:4,
-                    borderRadius:"0 8px 8px 0",
-                    background: ri%2===0 ? "transparent" : T.bg,
-                    overflow:"hidden",
-                    filter: lockedBlur ? "blur(5px)" : "none",
-                    userSelect: lockedBlur ? "none" : "auto",
-                    pointerEvents: lockedBlur ? "none" : "auto"
-                  }}>
-                    <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:rec.skills.length>0?6:10}}>
-                      <span style={{display:"inline-block",width:8,height:8,borderRadius:2,background:rec.col,flexShrink:0}} />
-                      <span style={{fontSize:16,fontWeight:700,color:T.txt,lineHeight:1.3}}>{rec.title}</span>
-                    </div>
-                    {rec.skills.length>0&&(
-                      <div style={{fontFamily:T.mono,fontSize:11,color:rec.col,marginBottom:12,fontWeight:700,paddingLeft:18}}>
-                        {rec.skills.join(" · ")}
-                      </div>
-                    )}
-                    <div style={{display:"flex",flexDirection:"column",gap:8,paddingLeft:18}}>
-                      {rec.actions.map((action,ai)=>(
-                        <div key={ai} style={{display:"flex",gap:10,alignItems:"flex-start"}}>
-                          <span style={{color:rec.col,flexShrink:0,fontWeight:700,marginTop:2,fontSize:13,lineHeight:1}}>→</span>
-                          <span style={{color:T.mut,fontSize:15,lineHeight:1.7}}>{action}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  );
-                })}
-              </div>
-            )}
-            </div> {/* end dz-med-print */}
-          </MCard>
+          {actionPlanBlock}
+
           {showUpsell ? <PaywallGateMedical onUnlock={handleUnlock} /> : null}
 
           {degree==="DO"&&(
