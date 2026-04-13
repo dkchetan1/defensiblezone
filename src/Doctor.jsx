@@ -561,54 +561,54 @@ function ThreatBar({level}){
 
 const LEVEL_ACTIONS = {
   "Medical Student": {
-    portfolio:   "Document cases in a structured learning portfolio using the AAMC MedEdPORTAL templates — programs actively review these during residency applications.",
-    mentor:      "Identify a near-peer mentor (a resident or fellow, not just an attending) in this area. Near-peer mentors give more actionable, less idealized advice (Buddeberg-Fischer et al., Swiss Med Wkly 2006).",
-    complexity:  "During clerkships, ask specifically to be assigned the most complex version of cases in this area. Direct exposure to diagnostic uncertainty is where clinical reasoning develops (Schmidt & Mamede, Med Educ 2015).",
-    read:        "Read one landmark paper per week in this skill area using PubMed's Most Cited filter. Build a personal reference library in Zotero or Paperpile from day one.",
-    board:       "Use UWorld or Amboss question banks filtered to this skill domain. Active recall during training builds long-term retention far more effectively than passive reading (Kornell & Bjork, Psych Sci 2008)."
+    portfolio:   "By each Sunday of clerkship, add one structured write-up using an AAMC MedEdPORTAL peer-reviewed teaching resource as your outline (browse and download templates at mededportal.org), then mirror the same case in your school’s required portfolio or ERAS-compatible document so program directors see concrete evidence on interview day.",
+    mentor:      "Within two weeks, email your clerkship coordinator to request pairing with a resident or fellow (not only an attending) who covers this competency weekly; schedule a recurring 20-minute monthly check-in. Near-peer mentors give more actionable, less idealized advice (Buddeberg-Fischer et al., Swiss Med Wkly 2006).",
+    complexity:  "Each clerkship week, ask your attending to assign you lead on one deliberately complex patient note in this domain (multi-organ, atypical, or conflicting data). Direct exposure to diagnostic uncertainty is where clinical reasoning develops (Schmidt & Mamede, Med Educ 2015); within 24 hours of discharge or sign-out, add one sentence to your portfolio on what changed your thinking.",
+    read:        "Every Sunday, run PubMed (pubmed.ncbi.nlm.nih.gov) with the “Sort by: Best match” or “Publication date” filter plus a saved alert for your competency keywords; read one full article and archive the PDF with a three-bullet summary in Zotero or Paperpile before Monday rounds.",
+    board:       "Block 45 minutes on three fixed weekdays each week for UWorld or AMBOSS (uworld.com or amboss.com) question sets filtered to this competency domain. Active recall during training builds long-term retention far more effectively than passive reading (Kornell & Bjork, Psych Sci 2008)."
   },
   "Resident": {
-    portfolio:   "Log cases involving this skill in your ACGME Case Log system with granular detail. Programs and fellowship directors review case breadth and complexity, not just volume.",
-    mentor:      "Request direct observation and structured feedback from an attending who excels in this area at least monthly. Feedback frequency, not just quality, is the strongest predictor of skill development (Veloski et al., Acad Med 2006).",
-    complexity:  "Volunteer for the complex or atypical cases in this domain. Deliberately seek cases where your attending would normally not involve a resident — those are where judgment develops fastest.",
-    read:        "Subscribe to the specialty journal alert for this skill area (e.g. NEJM Evidence, JAMA, specialty society journals). Read one primary study per week, not just reviews.",
-    teach:       "Teach this skill to medical students on your team. The protege effect — teaching to learn — produces measurably deeper retention and understanding (Nestojko et al., Memory & Cognition 2014)."
+    portfolio:   "Within 48 hours of each qualifying encounter, enter the case in your ACGME Case Log System with diagnosis, procedure, and your role spelled out (access via your program’s GME office link to the specialty-specific ACGME Case Log portal) so fellowship directors can verify breadth and complexity at annual review.",
+    mentor:      "On the first of each month, secure one direct-observation session with an attending who models this competency and complete a written mini-CEX or equivalent structured feedback form the same week. Feedback frequency, not just quality, is the strongest predictor of skill development (Veloski et al., Acad Med 2006).",
+    complexity:  "Each rotation, volunteer first for the atypical admission or consult in this domain—the patient your attending would usually manage solo—and debrief for 10 minutes after handoff; add one line to your patient list about which judgment call stretched you.",
+    read:        "Reserve a weekly Wednesday block to read one original investigation from NEJM (nejm.org), JAMA (jamanetwork.com/journals/jama), or The Lancet (thelancet.com), or from your ABMS specialty board’s affiliated flagship journal (find the exact title under “Publications” on your board or society homepage—e.g., American College of Radiology → Journal of the American College of Radiology at jacr.org). Read methods and results, not only the discussion.",
+    teach:       "On every inpatient or clinic team, deliver one 15-minute chalk talk to a medical student on this skill with two practice questions you wrote yourself. The protege effect — teaching to learn — produces measurably deeper retention and understanding (Nestojko et al., Memory & Cognition 2014)."
   },
   "Fellow": {
-    portfolio:   "Build a documented case series in this skill area during fellowship. Published or presented case series are the clearest signal of subspecialty expertise to future employers and collaborators.",
-    mentor:      "Identify a national expert in this skill area and attend their lectures, workshops, or hands-on sessions at your specialty society annual meeting. Direct exposure to the top 1% shifts your frame of reference.",
-    complexity:  "Seek out the cases your program director would send to a tertiary referral center. Those are the cases that define fellowship-level competency.",
-    research:    "Design a small quality improvement or outcomes project around this skill. A single published QI paper in your subspecialty area substantially differentiates your CV at the attending job market.",
-    network:     "Join the relevant subspecialty society (e.g. SCAI for interventional cardiology, AASLD for hepatology, SNM for nuclear medicine) and participate in their trainee programs and forums."
+    portfolio:   "Before fellowship graduation, assemble a de-identified case series or QI dataset of at least five patients in this competency with local IRB or QI exemption as required, and submit an abstract through your specialty society’s annual meeting portal (e.g., AHA, ATS, RSNA submission sites) or a PubMed-indexed case outlet using that society’s author instructions.",
+    mentor:      "When your specialty society posts its annual scientific program (online registration site), register within two weeks and add three hands-on workshops or named expert symposia mapped to this competency; attend debrief notes within 48 hours to lock learning.",
+    complexity:  "Each month, coordinate with your program director to lead work-up on one referral that would typically go to a tertiary center; within one week of disposition, present a single-slide summary at fellow conference summarizing decision forks.",
+    research:    "Within six months, charter a single-site QI or outcomes project with a clear denominator, start date, and end date; plan dissemination to a society-affiliated journal or Implementation Science Communications (implementationsciencecom.biomedcentral.com) so your attending-job CV shows subspecialty depth beyond clinical volume alone.",
+    network:     "Within 30 days, activate trainee membership in the subspecialty society that matches your pathway (examples: Society for Cardiovascular Angiography and Interventions at scai.org; American Association for the Study of Liver Diseases at aasld.org; Society of Nuclear Medicine and Molecular Imaging at snmimaging.org) and complete one live webinar plus one discussion board introduction in their trainee community."
   },
   "Attending Physician": {
-    cme:         "Complete targeted CME in this skill area through AMA PRA Category 1 credits. Specialty society annual meetings offer the highest-density, peer-reviewed CME in subspecialty domains.",
-    mentor:      "Find a peer learning partner — another attending at your institution or via your specialty society — for structured case review in this area. Peer learning at the attending level is underutilized and highly effective.",
-    complexity:  "Deliberately accept referrals for the most complex presentations in this domain from your community colleagues. Your defensible zone™ deepens fastest at the edge of your competency, not in the routine cases.",
-    teach:       "Formal teaching of residents and fellows in this skill area is among the most reliable methods of maintaining and deepening attending-level expertise. Apply for a faculty appointment or clinical educator role if you have not already.",
-    leadership:  "Pursue a quality committee, credentialing committee, or clinical protocol leadership role in this skill area at your institution. Systems-level influence is a defensible zone™ AI cannot reach."
+    cme:         "In the next 90 days, complete at least 8 AMA PRA Category 1 Credit™ hours in this competency through your specialty society’s CME catalog (e.g., American College of Cardiology ACC Anywhere at acc.org; American College of Radiology education at acr.org/Education) or the society’s annual meeting transcript upload.",
+    mentor:      "By month’s end, recruit one peer from your medical staff roster or the society member directory for a bimonthly 45-minute structured case swap (send the case summary 48 hours ahead); alternate sites if you practice at more than one hospital.",
+    complexity:  "Each quarter, accept at least two community referrals explicitly flagged complex in this domain and document your consultant note in the EHR within your group’s published turnaround window. Your defensible zone™ deepens fastest at the edge of competency, not from routine volume alone.",
+    teach:       "Before the next academic year, propose one resident or fellow didactic (grand rounds or noon conference) on this competency and, if available, apply for voluntary faculty or clinical educator designation through your GME office so teaching enters your promotion dossier—formal teaching is among the most reliable ways to maintain attending-level mastery.",
+    leadership:  "Within 90 days, ask your chair or chief medical officer which committee—quality, credentials, or clinical standards—touches this competency, and request appointment or a 90-day pilot charter with one measurable endpoint (e.g., adherence metric or safety event rate) tied to CanMEDS Leader and Health Advocate roles (Frank et al., CanMEDS 2015)."
   }
 };
 
 const SKILL_RESOURCES = {
   aiR_high: [
-    "Shift your focus to the human oversight layer: learn to identify when AI outputs in this domain are wrong. Enroll in your specialty society's AI in medicine CME module — most major societies (ACS, ACC, ACR, AAN) now offer these.",
-    "Read the FDA's AI/ML-Based Software as a Medical Device action plan (fda.gov) to understand the regulatory landscape. Physicians who understand AI governance are positioned for oversight roles that grow in value as AI adoption increases.",
-    "Pursue the most complex and atypical cases in this domain — edge cases where AI fails are where human expertise retains the highest premium."
+    "Within 60 days, enroll in your specialty society’s AI curriculum (examples: ACR AI-LAB learning modules at ailab.acr.org/Learn/Index; American College of Cardiology search “artificial intelligence” at acc.org; American Academy of Neurology online education at aan.com) and complete the module block on error modes and clinician oversight; spend one hour monthly maintaining that competency.",
+    "Within two weeks, read the FDA webpage “Artificial Intelligence and Machine Learning (AI/ML)-Enabled Medical Devices” and download the linked AI/ML Software as a Medical Device Action Plan PDF from fda.gov/medical-devices/software-medical-device-samd/artificial-intelligence-and-machine-learning-aiml-enabled-medical-devices; bookmark the public device list entries that match your specialty so you know labeling limits before deployment.",
+    "Each month, lead debrief on one atypical case in this domain where an AI suggestive output was wrong, incomplete, or ignored context; document the human override rationale in your standard sign-out or M&M template. Oversight of such exceptions is the clinical surface ACGME Milestones 2.0 and society AI statements now treat as core professional work."
   ],
   aiR_low: [
-    "This skill has very low AI replaceability — it is a natural defensible zone™. Your investment here compounds with every year of practice in ways AI cannot replicate.",
-    "Build explicit mastery metrics: track your outcomes, complication rates, or patient satisfaction scores in this domain. Quantified expertise is more defensible than informal reputation.",
-    "Seek opportunities to publish cases or outcomes in this area. The literature on skills with low AI replaceability is where human expertise remains most visible and valued."
+    "Quarterly, add one tangible artifact to your promotion or credentialing file for this competency—complication review summary, patient-reported outcome snippet, or peer-solicited letter—so low AI replaceability shows up as evidence, not assumption. Human judgment in ambiguous care remains comparatively advantaged in recent specialty-level reviews (Shehab et al., PMC 2024).",
+    "Pick one metric your EHR or registry already exports (complications, length of stay, or selected patient experience scores), filter to this clinical domain, and review a six-month run chart with your division chief or quality lead once per quarter; set one tweak for the next quarter based on the trend.",
+    "Within 12 months, target a PubMed-indexed case report, outcomes note, or QI brief in this area using your society’s author instructions (posted on the society website); co-authorship is fine—the goal is a durable public signal that your expertise is current."
   ],
   mkt_high: [
-    "High market demand means this skill commands a wage premium right now. PwC's 2025 AI Jobs Barometer found workers with demonstrable expertise in high-demand skills earn 56% more than peers without them.",
-    "Make this skill visible on your CV, profile, and in your institution. Physicians who are known for high-demand skills receive more referrals and more leadership opportunities.",
-    "Consider subspecialty certification or added qualification in this area if one exists through ABMS or your specialty board — it is the clearest external signal of competency to payers and employers."
+    "Within 14 days, update your LinkedIn, Doximity, and hospital faculty profile with this competency as a keyword-rich capability bullet plus one hyperlink to a talk, project, or metric. PwC’s 2025 AI Jobs Barometer reported workers who could demonstrate high-demand analytical and digital skills earned roughly 56% more than peers without those signals—make yours machine- and human-readable.",
+    "On the last Friday of each month, send a one-page “clinical pearl” email to your top ten referring physicians or post a slide to your department’s shared drive illustrating how you apply this skill, so demand converts into referrals and committee invitations.",
+    "Within six months, confirm at abms.org and your specialty board’s website whether added or subspecialty certification exists for this domain; if eligible, map examination or case-log deadlines onto your calendar with your program director, coach, or board liaison."
   ],
   mkt_low: [
-    "Low market demand means the return on investment here is limited. Direct your development energy toward higher-demand skills unless this area is central to your personal practice goals.",
-    "If you must develop this skill, do so efficiently: targeted CME rather than extended training, and only to the competency level your practice requires."
+    "Unless this competency anchors your mission, cap optional development at employer or board minima and reallocate at least four hours monthly to a higher-market-demand skill flagged elsewhere on your report.",
+    "If you must improve, complete only named AMA PRA Category 1 activities tied to a regulatory or safety mandate (document the activity ID on your transcript) rather than open-ended fellowship-style study."
   ]
 };
 
@@ -625,8 +625,9 @@ function buildRecs(results, specialty, level, degree) {
 
   if (doubleDown.length > 0) {
     recs.push({
-      icon: "✦", col: "#059669",
-      title: "Protect and deepen — your current defensible zone™",
+      icon: "",
+      col: "#059669",
+      title: "Protect and deepen your current defensible zone™",
       skills: doubleDown.map(r => r.name),
       actions: [
         la.complexity,
@@ -640,14 +641,15 @@ function buildRecs(results, specialty, level, degree) {
 
   if (strengthen.length > 0) {
     recs.push({
-      icon: "↑", col: "#d97706",
-      title: "Strengthen — affinity is there, now build the mastery",
+      icon: "",
+      col: "#d97706",
+      title: "Strengthen affinity into documented mastery",
       skills: strengthen.map(r => r.name),
       actions: [
         la.mentor,
         la.complexity,
         la.read,
-        "Use the ACGME Milestones progression descriptors for your specialty as a self-assessment rubric. They define observable behavioral benchmarks at each developmental level — compare yourself honestly against the Level 4 descriptors for these skills.",
+        "By the end of this month, download your specialty’s ACGME Milestones 2.0 PDF from acgme.org, highlight the Level 4 narrative examples for these skills, and add one planned behavior per skill you will demonstrate on your next rotation or clinic block.",
         SKILL_RESOURCES.mkt_high[1]
       ]
     });
@@ -655,77 +657,81 @@ function buildRecs(results, specialty, level, degree) {
 
   if (pivot.length > 0) {
     recs.push({
-      icon: "→", col: "#f97316",
-      title: "Pivot — you love these but AI is eating the routine version",
+      icon: "",
+      col: "#f97316",
+      title: "Pivot toward the complex edge of work you already enjoy",
       skills: pivot.map(r => r.name),
       actions: [
-        "Move up the value chain within this skill. Seek the complex, ambiguous, and rare presentations that AI tools are not trained on. The FDA's 700 cleared AI algorithms are built on common pattern recognition — your defensibility lives in the exceptions.",
+        "Within the next 90 days, own work-up on two presentations in this competency that involve rare diagnoses, conflicting data, or multisystem decision-making—patterns underrepresented in publicly listed FDA-cleared AI/ML device training data (review summaries at fda.gov/medical-devices/software-medical-device-samd/artificial-intelligence-and-machine-learning-aiml-enabled-medical-devices); schedule attending review within 48 hours of key decisions.",
         SKILL_RESOURCES.aiR_high[0],
         SKILL_RESOURCES.aiR_high[2],
-        "Develop clinical AI oversight competency explicitly. The American Board of AI in Medicine (ABAIM) and the ACGME both now include AI literacy in training requirements. Get ahead of this curve.",
-        degree === "DO" ? "Your osteopathic whole-person assessment framework gives you a clinical lens that purely pattern-recognition AI lacks. Lead with that in complex cases." : la.teach
+        "Before your next semi-annual learning-plan update, start the American Board of Artificial Intelligence in Medicine pathway (abaim.org) or your program’s mapped AI curriculum, and cite ACGME Milestones 2.0 expectations for systems-based practice and emerging technology when you meet with your advisor.",
+        degree === "DO" ? "On your next two complex admissions, dictate or write the assessment section to foreground osteopathic structural and whole-person findings (per COCA and ACGME Osteopathic Recognition expectations) so your chart mirrors the clinical lens pattern-recognition AI lacks." : la.teach
       ]
     });
   }
 
   if (upskill.length > 0) {
     recs.push({
-      icon: "⬆", col: "#2563eb",
-      title: "Invest now — high demand, low AI risk, window is open",
+      icon: "",
+      col: "#2563eb",
+      title: "Invest now where demand and human premium align",
       skills: upskill.map(r => r.name),
       actions: [
-        "This is the highest-ROI category in your profile. High market demand combined with low AI risk means human expertise commands a premium here — and that premium is likely to grow, not shrink.",
+        "Treat this cluster as your highest-return portfolio lane for the next 36 months: pairing strong market demand with low AI substitution lets you compound reputation, referrals, and leadership opportunities faster than in commoditized tasks.",
         la.cme || la.read,
         la.mentor,
         SKILL_RESOURCES.mkt_high[2],
-        "Densen (2011) estimated that medical knowledge doubles every 73 days. In high-demand, low-AI-risk skill areas, staying current is not optional — it is what maintains the demand premium. Set a recurring 90-minute weekly block for deliberate study in these areas."
+        "Densen (Trans Am Clin Climatol Assoc 2011) estimated medical knowledge doubles roughly every 73 days; protect your wage premium by blocking a recurring 90-minute Friday session for deliberate reading or simulation in these skills, tracked on your calendar like a procedure day."
       ]
     });
   }
 
   if (reassess.length > 0) {
     recs.push({
-      icon: "⚠", col: "#dc2626",
-      title: "Redirect your energy here",
+      icon: "",
+      col: "#dc2626",
+      title: "Channel growth through strengths that motivate you",
       skills: reassess.map(r => r.name),
       actions: [
-        "Low affinity combined with high AI risk is the combination that needs most attention. Ericsson's deliberate practice research shows that skill development requires intrinsic motivation — without it, you plateau early and the ceiling is low.",
-        "Meet the minimum competency standard for your training level — this is non-negotiable for patient safety and credentialing. But stop there. Do not invest development energy beyond what your role requires.",
+        "Pair future study hours with competencies you rated high on natural affinity: Ericsson’s deliberate-practice evidence (Psychol Rev 1993) shows motivation gates depth, so you will climb faster by investing where curiosity already pulls you while still meeting baseline expectations here.",
+        "Within two weeks, review the ACGME Milestones 2.0 minimum entrustment behaviors and your specialty board maintenance-of-certification requirements for this area (posted on acgme.org and your board site); document only what satisfies patient safety and credentialing, then pause discretionary projects.",
         SKILL_RESOURCES.mkt_low[1],
-        "Redirect the time you would spend here toward your high-affinity, high-demand, low-AI-risk skills. The compounding effect of deliberate practice in your genuine strength areas far exceeds marginal gains in areas of low affinity."
+        "Reallocate the time you might have spent chasing mastery here toward the high-affinity, high-demand, low-AI-risk skills elsewhere in this report; schedule that swap on your calendar so the hours actually move."
       ]
     });
   }
 
   const strategyMap = {
     critical: [
-      "Your specialty has the highest AI algorithm density of any field in medicine — 76% of 700 FDA-cleared AI/ML medical device algorithms are in diagnostic imaging as of 2024. The physicians who thrive will lead AI integration, not resist it.",
-      "Enroll in the ACR AI Learning Center (acrlearningcenter.org) or your specialty society's AI curriculum. Understanding how these algorithms work — and fail — is now a core clinical competency, not an optional interest.",
-      "Pursue procedural and interventional skills aggressively. These are the last skills AI will reach because they require real-time haptic feedback, anatomical judgment, and complication management that no current AI system can perform.",
-      degree === "DO" ? "Your osteopathic whole-person assessment lens is a genuine differentiator in a specialty dominated by pattern-recognition AI. Use it explicitly in your clinical consultations and reports." : "Build a subspecialty identity in the most complex or procedurally intensive area of your field. Depth and complexity beat breadth when AI commoditizes routine reads and reports."
+      "Over the next 12 months, position yourself to co-lead safe AI deployment: your specialty sits among the densest concentrations of FDA-cleared AI/ML-enabled devices (historically about three-quarters of listed devices tied to imaging-related indications in public FDA inventories). Within 90 days, finish either the ACR AI-LAB learning track at ailab.acr.org/Learn/Index or your own specialty society’s AI curriculum page under its Education tab, then bring one governance slide to division meeting.",
+      "Within 60 days, finish the society module track you chose above and add a one-page cheat sheet to your department wiki listing when to trust, adjust, or turn off algorithm output for your common workflows.",
+      "Before the next academic year, enroll in one hands-on simulation or cadaver/procedure lab block that demands real-time tactile feedback and complication rescue; pair it with Entrustable Professional Activities from your ACGME specialty milestones so entrustment keeps pace with procedural depth.",
+      degree === "DO" ? "Starting this month, template your consult or procedure note so osteopathic whole-person assessment (per ACGME Osteopathic Recognition and AACOM UME guidance) appears in every complex case discussion—making your distinct clinical reasoning visible alongside imaging AI outputs." : "Within six months, declare a written professional development plan naming the most complex or procedurally intensive niche in your field (society curriculum pathway + mentor sign-off) so depth, not breadth, becomes your public brand as algorithms absorb routine reads."
     ],
     high: [
-      "Multiple FDA-cleared AI systems are operating in your specialty right now. The AMA's 2023 Augmented Intelligence Policy identifies physician oversight of AI as a core professional responsibility — build this competency explicitly.",
-      "The skills with the highest defensibility in your specialty are those requiring clinical judgment, procedural skill, and therapeutic relationships. Identify your top two and treat them as primary professional development priorities for the next 3 years.",
-      "Join your specialty society's AI task force or digital health committee. Physicians shaping AI policy and clinical guidelines in their specialty are building a defensible zone™ that no algorithm can replicate.",
-      degree === "DO" ? "Your OPP training positions you to practice integrative, whole-person medicine that AI-assisted specialists may lack. This is a competitive advantage in complex, multi-system cases." : "Consider an added qualification in clinical informatics through ABPM or your specialty board. The intersection of clinical expertise and AI literacy is one of the fastest-growing and most defensible niches in medicine."
+      "Within 30 days, read the AMA’s Augmented Intelligence in Health Care policy report PDF (https://www.ama-assn.org/system/files/2019-01/augmented-intelligence-policy-report.pdf) plus the 2024 AMA AI principles PDF (https://www.ama-assn.org/system/files/ama-ai-principles.pdf); list three AI tools your department actually uses and assign yourself oversight checkpoints for each tool by quarter-end.",
+      "Pick the two competencies in your report that demand clinical judgment, negotiated care, or manual skill, and book recurring mentorship or simulation for them through your GME office or society for the next three academic years.",
+      "Before the next society business meeting, email the staff liaison for the artificial intelligence, informatics, or digital health committee (contact info on the society website) to volunteer for a 90-day workgroup; contributing to guidelines is a durable defensible zone™ alongside bedside work.",
+      degree === "DO" ? "Within the quarter, present one complex multi-system case at conference that weaves OPP with subspecialty data, citing how whole-person framing changes management—this is the integrative edge AI-assisted silos often miss." : "Within 12 months, explore Added Qualification in Clinical Informatics via the American Board of Preventive Medicine (abpm.org) or your primary board’s informatics pathway, pairing exam deadlines with your institution’s informatics grand rounds schedule."
     ],
     moderate: [
-      "AI is entering your specialty but has not yet reshaped its core competencies. The ACGME's 2024 Milestones 2.0 framework explicitly includes AI literacy and health systems science — engage with these requirements as developmental opportunities, not checkboxes.",
-      "Your longitudinal patient relationships, diagnostic reasoning, and clinical communication are your primary defensible zone™. These are supported by evidence: patient-centered communication is associated with better outcomes, higher adherence, and lower malpractice risk (Stewart et al., J Fam Pract 2000).",
-      "Invest in point-of-care ultrasound (POCUS) skills if relevant to your specialty. POCUS is a concrete procedural skill with growing market demand that extends clinical reach and is supported by multiple ACGME milestones.",
-      level === "Medical Student" || level === "Resident" ? "As you train, seek diagnostic ambiguity deliberately. The cases where the diagnosis is unclear are where clinical reasoning — your most defensible competency — develops fastest (Mamede et al., Med Educ 2012)." : "Consider developing a quality improvement, clinical education, or health systems leadership role alongside your clinical practice. These human-systems roles grow in value as AI handles more routine clinical tasks."
+      "This quarter, map ACGME Milestones 2.0 systems-based practice and emerging technology sub-competencies (2024 publications on acgme.org) onto your rotation or clinic goals so AI literacy becomes a documented growth trajectory rather than a checkbox.",
+      "Weekly for eight weeks, record one patient interaction where you used shared decision-making or agenda-setting, then compare your language to the patient-centered communication behaviors tied to better outcomes in Stewart et al. (J Fam Pract 2000); adjust one phrase before the next visit.",
+      "If POCUS applies to your specialty, register for Society of Point-of-Care Ultrasound (spocus.org) or American College of Emergency Physicians (acep.org) POCUS coursework within 60 days and log 25 supervised scans against your specialty’s milestone entrustment targets.",
+      level === "Medical Student" || level === "Resident" ? "Each week, identify one case where your initial diagnosis was wrong or incomplete and, before Friday, write a three-sentence reflection on what misled you—this mirrors the reflective-diagnosis exercise Mamede et al. (Med Educ 2012) showed accelerates accuracy gains faster than additional factual reading alone." : "Before year-end, charter a 120-day quality, education, or patient-safety project with your chair, citing CanMEDS Leader and Scholar roles (Frank et al., CanMEDS 2015) and ACGME systems-based practice milestones; present interim data at your service’s business meeting."
     ],
     low: [
-      "You are in one of the most defensible specialties in medicine. The human dimensions of your work — therapeutic relationship, presence, tactile skill, and complex judgment — are genuinely difficult for AI to replicate and are explicitly recognized as such in the clinical AI literature (Shehab et al., PMC 2024).",
-      "Your defensible zone™ is wide but requires active maintenance. Invest in communication skills deliberately: the American Academy on Communication in Healthcare (aachonline.org) offers evidence-based training in therapeutic communication and shared decision-making.",
-      "AI will automate documentation and administrative burden in your field — embrace this and use the time it frees for the high-value human work that defines your specialty. The AMA's 2024 Physician Health report found documentation burden is the leading driver of burnout.",
-      degree === "DO" ? "Your OPP competencies — somatic dysfunction assessment and OMT — are among the most AI-resistant skills in all of medicine. They are core to your professional identity and a genuine competitive advantage in an increasingly AI-mediated healthcare system." : "Use the time AI saves on routine tasks to pursue the most complex presentations in your specialty. Expertise in rare and challenging cases is the form of human excellence most resistant to AI displacement."
+      "Your specialty’s human core—relationship, presence, nuanced negotiation—remains comparatively resistant to substitution in recent cross-specialty analyses (Shehab et al., PMC 2024); plan quarterly storytelling or communication drills so those strengths stay sharp as documentation AI expands.",
+      "Within 60 days, register for an American Academy on Communication in Healthcare course (aachonline.org/courses) or workshop and implement two scripted communication behaviors (agenda setting, teach-back) in clinic the following week.",
+      "This month, pilot one ambient or speech-enabled documentation tool your health system approves (vendor workflow with IT) and reinvest the saved Tuesday afternoon block into uninterrupted patient education or shared decision-making—AMA physician practice and health resources (ama-assn.org/practice-management/physician-health) continue to highlight documentation burden as a major wellness strain you can redesign deliberately.",
+      degree === "DO" ? "Add OMT or osteopathic structural exam documentation to every eligible patient this quarter using AACOM/COCA vocabulary so payers and consult teams see tactile, low-automation value that anchors your professional identity." : "Each quarter, accept or request one referral your partners label “difficult” or rare, and publish a de-identified teaching point to your division list—deep expertise in exceptions remains the most durable human niche as AI absorbs averages."
     ]
   };
 
   recs.push({
-    icon: "◆", col: "#7c3aed",
+    icon: "",
+    col: "#7c3aed",
     title: "Overall strategy — " + level + " in " + specialty,
     skills: [],
     actions: strategyMap[threat] || strategyMap.moderate
