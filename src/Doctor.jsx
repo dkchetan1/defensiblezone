@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 
 // ══════════════════════════════════════════════════════════════════
 // SPECIALTY DATA — evidence-grounded, fully local scoring
@@ -494,13 +494,25 @@ const GCSS = `
   input,select,button{font-family:inherit;outline:none}
   input[type=range]{-webkit-appearance:none;appearance:none;height:4px;background:#dde1ea;border-radius:2px;border:none;cursor:pointer;width:100%}
   input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;background:#d97706;border-radius:50%;cursor:pointer;border:2px solid white;box-shadow:0 1px 3px rgba(0,0,0,.15)}
+  input[type=range].dz-slider{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:3px;outline:none;cursor:pointer;border:none}
+  input[type=range].dz-slider::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;border-radius:50%;border:3px solid white;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.18)}
+  input[type=range].conscience-sl::-webkit-slider-thumb{background:#7c3aed}
+  input[type=range].pull-sl::-webkit-slider-thumb{background:#0891b2}
+  input[type=range].fluency-sl::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:#d97706;border:2px solid white;cursor:pointer}
 `;
 
-const affLabels = [{v:0,l:"Just checking a box"},{v:3,l:"Competent but draining"},{v:5,l:"Solid, not my passion"},{v:7,l:"Energizes me, I seek it"},{v:10,l:"This is why I went into medicine"}];
-const invLabels = [{v:0,l:"Letting it atrophy"},{v:3,l:"Maintaining baseline only"},{v:5,l:"Keeping up with literature"},{v:7,l:"Actively deepening mastery"},{v:10,l:"Obsessively building this"}];
-
-function getLabel(labels, val) { return ([...labels].reverse().find(l => val >= l.v) || {l:""}).l; }
-function compAff(na, inv) { return Math.round(((na*0.6)+(inv*0.4))*10)/10; }
+function snapToStop(val) {
+  const stops = [0, 3, 5, 7, 10];
+  return stops.reduce((prev, curr) => (Math.abs(curr - val) < Math.abs(prev - val) ? curr : prev));
+}
+function getSeed(c, p) {
+  const stops = [0, 3, 5, 7, 10];
+  const raw = Math.round((c * 0.5 + p * 0.5) * 10) / 10;
+  return stops.reduce((prev, curr) => (Math.abs(curr - raw) < Math.abs(prev - raw) ? curr : prev));
+}
+function compAff(conscience, pull, fluency) {
+  return Math.round((conscience * 0.35 + pull * 0.35 + fluency * 0.3) * 10) / 10;
+}
 function calcDZ(aff, aiR, mkt) { return Math.min(100, Math.round(100 * Math.pow(aff/10, 0.35) * Math.pow((10-aiR)/10, 0.40) * Math.pow(mkt/10, 0.25))); }
 function dzCol(s) { if(s>=70)return T.grn; if(s>=45)return T.amb; if(s>=25)return T.org; return T.red; }
 function dzLbl(s) { if(s>=70)return"Defensible"; if(s>=45)return"Moderate Risk"; if(s>=25)return"High Risk"; return"Critical Risk"; }
@@ -825,8 +837,11 @@ export default function DefensibleZoneMedical(){
   const [level,       setLevel]       = useState("");
   const [specialty,   setSpecialty]   = useState("");
   const [skills,      setSkills]      = useState([]);
-  const [affinities,  setAffinities]  = useState({});
-  const [investments, setInvestments] = useState({});
+  const [conscience,  setConscience]  = useState(5);
+  const [pull,        setPull]        = useState(5);
+  const [fluencies,   setFluencies]   = useState({});
+  const [adjustedSkills, setAdjustedSkills] = useState(new Set());
+  const adjustedSkillsRef = useRef(new Set());
   const [results,     setResults]     = useState(null);
   const [showGuide,   setShowGuide]   = useState(true);
   const [showDO,      setShowDO]      = useState(false);
@@ -837,6 +852,23 @@ export default function DefensibleZoneMedical(){
   const [emailInput,  setEmailInput]  = useState("");
   const [emailSubmitting, setEmailSubmitting] = useState(false);
   useEffect(() => { window.scrollTo(0, 0); }, [step]);
+
+  function markAdjusted(id) {
+    adjustedSkillsRef.current.add(id);
+    setAdjustedSkills(new Set(adjustedSkillsRef.current));
+  }
+
+  useEffect(() => {
+    setFluencies(prev => {
+      const next = { ...prev };
+      skills.forEach((_, idx) => {
+        if (!adjustedSkillsRef.current.has(idx)) {
+          next[idx] = getSeed(conscience, pull);
+        }
+      });
+      return next;
+    });
+  }, [conscience, pull, skills]);
 
   async function submitEmailToKit(email) {
     try {
@@ -911,18 +943,17 @@ export default function DefensibleZoneMedical(){
     if(!data) return;
     const s = degree === "DO" ? [...data.s, ...OPP] : [...data.s];
     setSkills(s);
-    const aff={}; const inv={};
-    s.forEach((_,i)=>{ aff[i]=5; inv[i]=5; });
-    setAffinities(aff); setInvestments(inv);
+    setFluencies({});
+    setAdjustedSkills(new Set());
+    adjustedSkillsRef.current = new Set();
   }
 
   function runAnalysis(){
     const scored = skills.map((sk,i)=>{
-      const na  = affinities[i]  !== undefined ? affinities[i]  : 5;
-      const inv = investments[i] !== undefined ? investments[i] : 5;
-      const aff = compAff(na, inv);
+      const f   = fluencies[i] !== undefined ? fluencies[i] : getSeed(conscience, pull);
+      const aff = compAff(conscience, pull, f);
       const dz  = calcDZ(aff, sk.aiR, sk.mkt);
-      return { name:sk.name, naturalAffinity:na, investment:inv, affinity:aff, aiR:sk.aiR, mkt:sk.mkt, dz };
+      return { name:sk.name, naturalAffinity:aff, investment:f, affinity:aff, aiR:sk.aiR, mkt:sk.mkt, dz };
     });
     setResults(scored);
     setStep(3);
@@ -930,7 +961,9 @@ export default function DefensibleZoneMedical(){
 
   function reset(){
     setStep(0); setDegree(""); setLevel(""); setSpecialty(""); setSkills([]);
-    setAffinities({}); setInvestments({}); setResults(null); setTier(0); setPromoUsed(false);
+    setConscience(5); setPull(5); setFluencies({}); setAdjustedSkills(new Set());
+    adjustedSkillsRef.current = new Set();
+    setResults(null); setTier(0); setPromoUsed(false);
   }
 
   // ── Step 0 ──────────────────────────────────────────────────────
@@ -1028,62 +1061,158 @@ export default function DefensibleZoneMedical(){
 
   // ── Step 2 ──────────────────────────────────────────────────────
   if(step===2){
+    const affinityStops = [0, 3, 5, 7, 10];
+    const conscienceLabelTexts = ["Move on easily","Mildly bothered","Somewhat unsettled","Want to revisit it","Can't let it go"];
+    const pullLabelTexts = ["Almost never","Occasionally","Sometimes","Regularly","Constantly"];
     return(
       <div style={{minHeight:"100vh",background:T.bg,padding:"40px 24px",fontFamily:T.font,color:T.txt}}>
         <style>{GCSS}</style>
         <div style={{maxWidth:680,margin:"0 auto"}}>
           <button onClick={()=>setStep(1)} style={{fontFamily:T.mono,fontSize:12,color:T.dim,background:"none",border:"none",cursor:"pointer",marginBottom:18}}>back to specialty</button>
-          <h2 style={{fontFamily:T.disp,fontSize:30,fontWeight:400,marginBottom:8}}>Rate your skills</h2>
+          <h2 style={{fontFamily:T.disp,fontSize:30,fontWeight:400,marginBottom:8}}>How does clinical work feel?</h2>
           <div style={{display:"flex",gap:8,marginBottom:16,flexWrap:"wrap"}}>
             <MTag col={T.amb}>{degree}</MTag>
             <MTag col={T.blu}>{level}</MTag>
             <MTag col={T.mut}>{specialty}</MTag>
           </div>
-          <p style={{color:T.dim,fontSize:13,marginBottom:24,lineHeight:1.6,fontFamily:T.mono}}>Natural Affinity = how genuinely wired you are for this. Investment Signal = how actively you are building it right now.</p>
-          <div style={{display:"flex",flexDirection:"column",gap:16}}>
+          <p style={{fontSize:16,color:"#6b7280",lineHeight:1.7,marginBottom:32,marginTop:0}}>
+            These questions aren&apos;t about how skilled you are. They&apos;re about whether this work genuinely fits you. Be honest — there are no wrong answers.
+          </p>
+          <div style={{fontFamily:T.mono,fontSize:12,textTransform:"uppercase",color:"#7a88a8",marginBottom:6}}>PART 1 — ABOUT YOU IN GENERAL</div>
+          <div style={{fontSize:15,color:"#7a88a8",marginBottom:24}}>Answer these once. They apply across all your skills.</div>
+          <div style={{background:T.card,border:"1px solid #d0d7e8",borderRadius:14,padding:"24px 28px",marginBottom:16}}>
+            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
+              <span style={{width:10,height:10,borderRadius:"50%",background:"#7c3aed",flexShrink:0}} />
+              <span style={{fontFamily:T.mono,fontSize:12,fontWeight:700,color:"#7c3aed",letterSpacing:"0.08em"}}>CRAFT CONSCIENCE</span>
+            </div>
+            <p style={{fontSize:16,fontStyle:"italic",color:"#3d4a6b",lineHeight:1.6,marginBottom:6,marginTop:0}}>
+              When you leave a clinical encounter feeling it was incomplete — a diagnosis that didn&apos;t fully add up, a patient conversation that was rushed — how does that sit with you?
+            </p>
+            <p style={{fontSize:14,color:"#7a88a8",lineHeight:1.5,marginBottom:20,marginTop:0}}>
+              This tells us whether you genuinely care about clinical quality independent of whether anyone reviewed, measured, or noticed.
+            </p>
+            <input
+              className="dz-slider conscience-sl"
+              type="range"
+              min={0}
+              max={10}
+              step={1}
+              value={conscience}
+              onChange={e=>setConscience(snapToStop(Number(e.target.value)))}
+              style={{background:"linear-gradient(to right, #7c3aed "+(conscience/10)*100+"%, #d0d7e8 "+(conscience/10)*100+"%)"}}
+            />
+            <div style={{display:"flex",justifyContent:"space-between",marginTop:10}}>
+              {affinityStops.map((stopValue,idx)=>(
+                <div key={stopValue} style={{width:"20%",textAlign:"center",fontSize:12,color:"#7c3aed",opacity:Math.abs(conscience-stopValue)<=1?1:0.25,fontWeight:Math.abs(conscience-stopValue)<=1?700:400}}>
+                  {conscienceLabelTexts[idx]}
+                </div>
+              ))}
+            </div>
+          </div>
+          <div style={{background:T.card,border:"1px solid #d0d7e8",borderRadius:14,padding:"24px 28px",marginBottom:16}}>
+            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
+              <span style={{width:10,height:10,borderRadius:"50%",background:"#0891b2",flexShrink:0}} />
+              <span style={{fontFamily:T.mono,fontSize:12,fontWeight:700,color:"#0891b2",letterSpacing:"0.08em"}}>INTRINSIC PULL</span>
+            </div>
+            <p style={{fontSize:16,fontStyle:"italic",color:"#3d4a6b",lineHeight:1.6,marginBottom:6,marginTop:0}}>
+              Outside of clinical work — evenings, weekends, off-shift — how often does your mind drift toward medicine? A case you couldn&apos;t resolve, something you read, a problem you want to understand better?
+            </p>
+            <p style={{fontSize:14,color:"#7a88a8",lineHeight:1.5,marginBottom:20,marginTop:0}}>
+              This tells us whether medicine is something you&apos;re genuinely wired for, or primarily a professional identity and career.
+            </p>
+            <input
+              className="dz-slider pull-sl"
+              type="range"
+              min={0}
+              max={10}
+              step={1}
+              value={pull}
+              onChange={e=>setPull(snapToStop(Number(e.target.value)))}
+              style={{background:"linear-gradient(to right, #0891b2 "+(pull/10)*100+"%, #d0d7e8 "+(pull/10)*100+"%)"}}
+            />
+            <div style={{display:"flex",justifyContent:"space-between",marginTop:10}}>
+              {affinityStops.map((stopValue,idx)=>(
+                <div key={stopValue} style={{width:"20%",textAlign:"center",fontSize:12,color:"#0891b2",opacity:Math.abs(pull-stopValue)<=1?1:0.25,fontWeight:Math.abs(pull-stopValue)<=1?700:400}}>
+                  {pullLabelTexts[idx]}
+                </div>
+              ))}
+            </div>
+          </div>
+          <hr style={{border:"none",borderTop:"1px solid #d0d7e8",margin:"32px 0"}} />
+          <div style={{fontFamily:T.mono,fontSize:12,textTransform:"uppercase",color:"#7a88a8",marginBottom:6}}>PART 2 — SKILL BY SKILL</div>
+          <div style={{fontSize:15,color:"#7a88a8",lineHeight:1.6,marginBottom:8}}>
+            For each skill — does doing this work feel natural and easy, or does it take real effort?
+          </div>
+          <div style={{fontSize:14,color:"#9ca3af",marginBottom:24}}>
+            Sliders are pre-set based on your answers above. Only move one if a skill feels noticeably different from your usual pattern.
+          </div>
+          <div style={{display:"flex",flexDirection:"column",gap:10}}>
             {skills.map((sk,i)=>{
-              const na  = affinities[i]  !== undefined ? affinities[i]  : 5;
-              const inv = investments[i] !== undefined ? investments[i] : 5;
+              const fluencyVal = fluencies[i] !== undefined ? fluencies[i] : getSeed(conscience, pull);
+              const affinityScore = compAff(conscience, pull, fluencyVal);
+              const affinityColor = affinityScore >= 7 ? "#059669" : affinityScore >= 5 ? "#d97706" : "#dc2626";
               const isOPP = degree==="DO" && OPP.some(o=>o.name===sk.name);
+              const fluencyForGrad = fluencies[i] !== undefined ? fluencies[i] : getSeed(conscience, pull);
               return(
-                <MCard key={i} style={{borderLeft:isOPP?"4px solid "+T.grn:"none"}}>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:16}}>
-                    <div style={{flex:1}}>
-                      <div style={{fontSize:15,fontWeight:700,color:T.txt}}>{sk.name}</div>
-                      {isOPP&&<MMono style={{color:T.grn,display:"block",marginTop:4,fontWeight:700}}>OPP skill — naturally defensible against AI</MMono>}
+                <div
+                  key={i}
+                  style={{
+                    background:T.card,
+                    border:"1px solid #d0d7e8",
+                    borderLeft:isOPP?"4px solid "+T.grn:"1px solid #d0d7e8",
+                    borderRadius:12,
+                    padding:"18px 22px",
+                    marginBottom:0
+                  }}
+                >
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
+                    <div style={{flex:1,paddingRight:12}}>
+                      <div style={{fontSize:16,fontWeight:600,color:T.txt}}>{sk.name}</div>
+                      {isOPP&&<MMono style={{color:T.grn,display:"block",marginTop:6,fontWeight:700}}>OPP skill — naturally defensible against AI</MMono>}
                     </div>
-                    <div style={{marginLeft:12,flexShrink:0,textAlign:"center"}}>
-                      <div style={{fontFamily:T.disp,fontSize:22,color:T.amb,lineHeight:1}}>{Math.round(compAff(na,inv)*10)}%</div>
-                      <MMono style={{color:T.dim,fontSize:11}}>AFFINITY</MMono>
-                    </div>
+                    <span style={{
+                      fontSize:12,
+                      padding:"2px 8px",
+                      borderRadius:10,
+                      fontFamily:T.mono,
+                      flexShrink:0,
+                      background:adjustedSkills.has(i)?"rgba(217,119,6,0.12)":"rgba(5,150,105,0.10)",
+                      color:adjustedSkills.has(i)?"#d97706":"#059669"
+                    }}>
+                      {adjustedSkills.has(i)?"adjusted":"pre-seeded"}
+                    </span>
                   </div>
-                  <div style={{marginBottom:18}}>
-                    <div style={{display:"flex",justifyContent:"space-between",marginBottom:7}}>
-                      <MMono style={{color:T.mut}}>NATURAL AFFINITY</MMono>
-                      <MMono style={{color:T.blu,fontWeight:700}}>{na}/10 &mdash; {getLabel(affLabels,na)}</MMono>
-                    </div>
-                    <input type="range" min={0} max={10} value={na} onChange={e=>setAffinities(prev=>({...prev,[i]:Number(e.target.value)}))}/>
-                    <div style={{display:"flex",justifyContent:"space-between",marginTop:4}}>
-                      <MMono style={{color:T.dim,fontSize:11}}>Just checking a box</MMono>
-                      <MMono style={{color:T.dim,fontSize:11}}>This is why I went into medicine</MMono>
-                    </div>
+                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
+                    <span style={{fontFamily:T.mono,fontSize:12,color:"#7a88a8"}}>FELT FLUENCY</span>
+                    <span style={{fontFamily:T.mono,fontSize:12,fontWeight:700,color:"#d97706"}}>{fluencyForGrad}/10</span>
                   </div>
-                  <div>
-                    <div style={{display:"flex",justifyContent:"space-between",marginBottom:7}}>
-                      <MMono style={{color:T.mut}}>INVESTMENT SIGNAL</MMono>
-                      <MMono style={{color:T.amb,fontWeight:700}}>{inv}/10 &mdash; {getLabel(invLabels,inv)}</MMono>
-                    </div>
-                    <input type="range" min={0} max={10} value={inv} onChange={e=>setInvestments(prev=>({...prev,[i]:Number(e.target.value)}))}/>
-                    <div style={{display:"flex",justifyContent:"space-between",marginTop:4}}>
-                      <MMono style={{color:T.dim,fontSize:11}}>Letting it atrophy</MMono>
-                      <MMono style={{color:T.dim,fontSize:11}}>Obsessively building this</MMono>
-                    </div>
+                  <input
+                    className="dz-slider fluency-sl"
+                    type="range"
+                    min={0}
+                    max={10}
+                    step={1}
+                    value={fluencyVal}
+                    onChange={e=>{
+                      const val = Number(e.target.value);
+                      setFluencies(prev=>({ ...prev, [i]: val }));
+                      markAdjusted(i);
+                    }}
+                    style={{background:"linear-gradient(to right, #d97706 "+(fluencyForGrad/10)*100+"%, #d0d7e8 "+(fluencyForGrad/10)*100+"%)"}}
+                  />
+                  <div style={{display:"flex",justifyContent:"space-between",marginTop:6}}>
+                    <span style={{fontSize:12,color:"#9ca3af"}}>Effortful</span>
+                    <span style={{fontSize:12,color:"#9ca3af"}}>Frictionless</span>
                   </div>
-                </MCard>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:14,paddingTop:12,borderTop:"1px solid #f0f0f0"}}>
+                    <span style={{fontFamily:T.mono,fontSize:12,color:"#7a88a8"}}>AFFINITY SCORE</span>
+                    <span style={{fontSize:22,fontWeight:700,color:affinityColor}}>{affinityScore}</span>
+                  </div>
+                </div>
               );
             })}
           </div>
-          <MBtn onClick={()=>setStep(2.5)} disabled={skills.length===0} style={{width:"100%",marginTop:20}}>See My Defensible Zone&#8482;</MBtn>
+          <MBtn onClick={()=>setStep(2.5)} disabled={skills.length===0} style={{width:"100%",marginTop:32}}>See My Defensible Zone&#8482;</MBtn>
         </div>
       </div>
     );
