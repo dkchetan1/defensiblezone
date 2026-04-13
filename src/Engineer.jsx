@@ -585,6 +585,10 @@ export default function Engineer() {
     setShowAllCtx(false);
   }, [devType]);
 
+  useEffect(function() {
+    window.scrollTo(0, 0);
+  }, [step]);
+
   function getVisibleContexts() {
     if (!devType || devType === "other" || showAllCtx) return WORK_CONTEXTS;
     var allowed = CONTEXT_MAP[devType] || [];
