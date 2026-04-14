@@ -105,6 +105,38 @@ export default function Landing() {
         </div>
       </div>
 
+      <div style={{ maxWidth: 680, margin: "0 auto", padding: "80px 24px 32px", background: LS.bg }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
+          <div>
+            <div style={{ fontFamily: LS.mono, fontSize: 11, color: LS.accent, letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: 12 }}>
+              WHAT IS THE DEFENSIBLE ZONE?
+            </div>
+            <div style={{ fontSize: 16, color: LS.muted, lineHeight: 1.75 }}>
+              It's a simple idea. Your career has parts that AI can do — and parts it can't, at least not yet. The Defensible Zone is that second part. It's where your natural strengths meet what the market still needs from a real person. That's the space worth finding and moving toward.
+            </div>
+          </div>
+
+          <div>
+            <div style={{ fontFamily: LS.mono, fontSize: 11, color: LS.accent, letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: 12 }}>
+              WHAT THE ASSESSMENT DOES
+            </div>
+            <div style={{ fontSize: 16, color: LS.muted, lineHeight: 1.75 }}>
+              You tell it your role and your skills. It scores each skill on two things — how replaceable it is by AI, and how much the market values it. Then it shows you where you actually stand. No fluff. Just a clear picture of what's at risk and what isn't.
+            </div>
+          </div>
+
+          <div>
+            <div style={{ fontFamily: LS.mono, fontSize: 11, color: LS.accent, letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: 12 }}>
+              HOW TO USE THIS SITE
+            </div>
+            <div style={{ fontSize: 16, color: LS.muted, lineHeight: 1.75 }}>
+              Pick your profession from the list below. Answer a few questions. You'll get a score, a breakdown of your skills, and a sense of where to focus. It takes about 10 minutes. The goal isn't to scare you — it's to give you something specific to work with.
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style={{ height: 1, background: LS.border, maxWidth: 680, margin: "0 auto 0" }} />
+
       {/* ── PROFESSION GRID ──────────────────────────────────── */}
       <div id="professions" style={{ background: LS.bg2, padding: "72px 24px" }}>
         <div style={{ maxWidth: 1160, margin: "0 auto" }}>
