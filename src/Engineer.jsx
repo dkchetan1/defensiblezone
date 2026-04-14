@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import EmailGate from "./EmailGate";
+import PDFButton from "./PDFButton";
 
 // ── ENGINEER TYPES ─────────────────────────────────────────────────────
 var DEV_TYPES = [
@@ -82,30 +83,6 @@ var COMPANY_TYPES = [
   { id:"gov",       label:"Government / Public",   sub:"Public sector" },
 ];
 
-// ── SOURCES ────────────────────────────────────────────────────────────
-var SOURCES = [
-  { id:"S1", label:"GitHub / Microsoft Copilot Research", cite:"Ziegler et al. (2022). Productivity Assessment of Neural Code Completion. MAPS '22. Kalliamvakou, E. (2022). Research: Quantifying GitHub Copilot's impact on developer productivity and happiness. GitHub Blog." },
-  { id:"S2", label:"Stack Overflow Developer Survey 2024", cite:"Stack Overflow. (2024). Developer Survey 2024: AI tool adoption by role, language, and seniority. stackoverflow.com/research/developer-survey" },
-  { id:"S3", label:"McKinsey Global Institute (2023)", cite:"McKinsey & Company. (2023). The economic potential of generative AI: The next productivity frontier. McKinsey Global Institute." },
-  { id:"S4", label:"Goldman Sachs (2023)", cite:"Goldman Sachs. (2023). Generative AI: Too much spend, too little benefit? Global Investment Research. Goldman Sachs Economics Research." },
-  { id:"S5", label:"WEF Future of Jobs Report 2025", cite:"World Economic Forum. (2025). Future of Jobs Report 2025. World Economic Forum, Geneva." },
-  { id:"S6", label:"BLS Occupational Outlook Handbook", cite:"U.S. Bureau of Labor Statistics. (2024). Occupational Outlook Handbook: Software Developers, QA Analysts, and Testers. bls.gov/ooh/computer-and-information-technology" },
-  { id:"S7", label:"METR / RAND AI Capability Evals (2024–25)", cite:"METR. (2024). Autonomy Evaluation Results. metr.org. RAND Corporation. (2024). Measuring AI's Coding Proficiency Across Skill Levels." },
-];
-
-// ── ALGO NOTES ─────────────────────────────────────────────────────────
-var ALGO_NOTES = [
-  { id:"A1", color:"#7c3aed", title:"Craft Conscience",   desc:"Asked once globally, stable adult trait — how much unfinished or compromised work weighs on you when no one is watching." },
-  { id:"A2", color:"#0891b2", title:"Intrinsic Pull",     desc:"Asked once globally — frequency of unprompted domain engagement outside formal work (mind drifting toward technical problems)." },
-  { id:"A3", color:"#d97706", title:"Felt Fluency",       desc:"Asked per skill — cognitive ease specific to that domain (effortful vs frictionless)." },
-  { id:"A4", color:"#dc2626", title:"AI Replaceability",  desc:"Calibrated to your specific role type, seniority, and work context. A Staff engineer's system design scores 2-3; a Junior doing CRUD scores 8-9. Source: GitHub Copilot research, METR evals 2024-25." },
-  { id:"A5", color:"#d97706", title:"Market Demand",      desc:"Estimated for your role type and company context. Based on BLS OOH data and WEF Future of Jobs 2025. Not real-time — production upgrade: live job posting data via BLS/Indeed API." },
-  { id:"A6", color:"#2563eb", title:"Skill Suggestions",  desc:"Generated from your dev type + seniority + work context. More targeted than a generic engineer profile. You can edit any skill to be more specific." },
-  { id:"A7", color:"#059669", title:"Benchmarking",       desc:"Estimated percentile vs engineers at your level and role type. No real cohort data yet — estimate only. Production: anonymized Defensible Zone™ cohort data." },
-  { id:"A8", color:"#ea580c", title:"DZ Formula",         desc:"Composite affinity compAff(c,p,f) = (c×0.35)+(p×0.35)+(f×0.30). DZ = 100 x (affinity/10)^0.35 x ((10-aiR)/10)^0.40 x (market/10)^0.25, capped at 100 (Cobb-Douglas). The former interface_bonus term has been removed. Multiplicative — weakness in any dimension still drags the score." },
-  { id:"A9", color:"#64748b", title:"Risk Matrix Placement",desc:"Skills placed on 2x2 by AI Replaceability (x-axis) and Market Demand (y-axis). Bubble size = natural affinity. Color = DZ score. Quadrant labels are strategic not prescriptive." },
-];
-
 // ── DESIGN TOKENS ──────────────────────────────────────────────────────
 var S = {
   bg:"#f8f9fc", card:"#ffffff", card2:"#f2f4f8",
@@ -136,16 +113,6 @@ function compAff(conscience, pull, fluency) {
 function calcDZ(aff, aiR, mkt) {
   var v = 100 * Math.pow(aff / 10, 0.35) * Math.pow((10 - aiR) / 10, 0.40) * Math.pow(mkt / 10, 0.25);
   return Math.min(100, Math.round(v));
-}
-function dzColor(dz) {
-  if (dz >= 70) return S.gold;
-  if (dz >= 45) return S.orange;
-  return S.red;
-}
-function dzLabel(dz) {
-  if (dz >= 70) return "Defensible";
-  if (dz >= 45) return "Moderate Risk";
-  return "High Risk";
 }
 function buildProfile(devType, devTypeOther, seniority, workContexts, companyType) {
   var dt = DEV_TYPES.find(function(d) { return d.id === devType; });
@@ -223,157 +190,6 @@ function Chip(props) {
       {props.label}
     </button>
   );
-}
-
-// ── RISK MATRIX ────────────────────────────────────────────────────────
-function RiskMatrix(props) {
-  var results  = props.results;
-  var hovered  = props.hovered;
-  var setHovered = props.setHovered;
-
-  var PAD_L = 64; var PAD_B = 54; var PAD_T = 48; var PAD_R = 24;
-  var W = 500; var H = 460;
-  var PW = W - PAD_L - PAD_R;
-  var PH = H - PAD_T - PAD_B;
-  var MID_X = PAD_L + PW / 2;
-  var MID_Y = PAD_T + PH / 2;
-
-  function px(aiR) { return PAD_L + (aiR / 10) * PW; }
-  function py(mkt) { return PAD_T + PH - (mkt / 10) * PH; }
-
-  var QUADRANTS = [
-    { x: PAD_L,   y: PAD_T,   w: PW/2, h: PH/2, color:"rgba(217,119,6,.04)",  label:"DEFEND",       sub:"low AI risk · high demand", lx: PAD_L+8,      ly: PAD_T+18,    tc: S.gold },
-    { x: MID_X,   y: PAD_T,   w: PW/2, h: PH/2, color:"rgba(234,88,12,.04)",  label:"LEVERAGE",     sub:"own the orchestration layer",lx: MID_X+8,      ly: PAD_T+18,    tc: S.orange },
-    { x: PAD_L,   y: MID_Y,   w: PW/2, h: PH/2, color:"rgba(37,99,235,.04)",  label:"SPECIALIZE",   sub:"niche but protected",        lx: PAD_L+8,      ly: MID_Y+18,    tc: S.blue },
-    { x: MID_X,   y: MID_Y,   w: PW/2, h: PH/2, color:"rgba(220,38,38,.04)",  label:"DEPRIORITIZE", sub:"exit path, don't invest",    lx: MID_X+8,      ly: MID_Y+18,    tc: S.red },
-  ];
-
-  var hovS = results ? results.find(function(r) { return r.name === hovered; }) : null;
-
-  return (
-    <svg viewBox={"0 0 " + W + " " + H} style={{ width:"100%", display:"block" }}>
-      <defs>
-        <filter id="bub-glow">
-          <feGaussianBlur stdDeviation="3" result="blur" />
-          <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
-        </filter>
-      </defs>
-      <rect width={W} height={H} fill="#fff" rx="12" />
-
-      {QUADRANTS.map(function(q, i) {
-        return (
-          <g key={i}>
-            <rect x={q.x} y={q.y} width={q.w} height={q.h} fill={q.color} />
-            <text x={q.lx} y={q.ly} fontSize="12" fontFamily={S.mono} fontWeight="700" fill={q.tc} letterSpacing="0.08em">{q.label}</text>
-            <text x={q.lx} y={q.ly + 14} fontSize="12" fontFamily={S.mono} fill={S.dim}>{q.sub}</text>
-          </g>
-        );
-      })}
-
-      <line x1={MID_X} y1={PAD_T} x2={MID_X} y2={PAD_T + PH} stroke={S.border} strokeWidth="1.5" strokeDasharray="4,3" />
-      <line x1={PAD_L} y1={MID_Y} x2={PAD_L + PW} y2={MID_Y} stroke={S.border} strokeWidth="1.5" strokeDasharray="4,3" />
-      <rect x={PAD_L} y={PAD_T} width={PW} height={PH} fill="none" stroke={S.border} strokeWidth="1.5" rx="2" />
-
-      {[0,2,4,6,8,10].map(function(v) {
-        return (
-          <g key={v}>
-            <text x={px(v)} y={PAD_T + PH + 16} textAnchor="middle" fontSize="12" fontFamily={S.mono} fill={S.dim}>{v}</text>
-            <text x={PAD_L - 10} y={py(v) + 4} textAnchor="end" fontSize="12" fontFamily={S.mono} fill={S.dim}>{v}</text>
-          </g>
-        );
-      })}
-
-      <text x={PAD_L + PW / 2} y={H - 6} textAnchor="middle" fontSize="12" fontFamily={S.mono} fill={S.muted} fontWeight="600" letterSpacing="0.06em">AI REPLACEABILITY →</text>
-      <text x={12} y={PAD_T + PH / 2} textAnchor="middle" fontSize="12" fontFamily={S.mono} fill={S.muted} fontWeight="600" letterSpacing="0.06em" transform={"rotate(-90,12," + (PAD_T + PH / 2) + ")"}>MARKET DEMAND →</text>
-
-      {results && results.map(function(s, i) {
-        var cx2 = px(s.ai_replaceability);
-        var cy2 = py(s.market_demand);
-        var r = 10 + (s.naturalAffinity || 5) * 1.8;
-        var isH = hovered === s.name;
-        return (
-          <g key={s.name} onMouseEnter={function() { setHovered(s.name); }} onMouseLeave={function() { setHovered(null); }} style={{ cursor:"pointer" }}>
-            <circle cx={cx2} cy={cy2} r={isH ? r + 4 : r} fill={dzColor(s.dz)} fillOpacity="0.85" stroke="white" strokeWidth="2" filter={isH ? "url(#bub-glow)" : ""} />
-            <text x={cx2} y={cy2 + 4} textAnchor="middle" fontSize="12" fontFamily={S.mono} fontWeight="700" fill="white">{i + 1}</text>
-          </g>
-        );
-      })}
-
-      {hovS && (function() {
-        var cx2 = px(hovS.ai_replaceability);
-        var cy2 = py(hovS.market_demand);
-        var tw = 240; var th = 82;
-        var tx = Math.min(Math.max(cx2 - 120, 4), W - tw - 4);
-        var ty = cy2 > PAD_T + PH / 2 ? cy2 - th - 14 : cy2 + 18;
-        var sn = hovS.name.length > 28 ? hovS.name.slice(0, 27) + "…" : hovS.name;
-        return (
-          <g>
-            <rect x={tx} y={ty} width={tw} height={th} rx="8" fill="rgba(13,17,23,.96)" stroke={dzColor(hovS.dz)} strokeWidth="1.5" />
-            <text x={tx+12} y={ty+18} fontSize="12" fill="#f8f9fc" fontFamily={S.font} fontWeight="700">{sn}</text>
-            <text x={tx+12} y={ty+34} fontSize="12" fill={dzColor(hovS.dz)} fontFamily={S.mono} fontWeight="600">{dzLabel(hovS.dz)} · DZ {hovS.dz}</text>
-            <line x1={tx+12} y1={ty+42} x2={tx+tw-12} y2={ty+42} stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
-            <text x={tx+12} y={ty+56} fontSize="12" fill="#8a96b0" fontFamily={S.mono}>AI Risk: {hovS.ai_replaceability}/10 · Demand: {hovS.market_demand}/10</text>
-            <text x={tx+12} y={ty+70} fontSize="12" fill="#8a96b0" fontFamily={S.mono}>Affinity: {hovS.affinity}/10 · Interface span: {hovS.interface_span ? "yes" : "no"}</text>
-          </g>
-        );
-      })()}
-
-      <text x={PAD_L + 6} y={PAD_T - 8} fontSize="12" fontFamily={S.mono} fill={S.dim}>Bubble size = Natural Affinity · Color = DZ Score</text>
-    </svg>
-  );
-}
-
-// ── RECOMMENDATIONS ────────────────────────────────────────────────────
-function buildRecs(skills, profile, benchmark) {
-  var recs = [];
-  var defensible    = skills.filter(function(s) { return s.dz >= 70; });
-  var highRisk      = skills.filter(function(s) { return s.ai_replaceability >= 7; });
-  var highAffLowMkt = skills.filter(function(s) { return s.affinity >= 7 && s.market_demand < 5; });
-  var lowAffHighMkt = skills.filter(function(s) { return s.affinity < 4 && s.market_demand >= 7; });
-  var iface         = skills.filter(function(s) { return s.interface_span; });
-  var goldenCage    = skills.filter(function(s) { return (s.naturalAffinity != null ? s.naturalAffinity : s.affinity) >= 6 && (s.investment != null ? s.investment : 5) <= 3; });
-
-  if (defensible.length) recs.push({ icon:"■", color:S.gold, title:"Protect & Deepen These Skills",
-    names: defensible.map(function(s) { return s.name; }),
-    actions:["These sit in your Defend quadrant — high natural affinity, low AI risk. This is where you build your reputation and your floor.",
-             "Build systems and write publicly about your approach. Own the output layer, not just the execution.",
-             "Seek roles and projects where these skills touch architecture, strategy, or irreplaceable organizational judgment."]});
-  if (highRisk.length) recs.push({ icon:"■", color:S.red, title:"High AI Risk — Change Your Relationship With These",
-    names: highRisk.map(function(s) { return s.name; }),
-    actions:["AI is already doing the bulk of this work. Your job is to own the review, direction, and judgment — not the generation.",
-             "The engineer who wields AI on these tasks is more valuable than the one who avoids it. Learn the orchestration layer.",
-             "Reinvest the time AI saves you here into your Defend quadrant before the market reprices your role."]});
-  if (goldenCage.length) recs.push({ icon:"■", color:S.gold, title:"The Golden Cage — Wake Up Before AI Does",
-    names: goldenCage.map(function(s) { return s.name; }),
-    actions:["You feel wired for this but you're not investing in it. That gap is exactly where AI is catching up.",
-             "Coasting on expertise built 3+ years ago in a fast-moving technical field is especially dangerous in this cycle.",
-             "Treat this like your most endangered asset: side projects, new patterns, public output, obsessive attention."]});
-  if (highAffLowMkt.length) recs.push({ icon:"■", color:S.purple, title:"High Affinity, Low Market — Make Yourself Legible",
-    names: highAffLowMkt.map(function(s) { return s.name; }),
-    actions:["The gap here is framing, not capability. Most hiring managers don't know how to value what you have.",
-             "Find the industries, company stages, or domains where this skill is on the critical path, not a nice-to-have.",
-             "Write about it, build in public, create the artifact that makes the skill visible and priceable."]});
-  if (lowAffHighMkt.length) recs.push({ icon:"■", color:S.blue, title:"High Market, Low Affinity — Plan Your Migration",
-    names: lowAffHighMkt.map(function(s) { return s.name; }),
-    actions:["These are paying your bills now but won't define your career. Use them for leverage while building toward your zone.",
-             "AI will commoditize high-market, low-affinity skills faster than skills you actually care about deepening.",
-             "Find the intersection: a team or domain where this skill overlaps with something you genuinely want to do."]});
-  if (iface.length) recs.push({ icon:"■", color:S.green, title:"Interface Advantage — This Is Rare",
-    names: iface.map(function(s) { return s.name; }),
-    actions:["Engineers fluent across two disciplines are genuinely rare. AI can't replicate lived cross-domain experience.",
-             "Actively seek roles that sit at the seam: eng + product, eng + security, eng + ML research, eng + design systems.",
-             "Make the cross-domain fluency visible. It's invisible on a resume and only apparent in the right conversations."]});
-  if (benchmark) recs.push({ icon:"■", color:"#0891b2", title:"How You Compare to Peers at Your Level",
-    names:[],
-    actions: benchmark.insights || ["Your Defensible Zone™ profile has been estimated vs other engineers at your level and role type.",
-             "Scores above 70 indicate genuine defensibility vs AI at your seniority band.",
-             "The most defensible engineers at any level are those whose work requires sustained judgment under ambiguity."]});
-  recs.push({ icon:"■", color:S.dim, title:"Always: Build Trust Capital",
-    names:[],
-    actions:["The engineer trusted with the ambiguous, high-stakes problem is the last one replaced — by AI or by reorgs.",
-             "Reputation for judgment compounds: every hard call you own well is future career capital.",
-             "Your network of people who trust your technical judgment is a moat that no model can replicate."]});
-  return recs;
 }
 
 // ── PROMO CODES ────────────────────────────────────────────────────────
@@ -487,13 +303,12 @@ export default function Engineer() {
   var adjustedSkillsRef                   = useRef(new Set());
   var [results, setResults]               = useState(null);
   var [benchmark, setBenchmark]           = useState(null);
-  var [hovered, setHovered]               = useState(null);
+  var [recommendations, setRecommendations] = useState(null);
+  var [recsLoading, setRecsLoading] = useState(false);
+  var [recsError, setRecsError] = useState(null);
   var [loading, setLoading]               = useState(false);
   var [loadingMsg, setLoadingMsg]         = useState("");
   var [error, setError]                   = useState(null);
-  var [showRecs, setShowRecs]             = useState(true);
-  var [showAlgo, setShowAlgo]             = useState(false);
-  var [showSources, setShowSources]       = useState(false);
   var [tier, setTier]                     = useState(0); // 0=free, 2=recs, 3=pdf
   var [promoUsed, setPromoUsed]           = useState(false);
 
@@ -619,7 +434,8 @@ export default function Engineer() {
     setConscience(5); setPull(5); setFluencies({}); setAdjustedSkills(new Set());
     adjustedSkillsRef.current = new Set();
     setResults(null); setBenchmark(null);
-    setHovered(null); setError(null); setShowRecs(true); setShowAlgo(false); setShowSources(false); setTier(0); setPromoUsed(false);
+    setRecommendations(null); setRecsLoading(false); setRecsError(null);
+    setError(null); setTier(0); setPromoUsed(false);
   }
 
   function startEditing(id) { setSkills(function(p) { return p.map(function(s) { return s.id===id ? Object.assign({},s,{editing:true}) : s; }); }); }
@@ -684,7 +500,61 @@ export default function Engineer() {
     finally { setLoading(false); }
   }
 
-  // ── API CALL 2 ────────────────────────────────────────────────────────
+  // ── API CALL 2 + RECOMMENDATIONS ────────────────────────────────────────
+  async function fetchRecommendations(scoredSkills) {
+    setRecsLoading(true);
+    setRecsError(null);
+    var profile = buildProfile(devType, devTypeOther, seniority, workContexts, companyType);
+    var wcStr = profile.workContextLabels.join(", ");
+    var skillSummary = skills
+      .map(function (s, i) {
+        var scored = scoredSkills.find(function (r) {
+          return r.id === s.id || r.name === s.text;
+        });
+        var aiR = scored && typeof scored.ai_replaceability === "number" ? scored.ai_replaceability : 5;
+        var market = scored && typeof scored.market_demand === "number" ? scored.market_demand : 7;
+        return i + 1 + ". " + s.text + " (AI Risk: " + aiR + "/10, Market Demand: " + market + "/10)";
+      })
+      .join("\n");
+    var prompt =
+      "You are a senior engineering career strategist. A " +
+      profile.seniorityLabel +
+      " " +
+      profile.devLabel +
+      " Engineer at " +
+      (profile.companyLabel || "not specified") +
+      " focused on " +
+      wcStr +
+      " just completed a Defensible Zone assessment.\n\nFor each skill below, write a short personalized recommendation. Be specific to their seniority and context. Use plain English. Do not use the word 'threat'. Be direct and practical.\n\nSkills with scores:\n" +
+      skillSummary +
+      '\n\nReturn ONLY valid JSON, no preamble:\n{"recommendations":[{"id":"s0","headline":"5-7 word action headline","action":"One specific thing to do in the next 90 days.","why":"One sentence on why this matters for their exact situation."},{"id":"s1","headline":"...","action":"...","why":"..."},{"id":"s2","headline":"...","action":"...","why":"..."},{"id":"s3","headline":"...","action":"...","why":"..."},{"id":"s4","headline":"...","action":"...","why":"..."},{"id":"s5","headline":"...","action":"...","why":"..."},{"id":"s6","headline":"...","action":"...","why":"..."},{"id":"s7","headline":"...","action":"...","why":"..."}]}';
+    try {
+      var res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-6",
+          max_tokens: 2000,
+          messages: [{ role: "user", content: prompt }],
+        }),
+      });
+      var data = await res.json();
+      if (!data.content) throw new Error(data.error || "API error");
+      var raw = data.content
+        .map(function (b) {
+          return b.text || "";
+        })
+        .join("");
+      var m = raw.match(/\{[\s\S]*\}/);
+      if (!m) throw new Error("No JSON in response");
+      setRecommendations(JSON.parse(m[0]));
+      setRecsLoading(false);
+    } catch (e) {
+      setRecsError("Could not load recommendations. Please try again.");
+      setRecsLoading(false);
+    }
+  }
+
   async function runAnalysis() {
     setLoading(true); setLoadingMsg("Scoring your Defensible Zone™…"); setError(null);
     var profile = buildProfile(devType, devTypeOther, seniority, workContexts, companyType);
@@ -708,17 +578,18 @@ export default function Engineer() {
       var m = raw.match(/\{[\s\S]*\}/);
       if (!m) throw new Error("No JSON in response");
       var parsed = JSON.parse(m[0]);
-      var enriched = parsed.skills.map(function(skill) {
+      var enriched = parsed.skills.map(function(skill, i) {
         var found = skills.find(function(s) { return s.text===skill.name; }) || skills.find(function(s) { return skill.name.indexOf(s.text.slice(0,20))!==-1; });
-        var id = found ? found.id : null;
-        var fluencyVal = id && fluencies[id] !== undefined ? fluencies[id] : getSeed(conscience, pull);
+        var id = found ? found.id : ("s" + i);
+        var fluencyVal = found && fluencies[id] !== undefined ? fluencies[id] : getSeed(conscience, pull);
         var aff = compAff(conscience, pull, fluencyVal);
         var dz  = calcDZ(aff, skill.ai_replaceability, skill.market_demand);
-        return Object.assign({}, skill, { naturalAffinity:aff, investment:fluencyVal, affinity:aff, dz:dz });
+        return Object.assign({}, skill, { id: id, naturalAffinity:aff, investment:fluencyVal, affinity:aff, dz:dz });
       });
       setBenchmark(parsed.benchmark);
       setResults(enriched);
       setStep(3);
+      fetchRecommendations(enriched);
     } catch(e) {
       if (e.message && e.message.indexOf("overloaded") !== -1) {
         await new Promise(function(r) { setTimeout(r, 2000); });
@@ -730,17 +601,18 @@ export default function Engineer() {
           var m2 = raw2.match(/\{[\s\S]*\}/);
           if (!m2) throw new Error("No JSON in response");
           var parsed2 = JSON.parse(m2[0]);
-          var enriched2 = parsed2.skills.map(function(skill) {
+          var enriched2 = parsed2.skills.map(function(skill, i) {
             var found2 = skills.find(function(s) { return s.text===skill.name; }) || skills.find(function(s) { return skill.name.indexOf(s.text.slice(0,20))!==-1; });
-            var id2 = found2 ? found2.id : null;
-            var fluencyVal2 = id2 && fluencies[id2] !== undefined ? fluencies[id2] : getSeed(conscience, pull);
+            var id2 = found2 ? found2.id : ("s" + i);
+            var fluencyVal2 = found2 && fluencies[id2] !== undefined ? fluencies[id2] : getSeed(conscience, pull);
             var aff2 = compAff(conscience, pull, fluencyVal2);
             var dz2  = calcDZ(aff2, skill.ai_replaceability, skill.market_demand);
-            return Object.assign({}, skill, { naturalAffinity:aff2, investment:fluencyVal2, affinity:aff2, dz:dz2 });
+            return Object.assign({}, skill, { id: id2, naturalAffinity:aff2, investment:fluencyVal2, affinity:aff2, dz:dz2 });
           });
           setBenchmark(parsed2.benchmark);
           setResults(enriched2);
           setStep(3);
+          fetchRecommendations(enriched2);
         } catch(e2) { setError("Analysis failed — please try again in a moment."); }
       } else { setError("Analysis failed — please try again in a moment."); }
     }
@@ -1196,229 +1068,585 @@ export default function Engineer() {
   // ── STEP 3: RESULTS ────────────────────────────────────────────────────
   if (step === 3 && results) {
     var profile3 = buildProfile(devType, devTypeOther, seniority, workContexts, companyType);
-    var recs   = buildRecs(results, profile3, benchmark);
-    var avgDZ  = Math.round(results.reduce(function(a,r){return a+r.dz;},0) / results.length);
-    var sorted = results.slice().sort(function(a,b){return b.dz-a.dz;});
+    var skillDZs = skills.map(function (skill) {
+      var r = results.find(function (x) {
+        return x.name === skill.text;
+      });
+      if (!r) {
+        return { id: skill.id, text: skill.text, dz: 0, affinity: 0, aiR: 5, market: 7, rationale: "" };
+      }
+      return {
+        id: skill.id,
+        text: skill.text,
+        dz: r.dz,
+        affinity: r.affinity,
+        aiR: r.ai_replaceability,
+        market: r.market_demand,
+        rationale: r.rationale || "",
+      };
+    });
+    var totalDZ = Math.round(
+      skillDZs.reduce(function (sum, s) {
+        return sum + s.dz;
+      }, 0) / skillDZs.length
+    );
+    var dzLabelColor = totalDZ >= 70 ? S.green : totalDZ >= 50 ? S.gold : totalDZ >= 30 ? S.orange : S.red;
+    var dzLabelText =
+      totalDZ >= 70 ? "Highly Defensible" : totalDZ >= 50 ? "Moderately Defensible" : totalDZ >= 30 ? "Mixed Territory" : "Needs Attention";
+    function dzBarColor(score) {
+      if (score >= 65) return S.green;
+      if (score >= 40) return S.gold;
+      return S.red;
+    }
+    var sortedDZ = skillDZs.slice().sort(function (a, b) {
+      return b.dz - a.dz;
+    });
+    var topSkills = sortedDZ.slice(0, 3);
+    var atRisk = sortedDZ.slice(-3);
 
     return (
-      <div style={{background:S.bg,minHeight:"100vh",fontFamily:S.font,padding:"28px 16px"}}>
-        <style dangerouslySetInnerHTML={{__html:"@keyframes barIn{from{width:0}} .bar-anim{animation:barIn 0.9s ease-out forwards;}"}} />
-        <div style={{maxWidth:1140,margin:"0 auto"}}>
+      <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font, padding: "32px 20px" }}>
+        <div style={{ maxWidth: 680, margin: "0 auto" }}>
+          <div
+            style={{
+              fontFamily: S.mono,
+              fontSize: 12,
+              color: S.gold,
+              letterSpacing: "0.12em",
+              marginBottom: 20,
+              fontWeight: 600,
+            }}
+          >
+            DEFENSIBLE ZONE™ · SOFTWARE ENGINEER EDITION
+          </div>
 
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:18,flexWrap:"wrap",gap:12}}>
+          <h1
+            style={{
+              fontFamily: S.serif,
+              fontSize: 34,
+              color: S.text,
+              margin: "0 0 6px",
+              lineHeight: 1.15,
+              fontWeight: 600,
+            }}
+          >
+            Your Defensible Zone™
+          </h1>
+          <p style={{ color: "#6b7280", fontSize: 16, lineHeight: 1.6, margin: "0 0 32px" }}>{profile3.summary}</p>
+
+          <div
+            style={{
+              background: "#ffffff",
+              border: "1px solid #d0d7e8",
+              borderRadius: 16,
+              padding: "28px",
+              marginBottom: 24,
+              display: "flex",
+              alignItems: "center",
+              gap: 28,
+            }}
+          >
+            <div
+              style={{
+                width: 96,
+                height: 96,
+                borderRadius: "50%",
+                border: "4px solid " + dzLabelColor,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+              }}
+            >
+              <span
+                style={{
+                  fontSize: 32,
+                  fontWeight: 700,
+                  color: dzLabelColor,
+                  lineHeight: 1,
+                  fontFamily: S.mono,
+                }}
+              >
+                {totalDZ}
+              </span>
+              <span style={{ fontSize: 12, color: "#9ca3af", fontFamily: S.mono, marginTop: 2 }}>/ 100</span>
+            </div>
             <div>
-              <div style={{fontFamily:S.mono,fontSize:12,color:S.muted,letterSpacing:"0.08em",marginBottom:5,fontWeight:600}}>DEFENSIBLE ZONE™ REPORT · {profile3.summary.toUpperCase()}</div>
-              <h1 style={{fontFamily:S.serif,fontSize:32,color:S.text,margin:0}}>Your Risk Profile</h1>
-            </div>
-            <div style={{display:"flex",gap:20,alignItems:"flex-end"}}>
-              {benchmark && (
-                <div style={{textAlign:"right"}}>
-                  <div style={{fontFamily:S.mono,fontSize:38,fontWeight:700,color:"#0891b2",lineHeight:1}}>{benchmark.percentile}<span style={{fontSize:18}}>%</span></div>
-                  <div style={{fontFamily:S.mono,fontSize:12,color:S.muted,letterSpacing:"0.08em",fontWeight:600,marginTop:2}}>PEER PERCENTILE</div>
-                </div>
-              )}
-              <div style={{textAlign:"right"}}>
-                <div style={{fontFamily:S.mono,fontSize:38,fontWeight:700,color:dzColor(avgDZ),lineHeight:1}}>{avgDZ}</div>
-                <div style={{fontFamily:S.mono,fontSize:12,color:S.muted,letterSpacing:"0.08em",fontWeight:600,marginTop:2}}>AVG DZ SCORE</div>
+              <div
+                style={{
+                  fontFamily: S.mono,
+                  fontSize: 12,
+                  color: "#9ca3af",
+                  letterSpacing: "0.08em",
+                  marginBottom: 6,
+                }}
+              >
+                OVERALL DZ SCORE
               </div>
+              <div style={{ fontSize: 22, fontWeight: 700, color: dzLabelColor, marginBottom: 6, fontFamily: S.serif }}>{dzLabelText}</div>
+              <p style={{ fontSize: 15, color: "#6b7280", lineHeight: 1.55, margin: 0 }}>
+                Across your 8 assessed skills, this is how defensible your software engineering practice is against AI displacement right now.
+              </p>
             </div>
           </div>
 
-          <div style={{display:"flex",flexWrap:"wrap",gap:5,marginBottom:12}}>
-            {[profile3.devLabel+" Engineer", profile3.seniorityLabel].concat(profile3.workContextLabels).concat(profile3.companyLabel?[profile3.companyLabel]:[]).map(function(tag) {
-              return <span key={tag} style={{fontFamily:S.mono,fontSize:12,color:S.muted,background:S.card2,border:"1px solid "+S.border,borderRadius:12,padding:"3px 10px",fontWeight:600}}>{tag}</span>;
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 28 }}>
+            <div style={{ background: "#ffffff", border: "1px solid #d0d7e8", borderRadius: 14, padding: "20px 18px" }}>
+              <div
+                style={{
+                  fontFamily: S.mono,
+                  fontSize: 12,
+                  color: S.green,
+                  letterSpacing: "0.1em",
+                  marginBottom: 14,
+                  fontWeight: 700,
+                }}
+              >
+                MOST DEFENSIBLE
+              </div>
+              {topSkills.map(function (s) {
+                return (
+                  <div key={s.id} style={{ marginBottom: 12 }}>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: S.text, lineHeight: 1.35, marginBottom: 4 }}>{s.text}</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <div style={{ flex: 1, height: 6, background: "#f0f0f0", borderRadius: 3, overflow: "hidden" }}>
+                        <div style={{ width: s.dz + "%", height: "100%", background: S.green, borderRadius: 3 }} />
+                      </div>
+                      <span
+                        style={{
+                          fontFamily: S.mono,
+                          fontSize: 12,
+                          color: S.green,
+                          fontWeight: 700,
+                          minWidth: 28,
+                          textAlign: "right",
+                        }}
+                      >
+                        {s.dz}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{ background: "#ffffff", border: "1px solid #d0d7e8", borderRadius: 14, padding: "20px 18px" }}>
+              <div
+                style={{
+                  fontFamily: S.mono,
+                  fontSize: 12,
+                  color: S.red,
+                  letterSpacing: "0.1em",
+                  marginBottom: 14,
+                  fontWeight: 700,
+                }}
+              >
+                MOST EXPOSED
+              </div>
+              {atRisk.map(function (s) {
+                return (
+                  <div key={s.id} style={{ marginBottom: 12 }}>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: S.text, lineHeight: 1.35, marginBottom: 4 }}>{s.text}</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <div style={{ flex: 1, height: 6, background: "#f0f0f0", borderRadius: 3, overflow: "hidden" }}>
+                        <div style={{ width: s.dz + "%", height: "100%", background: dzBarColor(s.dz), borderRadius: 3 }} />
+                      </div>
+                      <span
+                        style={{
+                          fontFamily: S.mono,
+                          fontSize: 12,
+                          color: dzBarColor(s.dz),
+                          fontWeight: 700,
+                          minWidth: 28,
+                          textAlign: "right",
+                        }}
+                      >
+                        {s.dz}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div id="dz-engineer-report">
+            <div
+              style={{
+                fontFamily: S.mono,
+                fontSize: 12,
+                textTransform: "uppercase",
+                letterSpacing: "0.06em",
+                color: S.dim,
+                marginBottom: 14,
+              }}
+            >
+              FULL SKILL BREAKDOWN
+            </div>
+
+            {skillDZs.map(function (s) {
+              var col = dzBarColor(s.dz);
+              return (
+                <div
+                  key={s.id}
+                  style={{
+                    background: "#ffffff",
+                    border: "1px solid #d0d7e8",
+                    borderRadius: 12,
+                    padding: "16px 18px",
+                    marginBottom: 8,
+                  }}
+                >
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+                    <div style={{ fontSize: 16, fontWeight: 600, color: S.text, flex: 1, paddingRight: 12, lineHeight: 1.35 }}>{s.text}</div>
+                    <div style={{ fontFamily: S.mono, fontSize: 22, fontWeight: 700, color: col, flexShrink: 0, lineHeight: 1 }}>{s.dz}</div>
+                  </div>
+                  <div style={{ height: 8, background: "#f0f0f0", borderRadius: 4, overflow: "hidden", marginBottom: 10 }}>
+                    <div style={{ width: s.dz + "%", height: "100%", background: col, borderRadius: 4 }} />
+                  </div>
+                  <div style={{ display: "flex", gap: 18, marginBottom: s.rationale ? 10 : 0 }}>
+                    <div>
+                      <div style={{ fontFamily: S.mono, fontSize: 11, color: "#9ca3af", letterSpacing: "0.06em" }}>AFFINITY</div>
+                      <div style={{ fontFamily: S.mono, fontSize: 12, fontWeight: 700, color: "#7c3aed" }}>{s.affinity}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontFamily: S.mono, fontSize: 11, color: "#9ca3af", letterSpacing: "0.06em" }}>AI RISK</div>
+                      <div
+                        style={{
+                          fontFamily: S.mono,
+                          fontSize: 12,
+                          fontWeight: 700,
+                          color: s.aiR >= 7 ? S.red : s.aiR >= 5 ? S.gold : S.green,
+                        }}
+                      >
+                        {s.aiR}/10
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ fontFamily: S.mono, fontSize: 11, color: "#9ca3af", letterSpacing: "0.06em" }}>DEMAND</div>
+                      <div style={{ fontFamily: S.mono, fontSize: 12, fontWeight: 700, color: S.blue }}>{s.market}/10</div>
+                    </div>
+                  </div>
+                  {s.rationale ? (
+                    <div style={{ fontSize: 14, color: "#6b7280", lineHeight: 1.5, borderTop: "1px solid #f0f0f0", paddingTop: 8 }}>{s.rationale}</div>
+                  ) : null}
+                </div>
+              );
             })}
-          </div>
 
-          {benchmark && (
-            <div style={{background:S.card,border:"1px solid #bae6fd",borderRadius:12,padding:"12px 18px",marginBottom:12,display:"flex",alignItems:"center",gap:12}}>
-              <p style={{color:"#0369a1",fontSize:16,margin:0,lineHeight:1.55,fontStyle:"italic"}}>{benchmark.summary}</p>
+            <div style={{ background: "#f2f4f8", borderRadius: 12, padding: "16px 20px", marginTop: 8, marginBottom: 28 }}>
+              <div
+                style={{
+                  fontFamily: S.mono,
+                  fontSize: 12,
+                  textTransform: "uppercase",
+                  color: S.dim,
+                  letterSpacing: "0.06em",
+                  marginBottom: 10,
+                  fontWeight: 700,
+                }}
+              >
+                HOW YOUR SCORE IS CALCULATED
+              </div>
+              <p style={{ fontSize: 16, lineHeight: 1.75, color: "#3d4a6b", margin: "0 0 12px" }}>
+                Your DZ score is calculated from three inputs. Affinity measures how naturally this work fits you — combining how much you care about quality
+                (Craft Conscience), how often your mind drifts toward these technical problems outside formal work (Intrinsic Pull), and how effortlessly each
+                skill feels for you (Felt Fluency). AI Resistance measures how hard it is for current AI systems to replicate this skill at your seniority
+                level. Market Demand measures how much organizations are actively paying for humans who do this well. The three are multiplied together — so a
+                high score requires all three, not just one.
+              </p>
+              <p style={{ fontSize: 14, color: "#9ca3af", fontStyle: "italic", margin: 0, lineHeight: 1.65 }}>
+                The weights and calibration scores are based on published AI labor market research and our own survey of 450 professionals conducted March
+                2026.
+              </p>
             </div>
-          )}
 
-          <div style={{display:"grid",gridTemplateColumns:"minmax(0,1.2fr) minmax(0,0.8fr)",gap:12,marginBottom:12}}>
-            <Card style={{padding:18}}>
-              <Label>SKILL RISK MATRIX · HOVER TO INSPECT</Label>
-              <RiskMatrix results={results} hovered={hovered} setHovered={setHovered} />
-              <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:8,marginTop:14,padding:"10px 0 0",borderTop:"1px solid "+S.border}}>
-                {[{c:S.gold,l:"DEFEND — low AI risk, high demand"},{c:S.orange,l:"LEVERAGE — own the orchestration layer"},{c:S.blue,l:"SPECIALIZE — niche but protected"},{c:S.red,l:"DEPRIORITIZE — exit path"}].map(function(q) {
-                  return (
-                    <div key={q.l} style={{display:"flex",alignItems:"center",gap:6}}>
-                      <div style={{width:10,height:10,borderRadius:2,background:q.c,flexShrink:0}} />
-                      <span style={{fontFamily:S.mono,fontSize:12,color:S.dim}}>{q.l}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </Card>
-
-            <Card style={{padding:18,overflow:"auto"}}>
-              <Label>SKILL SCORES · SORTED BY DZ</Label>
-              <div style={{display:"flex",flexDirection:"column",gap:12}}>
-                {sorted.map(function(s) {
-                  return (
-                    <div key={s.name} onMouseEnter={function(){setHovered(s.name);}} onMouseLeave={function(){setHovered(null);}} style={{borderLeft:"3px solid "+dzColor(s.dz),paddingLeft:12,paddingTop:10,paddingBottom:10,cursor:"pointer",borderRadius:"0 8px 8px 0",background:hovered===s.name?S.card2:"transparent"}}>
-                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
-                        <span style={{color:S.text,fontSize:16,fontWeight:700,paddingRight:8,lineHeight:1.3}}>{s.name}</span>
-                        <span style={{fontFamily:S.mono,fontSize:12,padding:"2px 8px",borderRadius:20,flexShrink:0,color:dzColor(s.dz),background:dzColor(s.dz)+"18",fontWeight:700}}>{dzLabel(s.dz)}</span>
-                      </div>
-                      <div style={{height:3,background:"#e8ecf5",borderRadius:2,marginBottom:8,overflow:"hidden"}}>
-                        <div className="bar-anim" style={{height:"100%",width:s.dz+"%",background:"linear-gradient(90deg,"+dzColor(s.dz)+"99,"+dzColor(s.dz)+")",borderRadius:2}} />
-                      </div>
-                      <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:4}}>
-                        {[["NA",s.naturalAffinity,S.purple],["Inv",s.investment,"#0891b2"],["Comp",s.affinity,S.accent],["AIR",s.ai_replaceability,S.red],["Mkt",s.market_demand,S.green]].map(function(item) {
-                          return (
-                            <div key={item[0]}>
-                              <div style={{fontFamily:S.mono,fontSize:12,color:S.dim}}>{item[0]}</div>
-                              <div style={{fontFamily:S.mono,fontSize:14,color:item[2],fontWeight:700}}>{item[1]}/10</div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                      {s.interface_span && <div style={{fontFamily:S.mono,fontSize:12,color:S.green,marginTop:4,fontWeight:700}}>+ Interface span bonus</div>}
-                      <p style={{color:S.muted,fontSize:16,margin:"8px 0 0",fontStyle:"italic",lineHeight:1.6}}>{s.rationale}</p>
-                    </div>
-                  );
-                })}
-              </div>
-            </Card>
-          </div>
-
-          {/* ── TIER 1: Free — Recommendations teaser or full content ── */}
-          {tier < 2 ? (
-            <PaywallGate tier={tier} onUnlock={handleUnlock} />
-          ) : (
-            <Card style={{padding:22,marginBottom:10}}>
-              <style dangerouslySetInnerHTML={{__html:`
-                @media print {
-                  body * { visibility: hidden; }
-                  #dz-print-region, #dz-print-region * { visibility: visible; }
-                  #dz-print-region { position: absolute; left: 0; top: 0; width: 100%; }
-                  .no-print { display: none !important; }
-                }
-              `}} />
-              <div id="dz-print-region">
-              {tier >= 3 && !promoUsed && (
-                <div style={{display:"flex",justifyContent:"flex-end",marginBottom:12}}>
-                  <button
-                    onClick={function(){ window.open("https://buy.stripe.com/00wdR93sSgHFadD5RIdQQ03","_blank"); }}
-                    style={{background:S.gold,color:"white",border:"none",borderRadius:8,padding:"8px 18px",fontSize:12,fontFamily:S.mono,fontWeight:700,cursor:"pointer",letterSpacing:"0.06em",display:"flex",alignItems:"center",gap:6}}
-                  >DOWNLOAD PDF REPORT</button>
+            {recsLoading ? (
+              <div
+                style={{
+                  background: "#f8f9fc",
+                  minHeight: "100vh",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  padding: "40px 20px",
+                  fontFamily: S.font,
+                }}
+              >
+                <style
+                  dangerouslySetInnerHTML={{
+                    __html: "@keyframes dzEngineerDots{0%,100%{opacity:0.25}50%{opacity:1}}",
+                  }}
+                />
+                <div
+                  style={{
+                    fontFamily: S.mono,
+                    fontSize: 12,
+                    letterSpacing: "0.12em",
+                    color: S.gold,
+                    marginBottom: 32,
+                  }}
+                >
+                  DEFENSIBLE ZONE™ · SOFTWARE ENGINEER EDITION
                 </div>
-              )}
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
-                <button onClick={function(){setShowRecs(!showRecs);}} className="no-print" style={{background:"none",border:"none",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center",padding:0,flex:1}}>
-                  <Label style={{marginBottom:0}}>STRATEGIC RECOMMENDATIONS · {profile3.seniorityLabel.toUpperCase()} {profile3.devLabel.toUpperCase()} ENGINEER</Label>
-                  <span style={{color:S.muted,fontSize:12,fontFamily:S.mono,fontWeight:600,marginLeft:12}}>{showRecs?"▲ COLLAPSE":"▼ EXPAND"}</span>
-                </button>
-                {showRecs && (
-                  <button
-                    className="no-print"
-                    onClick={function(){ window.print(); }}
-                    style={{background:S.bg,border:"1px solid "+S.border,borderRadius:8,padding:"7px 14px",fontSize:12,fontFamily:S.mono,fontWeight:700,color:S.muted,cursor:"pointer",letterSpacing:"0.06em",marginLeft:12,flexShrink:0,display:"flex",alignItems:"center",gap:5}}
-                  >Save as PDF</button>
-                )}
-              </div>
-            {showRecs && (
-              <div style={{marginTop:20,display:"flex",flexDirection:"column",gap:0}}>
-                {recs.map(function(rec, i) {
-                  return (
-                    <div key={i} style={{
-                      borderLeft:"4px solid "+rec.color,
-                      paddingLeft:20, paddingTop:16, paddingBottom:16,
-                      marginBottom:4,
-                      borderRadius:"0 8px 8px 0",
-                      background: i%2===0 ? "transparent" : S.bg
-                    }}>
-                      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:rec.names.length>0?6:10}}>
-                        <span style={{display:"inline-block",width:8,height:8,borderRadius:2,background:rec.color,flexShrink:0}} />
-                        <span style={{color:S.text,fontSize:16,fontWeight:700,lineHeight:1.3}}>{rec.title}</span>
-                      </div>
-                      {rec.names.length>0 && (
-                        <div style={{fontFamily:S.mono,fontSize:12,color:rec.color,marginBottom:12,fontWeight:700,paddingLeft:18}}>
-                          {rec.names.join(" · ")}
-                        </div>
-                      )}
-                      <div style={{display:"flex",flexDirection:"column",gap:8,paddingLeft:18}}>
-                        {rec.actions.map(function(a,j) {
-                          return (
-                            <div key={j} style={{display:"flex",gap:10,alignItems:"flex-start"}}>
-                              <span style={{color:rec.color,flexShrink:0,fontSize:13,fontWeight:700,marginTop:2,lineHeight:1}}>→</span>
-                              <span style={{color:S.muted,fontSize:15,lineHeight:1.65}}>{a}</span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-            </div> {/* end dz-print-region */}
-          </Card>
-          )} {/* end tier >= 2 conditional */}
-
-          <Card style={{padding:22,marginBottom:10}}>
-            <button onClick={function(){setShowAlgo(!showAlgo);}} style={{background:"none",border:"none",cursor:"pointer",width:"100%",display:"flex",justifyContent:"space-between",alignItems:"center",padding:0}}>
-              <Label style={{marginBottom:0}}>ALGORITHM ASSUMPTIONS & KNOWN LIMITATIONS</Label>
-              <span style={{color:S.muted,fontSize:12,fontFamily:S.mono,fontWeight:600}}>{showAlgo?"▲ COLLAPSE":"▼ SHOW WORK"}</span>
-            </button>
-            {showAlgo && (
-              <div style={{marginTop:16,display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))",gap:10}}>
-                {ALGO_NOTES.map(function(a) {
-                  return (
-                    <div key={a.id} style={{background:S.bg,border:"1px solid "+S.border,borderRadius:10,padding:12}}>
-                      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
-                        <span style={{fontFamily:S.mono,fontSize:12,fontWeight:700,background:a.color,color:"white",padding:"2px 8px",borderRadius:4}}>{a.id}</span>
-                        <span style={{fontSize:12,fontWeight:700,color:S.text}}>{a.title}</span>
-                      </div>
-                      <p style={{color:S.muted,fontSize:12,margin:0,lineHeight:1.65,fontFamily:S.mono}}>{a.desc}</p>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </Card>
-
-          <Card style={{padding:22,marginBottom:16}}>
-            <button onClick={function(){setShowSources(!showSources);}} style={{background:"none",border:"none",cursor:"pointer",width:"100%",display:"flex",justifyContent:"space-between",alignItems:"center",padding:0}}>
-              <Label style={{marginBottom:0}}>METHODOLOGY & SOURCES</Label>
-              <span style={{color:S.muted,fontSize:12,fontFamily:S.mono,fontWeight:600}}>{showSources?"▲ COLLAPSE":"▼ VIEW SOURCES"}</span>
-            </button>
-            {showSources && (
-              <div style={{marginTop:16}}>
-                <p style={{color:S.muted,fontSize:15,margin:"0 0 14px",lineHeight:1.75}}>
-                  AI replaceability scores are calibrated using the sources below, combined with role-specific knowledge and LLM estimation. Market demand scores are grounded in BLS data and WEF projections. No score should be treated as definitive — this tool is designed for reflection and career planning, not as an employment assessment.
+                <h2
+                  style={{
+                    fontFamily: S.serif,
+                    fontSize: 28,
+                    color: S.text,
+                    margin: 0,
+                    lineHeight: 1.2,
+                  }}
+                >
+                  Building your action plan.
+                </h2>
+                <p
+                  style={{
+                    fontSize: 16,
+                    lineHeight: 1.7,
+                    color: "#6b7280",
+                    maxWidth: 380,
+                    textAlign: "center",
+                    marginTop: 12,
+                    marginBottom: 0,
+                  }}
+                >
+                  We&apos;re analyzing your scores against current AI labor market data and calibrating recommendations to your role and seniority. This takes a
+                  few seconds.
                 </p>
-                <div style={{display:"flex",flexDirection:"column",gap:10}}>
-                  {SOURCES.map(function(src) {
-                    return (
-                      <div key={src.id} style={{display:"flex",gap:12,padding:"10px 14px",background:S.bg,borderRadius:8,border:"1px solid "+S.border}}>
-                        <span style={{fontFamily:S.mono,fontSize:12,fontWeight:700,background:S.accent,color:"white",padding:"2px 7px",borderRadius:4,flexShrink:0,height:"fit-content"}}>{src.id}</span>
-                        <div>
-                          <div style={{fontSize:12,fontWeight:700,color:S.text,marginBottom:3}}>{src.label}</div>
-                          <div style={{fontFamily:S.mono,fontSize:12,color:S.dim,lineHeight:1.6}}>{src.cite}</div>
-                        </div>
-                      </div>
-                    );
-                  })}
+                <div style={{ display: "flex", gap: 10, marginTop: 32, alignItems: "center", justifyContent: "center" }}>
+                  <span style={{ fontSize: 36, color: S.gold, animation: "dzEngineerDots 1s ease-in-out infinite" }}>.</span>
+                  <span style={{ fontSize: 36, color: S.gold, animation: "dzEngineerDots 1s ease-in-out 0.2s infinite" }}>.</span>
+                  <span style={{ fontSize: 36, color: S.gold, animation: "dzEngineerDots 1s ease-in-out 0.4s infinite" }}>.</span>
+                </div>
+                <div style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: "center", marginTop: 40 }}>
+                  <span
+                    style={{
+                      background: "white",
+                      border: "1px solid #d0d7e8",
+                      borderRadius: 20,
+                      padding: "8px 16px",
+                      fontSize: 13,
+                      color: "#6b7280",
+                      fontFamily: S.font,
+                    }}
+                  >
+                    8 skills assessed
+                  </span>
+                  <span
+                    style={{
+                      background: "white",
+                      border: "1px solid #d0d7e8",
+                      borderRadius: 20,
+                      padding: "8px 16px",
+                      fontSize: 13,
+                      color: "#6b7280",
+                      fontFamily: S.font,
+                    }}
+                  >
+                    AI market data: April 2026
+                  </span>
+                  <span
+                    style={{
+                      background: "white",
+                      border: "1px solid #d0d7e8",
+                      borderRadius: 20,
+                      padding: "8px 16px",
+                      fontSize: 13,
+                      color: "#6b7280",
+                      fontFamily: S.font,
+                    }}
+                  >
+                    Calibrated to your seniority
+                  </span>
                 </div>
               </div>
+            ) : recsError ? (
+              <div style={{ textAlign: "center", maxWidth: 400, margin: "24px auto 28px" }}>
+                <p style={{ color: S.red, fontSize: 16, margin: "0 0 20px" }}>{recsError}</p>
+                <button
+                  type="button"
+                  onClick={function () {
+                    fetchRecommendations(results || []);
+                  }}
+                  style={{
+                    background: "#D97706",
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: 12,
+                    padding: "14px 32px",
+                    fontSize: 16,
+                    fontFamily: S.font,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                  }}
+                >
+                  Try again
+                </button>
+              </div>
+            ) : (
+              (function () {
+                var rawRecs =
+                  recommendations && recommendations.recommendations ? recommendations.recommendations.slice() : [];
+                var byId = {};
+                rawRecs.forEach(function (r) {
+                  byId[r.id] = r;
+                });
+                skills.forEach(function (s) {
+                  if (rawRecs.length < 8 && !byId[s.id]) {
+                    rawRecs.push({ id: s.id, headline: "", action: "", why: "" });
+                    byId[s.id] = rawRecs[rawRecs.length - 1];
+                  }
+                });
+                var recList = rawRecs.slice(0, 8);
+                var showAllRecs = tier >= 2 || promoUsed;
+                var showUpsell = tier < 2 && !promoUsed;
+
+                return (
+                  <div style={{ marginTop: 24 }}>
+                    <div style={{ marginBottom: 28 }}>
+                      <h2
+                        style={{
+                          fontFamily: S.serif,
+                          fontSize: 28,
+                          fontWeight: 600,
+                          color: S.text,
+                          margin: "0 0 10px",
+                          lineHeight: 1.2,
+                        }}
+                      >
+                        Your 90-Day Action Plan
+                      </h2>
+                      <p style={{ fontSize: 16, color: "#6b7280", lineHeight: 1.6, margin: 0 }}>
+                        One specific action for each skill — ranked by what will move the needle most for a {profile3.seniorityLabel} {profile3.devLabel}{" "}
+                        Engineer.
+                      </p>
+                    </div>
+
+                    <div style={{ marginBottom: showUpsell ? 0 : 28 }}>
+                      {recList.map(function (rec, idx) {
+                        var skillRow = skillDZs.find(function (sd) {
+                          return sd.id === rec.id;
+                        });
+                        var skillName =
+                          (skills.find(function (sk) {
+                            return sk.id === rec.id;
+                          }) || {}).text || rec.id;
+                        var dzForBar = skillRow ? skillRow.dz : 0;
+                        var barColor = dzBarColor(dzForBar);
+                        var lockedBlur = !showAllRecs && idx > 0;
+                        return (
+                          <div
+                            key={rec.id + "-" + idx}
+                            style={{
+                              display: "flex",
+                              background: "#ffffff",
+                              border: "1px solid #d0d7e8",
+                              borderRadius: 12,
+                              marginBottom: 12,
+                              overflow: "hidden",
+                              filter: lockedBlur ? "blur(5px)" : "none",
+                              userSelect: lockedBlur ? "none" : "auto",
+                              pointerEvents: lockedBlur ? "none" : "auto",
+                            }}
+                          >
+                            <div style={{ width: 4, background: barColor, flexShrink: 0 }} />
+                            <div style={{ padding: "20px 22px", flex: 1, minWidth: 0 }}>
+                              <div
+                                style={{
+                                  fontFamily: S.mono,
+                                  fontSize: 12,
+                                  textTransform: "uppercase",
+                                  letterSpacing: "0.06em",
+                                  color: "#6b7280",
+                                  marginBottom: 8,
+                                }}
+                              >
+                                {skillName}
+                              </div>
+                              <div
+                                style={{
+                                  fontFamily: S.serif,
+                                  fontSize: 20,
+                                  fontWeight: 600,
+                                  color: S.text,
+                                  lineHeight: 1.3,
+                                  marginBottom: 10,
+                                }}
+                              >
+                                {rec.headline || "—"}
+                              </div>
+                              <div style={{ fontSize: 16, color: S.text, lineHeight: 1.6, marginBottom: 10 }}>{rec.action}</div>
+                              <div style={{ fontSize: 14, color: "#6b7280", fontStyle: "italic", lineHeight: 1.55 }}>{rec.why}</div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {tier >= 3 || promoUsed ? (
+                      <div style={{ marginTop: 20, marginBottom: 4, textAlign: "center" }} className="no-print">
+                        <PDFButton contentId="dz-engineer-report" label="Save as PDF" />
+                      </div>
+                    ) : null}
+
+                    {showUpsell ? (
+                      <div className="no-print" style={{ marginTop: 24 }}>
+                        <PaywallGate tier={tier} onUnlock={handleUnlock} />
+                      </div>
+                    ) : null}
+                  </div>
+                );
+              })()
             )}
-          </Card>
+          </div>
 
-          <button onClick={resetAll} style={{width:"100%",background:"transparent",border:"1px solid "+S.border,color:S.muted,borderRadius:12,padding:"15px 0",fontSize:14,fontFamily:S.mono,cursor:"pointer",letterSpacing:"0.08em",fontWeight:600,marginBottom:28}}>← START OVER</button>
+          <button
+            onClick={resetAll}
+            className="no-print"
+            style={{
+              width: "100%",
+              background: "transparent",
+              border: "1px solid " + S.border,
+              color: S.muted,
+              borderRadius: 12,
+              padding: "15px 0",
+              fontSize: 14,
+              fontFamily: S.mono,
+              cursor: "pointer",
+              letterSpacing: "0.08em",
+              fontWeight: 600,
+              marginBottom: 28,
+            }}
+          >
+            ← START OVER
+          </button>
 
-          <div style={{background:"#fef9ec",border:"1px solid #f0c060",borderRadius:12,padding:"16px 20px",marginBottom:16,textAlign:"center"}}>
-            <div style={{fontFamily:S.mono,fontSize:12,color:"#92400e",fontWeight:700,marginBottom:4,letterSpacing:"0.06em"}}>IMPORTANT — PLEASE READ</div>
-            <div style={{fontFamily:S.mono,fontSize:12,color:"#78350f",lineHeight:1.7}}>
-              This tool is for professional reflection and educational purposes only. It does not constitute career advice or any professional assessment. Scores are estimates based on publicly available research and LLM calibration — not a definitive evaluation of your skills or employability.
+          <div
+            style={{
+              background: "#fef9ec",
+              border: "1px solid #f0c060",
+              borderRadius: 12,
+              padding: "16px 20px",
+              marginBottom: 16,
+              textAlign: "center",
+            }}
+          >
+            <div style={{ fontFamily: S.mono, fontSize: 12, color: "#92400e", fontWeight: 700, marginBottom: 4, letterSpacing: "0.06em" }}>
+              IMPORTANT — PLEASE READ
+            </div>
+            <div style={{ fontFamily: S.mono, fontSize: 12, color: "#78350f", lineHeight: 1.7 }}>
+              This tool is for professional reflection and educational purposes only. It does not constitute career advice or any professional assessment.
+              Scores are estimates based on publicly available research and LLM calibration — not a definitive evaluation of your skills or employability.
             </div>
           </div>
 
-          <div style={{paddingTop:14,textAlign:"center"}}>
-            <span style={{fontFamily:S.mono,fontSize:12,color:S.dim,display:"block",marginBottom:4}}>DEFENSIBLE ZONE&#8482; is a trademark of its creator. All rights reserved.</span>
-            <span style={{fontFamily:S.mono,fontSize:12,color:S.dim,display:"block"}}>&copy; 2026</span>
+          <div style={{ paddingTop: 14, textAlign: "center" }}>
+            <span style={{ fontFamily: S.mono, fontSize: 12, color: S.dim, display: "block", marginBottom: 4 }}>
+              DEFENSIBLE ZONE&#8482; is a trademark of its creator. All rights reserved.
+            </span>
+            <span style={{ fontFamily: S.mono, fontSize: 12, color: S.dim, display: "block" }}>&copy; 2026</span>
           </div>
         </div>
       </div>
