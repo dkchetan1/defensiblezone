@@ -37,12 +37,9 @@ export default function Confirmed() {
           <p style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: 18, color: "#6B6560", lineHeight: 1.75, margin: "0 0 40px" }}>
             We'll reach out when your Defensible Zone&#8482; changes — as AI capabilities evolve, your scores will shift. You'll hear from us when that happens. No spam, ever.
           </p>
-          <button
-            onClick={function() { window.close(); }}
-            style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: 16, fontWeight: 600, background: "#2C5F5F", color: "#FFFFFF", border: "none", borderRadius: 12, padding: "16px 36px", cursor: "pointer" }}
-          >
-            Close this tab
-          </button>
+          <p style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: 16, color: "#6B6560", margin: 0, textAlign: "center" }}>
+            You're all set. Close this tab to return to your report.
+          </p>
         </div>
       </main>
 
