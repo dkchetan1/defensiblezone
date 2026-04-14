@@ -4,6 +4,7 @@ import Engineer from "./Engineer.jsx";
 import Doctor from "./Doctor.jsx";
 import Designer from "./Designer";
 import About from "./About.jsx";
+import Confirmed from "./Confirmed.jsx";
 
 export default function App() {
   var [path, setPath] = useState(window.location.pathname);
@@ -18,5 +19,6 @@ export default function App() {
   if (path === "/engineer" || path === "/engineer/") return <Engineer />;
   if (path === "/designer" || path === "/designer/") return <Designer />;
   if (path === "/about" || path === "/about/") return <About />;
+  if (path === "/confirmed" || path === "/confirmed/") return <Confirmed />;
   return <Landing />;
 }
