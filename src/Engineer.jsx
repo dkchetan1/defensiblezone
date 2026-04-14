@@ -754,6 +754,7 @@ export default function Engineer() {
         <style dangerouslySetInnerHTML={{__html:"@keyframes spin{to{transform:rotate(360deg)}}"}} />
         <div style={{textAlign:"center",maxWidth:400,padding:"0 20px"}}>
           <div style={{width:52,height:52,border:"3px solid "+S.border,borderTop:"3px solid "+S.gold,borderRadius:"50%",margin:"0 auto 28px",animation:"spin 0.85s linear infinite"}} />
+          <p style={{fontFamily:S.mono,fontSize:12,color:S.muted,margin:"0 0 10px",letterSpacing:"0.08em"}}>DEFENSIBLE ZONE&#8482; · SOFTWARE ENGINEER EDITION</p>
           <p style={{fontFamily:S.serif,fontSize:22,color:S.text,fontStyle:"italic",margin:"0 0 10px"}}>{loadingMsg}</p>
           <p style={{fontFamily:S.mono,fontSize:12,color:S.muted,margin:0,letterSpacing:"0.08em"}}>
             {step===0?"READING YOUR ENGINEERING LANDSCAPE · GENERATING SKILL MAP":"SCORING AI REPLACEABILITY · CALIBRATING TO YOUR LEVEL"}
@@ -1170,7 +1171,7 @@ export default function Engineer() {
           DEFENSIBLE ZONE™ · SOFTWARE ENGINEER EDITION
         </div>
         <EmailGate
-          productName="Defensible Zone Engineer Edition"
+          productName="Defensible Zone™ Engineer Edition"
           onUnlock={function () {
             runAnalysis();
           }}
