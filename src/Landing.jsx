@@ -19,10 +19,10 @@ var LS = {
 var PROFESSIONS = [
   { id:"doctor",   name:"Physician / Doctor",           desc:"AI is matching specialist diagnostic accuracy in radiology, pathology, and imaging.",                                       path:"/doctor",    live:true  },
   { id:"engineer", name:"Software Engineer",             desc:"AI tools like Copilot and Cursor are automating code generation, testing, and documentation.",                              path:"/engineer",  live:true  },
+  { id:"designer", name:"UX Professional",               desc:"AI is reshaping design, research, and strategy work. Find out where your practice is defensible.",                         path:"/designer",  live:true  },
   { id:"admin",    name:"Administrative Assistant",      desc:"AI handles scheduling, email drafting, data entry, and document processing at scale.",                                      path:null,         live:false },
   { id:"sdr",      name:"SDR / Sales Development Rep",  desc:"AI SDR tools are replacing outbound prospecting and lead nurturing at a fraction of the cost.",                             path:null,         live:false },
   { id:"writer",   name:"Copywriter / Content Writer",   desc:"Large language models generate marketing copy, blog posts, and ad creative faster and cheaper.",                            path:null,         live:false },
-  { id:"designer", name:"Graphic Designer",              desc:"AI image generation and design tools are automating production-level visual work.",                                         path:null,         live:false },
   { id:"marketing",name:"Marketing Specialist",          desc:"AI automates campaign execution, segmentation, reporting, and content production.",                                         path:null,         live:false },
   { id:"accountant",name:"Accountant / Bookkeeper",      desc:"AI handles routine reconciliation, tax prep, and financial reporting with increasing accuracy.",                            path:null,         live:false },
   { id:"analyst",  name:"Financial Analyst",             desc:"AI drafts models, generates reports, and processes data at speeds no human analyst can match.",                             path:null,         live:false },
@@ -57,7 +57,7 @@ export default function Landing() {
       <Navbar />
 
       {/* ── HERO ─────────────────────────────────────────────── */}
-      <div style={{ textAlign: "center", padding: "80px 24px 60px", maxWidth: 760, margin: "0 auto" }}>
+      <div style={{ textAlign: "center", padding: "80px 24px 20px", maxWidth: 760, margin: "0 auto" }}>
 
         <div style={{ fontFamily: LS.mono, fontSize: 12, color: LS.accent, letterSpacing: "0.14em", marginBottom: 28, fontWeight: 600 }}>
           RECURSIO LAB · DEFENSIBLE ZONE™
