@@ -528,7 +528,7 @@ function MGhost({children,onClick,style}){ return <button onClick={onClick} styl
 // ── PROMO CODES ────────────────────────────────────────────────────────
 const PROMO_CODES_MED = ["DZFRIEND", "DZPREVIEW", "DZTEST"];
 
-function PaywallGateMedical({ onUnlock }) {
+function PaywallGateMedical({ onUnlock, onSaveState }) {
   const [input, setInput]   = React.useState("");
   const [error, setError]   = React.useState("");
   const [shake, setShake]   = React.useState(false);
@@ -573,7 +573,7 @@ function PaywallGateMedical({ onUnlock }) {
               </li>
             ))}
           </ul>
-          <MBtn onClick={() => { saveStateForReturn(); window.location.href = "https://buy.stripe.com/4gM3cv4wWbnldpP2FwdQQ04"; }} style={{width:"100%"}}>
+          <MBtn onClick={() => { onSaveState(); window.location.href = "https://buy.stripe.com/4gM3cv4wWbnldpP2FwdQQ04"; }} style={{width:"100%"}}>
             Get Recommendations →
           </MBtn>
         </div>
@@ -592,7 +592,7 @@ function PaywallGateMedical({ onUnlock }) {
             ))}
           </ul>
           <button
-            onClick={() => { saveStateForReturn(); window.location.href = "https://buy.stripe.com/00waEX4wWdvtdpP7ZQdQQ05"; }}
+            onClick={() => { onSaveState(); window.location.href = "https://buy.stripe.com/00waEX4wWdvtdpP7ZQdQQ05"; }}
             style={{width:"100%",background:"#1a1d2e",color:"white",border:"none",borderRadius:8,padding:"11px 0",fontFamily:T.mono,fontSize:12,fontWeight:700,cursor:"pointer",letterSpacing:"0.06em"}}
           >Get PDF Report →</button>
         </div>
@@ -1171,6 +1171,7 @@ export default function DefensibleZoneMedical(){
     const dzLabel =
       avgDZ >= 70 ? "Highly Defensible" : avgDZ >= 50 ? "Moderately Defensible" : avgDZ >= 30 ? "Mixed Territory" : "Needs Attention";
     const showAllRecs = tier >= 2 || promoUsed;
+    const showPDF = tier >= 3 || promoUsed;
     const showUpsell = tier === 0 && !promoUsed;
 
     var rawRecsFull = recommendations && recommendations.recommendations ? recommendations.recommendations.slice() : [];
@@ -1266,7 +1267,7 @@ export default function DefensibleZoneMedical(){
               );
             })}
           </div>
-          {showAllRecs ? (
+          {showPDF ? (
             <div style={{ marginTop: 20, marginBottom: 4, textAlign: "center" }}>
               <PDFButton contentId="dz-doctor-report" label="Save as PDF" />
             </div>
@@ -1385,7 +1386,7 @@ export default function DefensibleZoneMedical(){
 
           {actionPlanBlock}
 
-          {showUpsell ? <PaywallGateMedical onUnlock={handleUnlock} /> : null}
+          {showUpsell ? <PaywallGateMedical onUnlock={handleUnlock} onSaveState={saveStateForReturn} /> : null}
 
           {degree==="DO"&&(
             <MCard style={{marginBottom:14,borderLeft:"4px solid "+T.grn}}>
