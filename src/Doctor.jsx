@@ -573,7 +573,6 @@ function PaywallGateMedical({ onUnlock }) {
               </li>
             ))}
           </ul>
-          {/* TODO: Replace onClick with Stripe checkout for $29 */}
           <MBtn onClick={() => { saveStateForReturn(); window.location.href = "https://buy.stripe.com/4gM3cv4wWbnldpP2FwdQQ04"; }} style={{width:"100%"}}>
             Get Recommendations →
           </MBtn>
@@ -592,7 +591,6 @@ function PaywallGateMedical({ onUnlock }) {
               </li>
             ))}
           </ul>
-          {/* TODO: Replace onClick with Stripe checkout for $34 */}
           <button
             onClick={() => { saveStateForReturn(); window.location.href = "https://buy.stripe.com/00waEX4wWdvtdpP7ZQdQQ05"; }}
             style={{width:"100%",background:"#1a1d2e",color:"white",border:"none",borderRadius:8,padding:"11px 0",fontFamily:T.mono,fontSize:12,fontWeight:700,cursor:"pointer",letterSpacing:"0.06em"}}
@@ -651,6 +649,14 @@ export default function DefensibleZoneMedical(){
     setAdjustedSkills(new Set(adjustedSkillsRef.current));
   }
 
+  // Auto-fetch recommendations when state is restored after payment return
+  // (results exist, tier is unlocked, but recommendations haven't been generated yet)
+  useEffect(() => {
+    if (results && (tier >= 2 || promoUsed) && !recommendations && !recsLoading && degree && level && specialty) {
+      fetchRecommendations(results);
+    }
+  }, [results, tier, promoUsed, degree, level, specialty]); // eslint-disable-line
+
   useEffect(() => {
     setFluencies(prev => {
       const next = { ...prev };
@@ -662,12 +668,6 @@ export default function DefensibleZoneMedical(){
       return next;
     });
   }, [conscience, pull, skills]);
-
-useEffect(() => {
-  if (results && (tier >= 2 || promoUsed) && !recommendations && !recsLoading && degree && level && specialty) {
-    fetchRecommendations(results);
-  }
-}, [results, tier, promoUsed, degree, level, specialty]); // eslint-disable-line
 
   async function submitEmailToKit(email) {
     try {
@@ -766,16 +766,17 @@ useEffect(() => {
     }
   }
 
-function saveStateForReturn() {
-  try {
-    const state = {
-      step, degree, level, specialty, results,
-      fluencies, skills, conscience, pull,
-      adjustedSkills: [...adjustedSkills],
-    };
-    localStorage.setItem("dz_pending_state_doctor", JSON.stringify(state));
-  } catch(e) {}
-}
+  // ── Save assessment state before navigating to Stripe ──────────────────
+  function saveStateForReturn() {
+    try {
+      const state = {
+        step, degree, level, specialty, results,
+        fluencies, skills, conscience, pull,
+        adjustedSkills: [...adjustedSkills],
+      };
+      localStorage.setItem("dz_pending_state_doctor", JSON.stringify(state));
+    } catch(e) { /* silent fail */ }
+  }
 
   // ── Payment verification ────────────────────────────────────────────────
   useEffect(() => {
@@ -818,6 +819,7 @@ function saveStateForReturn() {
           if (data.token) {
             localStorage.setItem("dz_token_doctor", data.token);
             applyToken(data.token);
+            // Restore assessment state saved before Stripe redirect
             try {
               const saved = localStorage.getItem("dz_pending_state_doctor");
               if (saved) {
@@ -838,7 +840,7 @@ function saveStateForReturn() {
                 }
                 localStorage.removeItem("dz_pending_state_doctor");
               }
-            } catch(e) {}
+            } catch(e) { /* ignore parse errors */ }
           }
         })
         .catch(err => console.error("Payment verification failed:", err));
