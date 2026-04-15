@@ -574,7 +574,7 @@ function PaywallGateMedical({ onUnlock }) {
             ))}
           </ul>
           {/* TODO: Replace onClick with Stripe checkout for $29 */}
-          <MBtn onClick={() => window.open("https://buy.stripe.com/4gM3cv4wWbnldpP2FwdQQ04","_blank")} style={{width:"100%"}}>
+          <MBtn onClick={() => { saveStateForReturn(); window.location.href = "https://buy.stripe.com/4gM3cv4wWbnldpP2FwdQQ04"; }} style={{width:"100%"}}>
             Get Recommendations →
           </MBtn>
         </div>
@@ -594,7 +594,7 @@ function PaywallGateMedical({ onUnlock }) {
           </ul>
           {/* TODO: Replace onClick with Stripe checkout for $34 */}
           <button
-            onClick={() => window.open("https://buy.stripe.com/00waEX4wWdvtdpP7ZQdQQ05","_blank")}
+            onClick={() => { saveStateForReturn(); window.location.href = "https://buy.stripe.com/00waEX4wWdvtdpP7ZQdQQ05"; }}
             style={{width:"100%",background:"#1a1d2e",color:"white",border:"none",borderRadius:8,padding:"11px 0",fontFamily:T.mono,fontSize:12,fontWeight:700,cursor:"pointer",letterSpacing:"0.06em"}}
           >Get PDF Report →</button>
         </div>
@@ -662,6 +662,12 @@ export default function DefensibleZoneMedical(){
       return next;
     });
   }, [conscience, pull, skills]);
+
+useEffect(() => {
+  if (results && (tier >= 2 || promoUsed) && !recommendations && !recsLoading && degree && level && specialty) {
+    fetchRecommendations(results);
+  }
+}, [results, tier, promoUsed, degree, level, specialty]); // eslint-disable-line
 
   async function submitEmailToKit(email) {
     try {
@@ -760,6 +766,17 @@ export default function DefensibleZoneMedical(){
     }
   }
 
+function saveStateForReturn() {
+  try {
+    const state = {
+      step, degree, level, specialty, results,
+      fluencies, skills, conscience, pull,
+      adjustedSkills: [...adjustedSkills],
+    };
+    localStorage.setItem("dz_pending_state_doctor", JSON.stringify(state));
+  } catch(e) {}
+}
+
   // ── Payment verification ────────────────────────────────────────────────
   useEffect(() => {
     function decodeJwt(token) {
@@ -801,6 +818,27 @@ export default function DefensibleZoneMedical(){
           if (data.token) {
             localStorage.setItem("dz_token_doctor", data.token);
             applyToken(data.token);
+            try {
+              const saved = localStorage.getItem("dz_pending_state_doctor");
+              if (saved) {
+                const s = JSON.parse(saved);
+                if (s.step)      setStep(s.step);
+                if (s.degree)    setDegree(s.degree);
+                if (s.level)     setLevel(s.level);
+                if (s.specialty) setSpecialty(s.specialty);
+                if (s.skills)    setSkills(s.skills);
+                if (s.fluencies) setFluencies(s.fluencies);
+                if (s.results)   setResults(s.results);
+                if (s.conscience !== undefined) setConscience(s.conscience);
+                if (s.pull !== undefined)       setPull(s.pull);
+                if (s.adjustedSkills) {
+                  const adj = new Set(s.adjustedSkills);
+                  setAdjustedSkills(adj);
+                  adjustedSkillsRef.current = adj;
+                }
+                localStorage.removeItem("dz_pending_state_doctor");
+              }
+            } catch(e) {}
           }
         })
         .catch(err => console.error("Payment verification failed:", err));
