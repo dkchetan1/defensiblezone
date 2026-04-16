@@ -392,8 +392,8 @@ export default function Designer() {
     function decodeJwt(token) {
       try {
         var payload = token.split(".")[1];
-        var padded = payload + "===".slice((payload.length + 3) % 4);
-        return JSON.parse(atob(padded));
+        var base64 = payload.replace(/-/g, "+").replace(/_/g, "/");
+        return JSON.parse(atob(base64));
       } catch (e) {
         return null;
       }
