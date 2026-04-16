@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import Landing from "./Landing.jsx";
 import Engineer from "./Engineer.jsx";
 import Doctor from "./Doctor.jsx";
-import Designer from "./Designer";
+import Designer from "./Designer.jsx";
 import About from "./About.jsx";
 import Confirmed from "./Confirmed.jsx";
 
@@ -16,6 +16,7 @@ export default function App() {
   }, []);
 
   if (path === "/doctor" || path === "/doctor/") return <Doctor />;
+  if (path === "/designer/report" || path === "/designer/report/") return <Designer reportMode={true} />;
   if (path === "/doctor/report" || path === "/doctor/report/") return <Doctor reportMode={true} />;
   if (path === "/engineer" || path === "/engineer/") return <Engineer />;
   if (path === "/designer" || path === "/designer/") return <Designer />;

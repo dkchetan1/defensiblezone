@@ -388,6 +388,80 @@ export default function Designer() {
     [step]
   );
 
+  useEffect(function () {
+    function decodeJwt(token) {
+      try {
+        var payload = token.split(".")[1];
+        var padded = payload + "===".slice((payload.length + 3) % 4);
+        return JSON.parse(atob(padded));
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function applyToken(token) {
+      var decoded = decodeJwt(token);
+      if (!decoded) return false;
+      if (decoded.exp && Date.now() / 1000 > decoded.exp) return false;
+      if (decoded.product && decoded.product !== "designer") return false;
+      if (decoded.tier === 2 || decoded.tier === 3) {
+        setTier(decoded.tier);
+        return true;
+      }
+      return false;
+    }
+
+    function restoreReport() {
+      try {
+        var saved = localStorage.getItem("dz_saved_report_designer");
+        if (!saved) return;
+        var s = JSON.parse(saved);
+        if (s.designerType) setDesignerType(s.designerType);
+        if (s.seniority) setSeniority(s.seniority);
+        if (s.companySize) setCompanySize(s.companySize);
+        if (s.workFocus) setWorkFocus(s.workFocus);
+        if (s.skills) setSkills(s.skills);
+        if (s.fluencies) setFluencies(s.fluencies);
+        if (s.conscience !== undefined) setConscience(s.conscience);
+        if (s.pull !== undefined) setPull(s.pull);
+        if (s.results) {
+          setResults(s.results);
+          setStep(5);
+        }
+      } catch (e) {}
+    }
+
+    var stored = localStorage.getItem("dz_token_designer");
+    if (stored && applyToken(stored)) {
+      if (window.location.pathname.includes("/report")) restoreReport();
+      return;
+    }
+
+    var params = new URLSearchParams(window.location.search);
+    var sessionId = params.get("session_id");
+    if (sessionId) {
+      window.history.replaceState({}, "", window.location.pathname);
+      fetch("/api/verify-payment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ session_id: sessionId, product: "designer" }),
+      })
+        .then(function (r) {
+          return r.json();
+        })
+        .then(function (data) {
+          if (data.token) {
+            localStorage.setItem("dz_token_designer", data.token);
+            applyToken(data.token);
+            restoreReport();
+          }
+        })
+        .catch(function (err) {
+          console.error("Payment verification failed:", err);
+        });
+    }
+  }, []);
+
   async function fetchSkills() {
     setLoading(true);
     setLoadingMsg("Reading your design landscape…");
@@ -492,6 +566,12 @@ export default function Designer() {
       var m = raw.match(/\{[\s\S]*\}/);
       if (!m) throw new Error("No JSON in response");
       var parsedResults = JSON.parse(m[0]);
+      try {
+        localStorage.setItem("dz_saved_report_designer", JSON.stringify({
+          step: 5, designerType, seniority, companySize, workFocus,
+          skills, conscience, pull, fluencies, results: parsedResults
+        }));
+      } catch(e) {}
       setResults(parsedResults);
       setResultsLoading(false);
       fetchRecommendations(parsedResults.skills);
@@ -1725,7 +1805,7 @@ export default function Designer() {
                           <button
                             type="button"
                             onClick={function () {
-                              window.open(rec29Url, "_blank", "noopener,noreferrer");
+                              window.location.href = rec29Url;
                             }}
                             style={{
                               background: S.gold,
@@ -1800,7 +1880,7 @@ export default function Designer() {
                           <button
                             type="button"
                             onClick={function () {
-                              window.open(rec34Url, "_blank", "noopener,noreferrer");
+                              window.location.href = rec34Url;
                             }}
                             style={{
                               background: S.gold,
