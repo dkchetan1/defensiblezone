@@ -1617,8 +1617,8 @@ export default function Designer() {
               var showAllRecs = tier >= 1 || promoUsed;
               var showUpsell = tier === 0 && !promoUsed;
 
-              var rec29Url = "https://buy.stripe.com/00waEXbZobnl0D3bc2dQQ02";
-              var rec34Url = "https://buy.stripe.com/00wdR93sSgHFadD5RIdQQ03";
+              var rec29Url = "https://buy.stripe.com/5kQeVdfbAbnlcIL3JAdQQ06";
+              var rec34Url = "https://buy.stripe.com/cNi4gz0gG1MLfxX7ZQdQQ07";
 
               var tier29Features = [
                 "All 8 personalized recommendations",
