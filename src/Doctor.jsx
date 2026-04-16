@@ -620,7 +620,7 @@ function PaywallGateMedical({ onUnlock, onSaveState }) {
   );
 }
 
-export default function DefensibleZoneMedical(){
+export default function DefensibleZoneMedical({ reportMode = false }){
   const [step,        setStep]        = useState(0);
   const [degree,      setDegree]      = useState("");
   const [level,       setLevel]       = useState("");
@@ -802,7 +802,23 @@ export default function DefensibleZoneMedical(){
 
     // 1. Try existing token from localStorage
     const stored = localStorage.getItem("dz_token_doctor");
-    if (stored && applyToken(stored)) return;
+    if (stored && applyToken(stored)) {
+      if (reportMode) {
+        try {
+          const saved = localStorage.getItem("dz_saved_report_doctor");
+          if (saved) {
+            const s = JSON.parse(saved);
+            if (s.degree)    setDegree(s.degree);
+            if (s.level)     setLevel(s.level);
+            if (s.specialty) setSpecialty(s.specialty);
+            if (s.skills)    setSkills(s.skills);
+            if (s.fluencies) setFluencies(s.fluencies);
+            if (s.results)   { setResults(s.results); setStep(3); }
+          }
+        } catch(e) {}
+      }
+      return;
+    }
 
     // 2. Fresh redirect from Stripe — verify session_id with backend
     const params = new URLSearchParams(window.location.search);
@@ -819,6 +835,18 @@ export default function DefensibleZoneMedical(){
           if (data.token) {
             localStorage.setItem("dz_token_doctor", data.token);
             applyToken(data.token);
+            try {
+              const saved = localStorage.getItem("dz_saved_report_doctor");
+              if (saved) {
+                const s = JSON.parse(saved);
+                if (s.degree)    setDegree(s.degree);
+                if (s.level)     setLevel(s.level);
+                if (s.specialty) setSpecialty(s.specialty);
+                if (s.skills)    setSkills(s.skills);
+                if (s.fluencies) setFluencies(s.fluencies);
+                if (s.results)   { setResults(s.results); setStep(3); }
+              }
+            } catch(e) {}
             // Restore assessment state saved before Stripe redirect
             try {
               const saved = localStorage.getItem("dz_pending_state_doctor");
@@ -845,7 +873,7 @@ export default function DefensibleZoneMedical(){
         })
         .catch(err => console.error("Payment verification failed:", err));
     }
-  }, []);
+  }, [reportMode]);
 
   function loadSkills(spec){
     const data = SD[spec];
