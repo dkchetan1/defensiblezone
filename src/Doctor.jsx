@@ -864,6 +864,13 @@ export default function DefensibleZoneMedical(){
       const dz  = calcDZ(aff, sk.aiR, sk.mkt);
       return { id: "s" + i, name: sk.name, naturalAffinity: aff, investment: f, affinity: aff, aiR: sk.aiR, mkt: sk.mkt, dz };
     });
+    try {
+      localStorage.setItem("dz_saved_report_doctor", JSON.stringify({
+        step: 3, degree, level, specialty, skills, conscience, pull,
+        fluencies, results: scored,
+        adjustedSkills: [...adjustedSkillsRef.current]
+      }));
+    } catch(e) {}
     setResults(scored);
     setStep(3);
     fetchRecommendations(scored);
