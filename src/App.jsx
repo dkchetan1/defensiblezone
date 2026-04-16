@@ -16,6 +16,7 @@ export default function App() {
   }, []);
 
   if (path === "/doctor" || path === "/doctor/") return <Doctor />;
+  if (path === "/doctor/report" || path === "/doctor/report/") return <Doctor reportMode={true} />;
   if (path === "/engineer" || path === "/engineer/") return <Engineer />;
   if (path === "/designer" || path === "/designer/") return <Designer />;
   if (path === "/about" || path === "/about/") return <About />;
