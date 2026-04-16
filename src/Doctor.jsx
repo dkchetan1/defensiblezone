@@ -870,7 +870,7 @@ export default function DefensibleZoneMedical(){
         fluencies, results: scored,
         adjustedSkills: [...adjustedSkillsRef.current]
       }));
-    } catch(e) {}
+    } catch(e) { console.error("save failed:", e); }
     setResults(scored);
     setStep(3);
     fetchRecommendations(scored);
