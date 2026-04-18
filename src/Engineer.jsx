@@ -1459,8 +1459,8 @@ export default function Engineer() {
                 var showAllRecs = tier >= 2 || promoUsed;
                 var showUpsell = tier === 0 && !promoUsed;
 
-                var rec29Url = "https://buy.stripe.com/00waEXbZobnl0D3bc2dQQ02";
-                var rec34Url = "https://buy.stripe.com/00wdR93sSgHFadD5RIdQQ03";
+                var rec29Url = "https://buy.stripe.com/9B67sL0gGezx0D3a7YdQQ08";
+                var rec34Url = "https://buy.stripe.com/00wfZh8Ncezx0D3gwmdQQ09";
 
                 var tier29Features = [
                   "All 8 personalized recommendations",
@@ -1648,7 +1648,7 @@ export default function Engineer() {
                             <button
                               type="button"
                               onClick={function () {
-                                window.open(rec29Url, "_blank", "noopener,noreferrer");
+                                window.location.href = rec29Url;
                               }}
                               style={{
                                 background: S.gold,
@@ -1723,7 +1723,7 @@ export default function Engineer() {
                             <button
                               type="button"
                               onClick={function () {
-                                window.open(rec34Url, "_blank", "noopener,noreferrer");
+                                window.location.href = rec34Url;
                               }}
                               style={{
                                 background: S.gold,
