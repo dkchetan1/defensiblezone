@@ -204,6 +204,7 @@ export default function Engineer() {
   var [devTypeOther, setDevTypeOther]     = useState("");
   var [seniority, setSeniority]           = useState("");
   var [workContexts, setWorkContexts]     = useState([]);
+  var [customContexts, setCustomContexts] = useState([]);
   var [showAllCtx, setShowAllCtx]         = useState(false);
   var [companyType, setCompanyType]       = useState("");
   var [landscape, setLandscape]           = useState("");
@@ -270,9 +271,37 @@ export default function Engineer() {
       return false;
     }
 
+    function restoreReport() {
+      try {
+        var saved = localStorage.getItem("dz_saved_report_engineer");
+        if (!saved) return;
+        var s = JSON.parse(saved);
+        if (s.devType) setDevType(s.devType);
+        if (s.seniority) setSeniority(s.seniority);
+        if (s.workContexts) setWorkContexts(s.workContexts);
+        if (s.customContexts) setCustomContexts(s.customContexts);
+        if (s.companyType) setCompanyType(s.companyType);
+        if (s.skills) {
+          setSkills(s.skills);
+          var adj = new Set(s.skills.map(function (sk) { return sk.id; }));
+          adjustedSkillsRef.current = adj;
+          setAdjustedSkills(new Set(adj));
+        }
+        if (s.fluencies) setFluencies(s.fluencies);
+        if (s.conscience !== undefined) setConscience(s.conscience);
+        if (s.pull !== undefined) setPull(s.pull);
+        if (s.benchmark) setBenchmark(s.benchmark);
+        if (s.results) {
+          setResults(s.results);
+          setStep(3);
+        }
+      } catch (e) {}
+    }
+
     // 1. Try existing token from localStorage
     var stored = localStorage.getItem("dz_token_engineer");
     if (stored && applyToken(stored)) {
+      if (window.location.pathname.includes("/report")) restoreReport();
       return; // already unlocked from previous purchase
     }
 
@@ -291,6 +320,7 @@ export default function Engineer() {
           if (data.token) {
             localStorage.setItem("dz_token_engineer", data.token);
             applyToken(data.token);
+            restoreReport();
           }
         })
         .catch(function(err) { console.error("Payment verification failed:", err); });
@@ -341,7 +371,7 @@ export default function Engineer() {
 
   function resetAll() {
     setStep(0); setDevType(""); setDevTypeOther(""); setSeniority("");
-    setWorkContexts([]); setShowAllCtx(false);
+    setWorkContexts([]); setCustomContexts([]); setShowAllCtx(false);
     setCompanyType(""); setLandscape(""); setSkills([]);
     setConscience(5); setPull(5); setFluencies({}); setAdjustedSkills(new Set());
     adjustedSkillsRef.current = new Set();
@@ -533,7 +563,7 @@ export default function Engineer() {
           setStep(3);
           try {
             localStorage.setItem("dz_saved_report_engineer", JSON.stringify({
-              step: 3, devType, seniority, workContexts, customContexts: [],
+              step: 3, devType, seniority, workContexts, customContexts,
               companyType, skills, conscience, pull, fluencies,
               benchmark: parsed2.benchmark, results: enriched2
             }));
