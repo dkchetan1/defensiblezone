@@ -328,6 +328,13 @@ export default function Engineer() {
   }, []);
 
   useEffect(function() {
+    if (results && (tier >= 2 || promoUsed) && !recommendations &&
+        !recsLoading && devType && seniority) {
+      fetchRecommendations(results);
+    }
+  }, [results, tier, promoUsed, devType, seniority]);
+
+  useEffect(function() {
     var link = document.createElement("link");
     link.href = "https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;1,400&display=swap";
     link.rel = "stylesheet";
