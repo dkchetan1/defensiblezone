@@ -19,6 +19,7 @@ export default function App() {
   if (path === "/designer/report" || path === "/designer/report/") return <Designer reportMode={true} />;
   if (path === "/doctor/report" || path === "/doctor/report/") return <Doctor reportMode={true} />;
   if (path === "/engineer" || path === "/engineer/") return <Engineer />;
+  if (path === "/engineer/report" || path === "/engineer/report/") return <Engineer reportMode={true} />;
   if (path === "/designer" || path === "/designer/") return <Designer />;
   if (path === "/about" || path === "/about/") return <About />;
   if (path === "/confirmed" || path === "/confirmed/") return <Confirmed />;
