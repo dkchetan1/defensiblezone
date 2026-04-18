@@ -462,6 +462,21 @@ export default function Designer() {
     }
   }, []);
 
+  // Auto-fetch recommendations when state is restored after payment return
+  // (results exist, tier is unlocked, but recommendations haven't been generated yet)
+  useEffect(function () {
+    if (
+      results &&
+      (tier >= 1 || promoUsed) &&
+      recommendations === null &&
+      !recsLoading &&
+      designerType &&
+      seniority
+    ) {
+      fetchRecommendations(results.skills);
+    }
+  }, [results, tier, promoUsed, designerType, seniority]); // eslint-disable-line
+
   async function fetchSkills() {
     setLoading(true);
     setLoadingMsg("Reading your design landscape…");
