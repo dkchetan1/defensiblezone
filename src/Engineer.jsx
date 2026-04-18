@@ -501,6 +501,13 @@ export default function Engineer() {
       setBenchmark(parsed.benchmark);
       setResults(enriched);
       setStep(3);
+      try {
+        localStorage.setItem("dz_saved_report_engineer", JSON.stringify({
+          step: 3, devType, seniority, workContexts, customContexts: [],
+          companyType, skills, conscience, pull, fluencies,
+          benchmark: parsed.benchmark, results: enriched
+        }));
+      } catch (_e) {}
       fetchRecommendations(enriched);
     } catch(e) {
       if (e.message && e.message.indexOf("overloaded") !== -1) {
@@ -524,6 +531,13 @@ export default function Engineer() {
           setBenchmark(parsed2.benchmark);
           setResults(enriched2);
           setStep(3);
+          try {
+            localStorage.setItem("dz_saved_report_engineer", JSON.stringify({
+              step: 3, devType, seniority, workContexts, customContexts: [],
+              companyType, skills, conscience, pull, fluencies,
+              benchmark: parsed2.benchmark, results: enriched2
+            }));
+          } catch (_e) {}
           fetchRecommendations(enriched2);
         } catch(e2) { setError("Analysis failed — please try again in a moment."); }
       } else { setError("Analysis failed — please try again in a moment."); }
