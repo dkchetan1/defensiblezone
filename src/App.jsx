@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import Landing from "./Landing.jsx";
+import Landing from "./pages/Index.tsx";
 import Engineer from "./Engineer.jsx";
 import Doctor from "./Doctor.jsx";
 import Designer from "./Designer.jsx";
