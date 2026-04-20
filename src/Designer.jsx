@@ -321,6 +321,7 @@ export default function Designer() {
   var [tier, setTier] = useState(0);
   var [promoCode, setPromoCode] = useState("");
   var [promoError, setPromoError] = useState("");
+  var [discountApplied, setDiscountApplied] = useState(false);
   var [promoUsed, setPromoUsed] = useState(false);
 
   useEffect(function () {
@@ -1632,8 +1633,8 @@ export default function Designer() {
               var showAllRecs = tier >= 1 || promoUsed;
               var showUpsell = tier === 0 && !promoUsed;
 
-              var rec29Url = "https://buy.stripe.com/5kQeVdfbAbnlclL3JAdQQ06";
-              var rec34Url = "https://buy.stripe.com/cNi4gz0gG1MLfxX7ZQdQQ07";
+              var rec29Url = "https://buy.stripe.com/5kQeVdfbAbnlclL3JAdQQ06" + (discountApplied ? "?prefilled_promo_code=DZHALF" : "");
+              var rec34Url = "https://buy.stripe.com/cNi4gz0gG1MLfxX7ZQdQQ07" + (discountApplied ? "?prefilled_promo_code=DZHALF" : "");
 
               var tier29Features = [
                 "All 8 personalized recommendations",
@@ -1958,6 +1959,9 @@ export default function Designer() {
                                 setTier(2);
                                 setPromoUsed(true);
                                 setPromoError("");
+                              } else if (v === "DZHALF") {
+                                setDiscountApplied(true);
+                                setPromoError("");
                               } else {
                                 setPromoError("That code isn't valid.");
                               }
@@ -1979,6 +1983,9 @@ export default function Designer() {
                         </div>
                         {promoError ? (
                           <div style={{ color: S.red, fontSize: 14, marginTop: 8 }}>{promoError}</div>
+                        ) : null}
+                        {discountApplied ? (
+                          <div style={{ color: "#059669", fontSize: 14, marginTop: 8 }}>50% discount applied! Click a button above to pay.</div>
                         ) : null}
                       </div>
                     </div>
