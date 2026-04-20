@@ -526,22 +526,17 @@ function MBtn({children,onClick,disabled,style}){
 function MGhost({children,onClick,style}){ return <button onClick={onClick} style={{background:"transparent",color:T.mut,border:"1px solid "+T.bdr,borderRadius:10,padding:"12px 20px",fontFamily:T.mono,fontSize:12,fontWeight:600,cursor:"pointer",...style}}>{children}</button>; }
 
 // ── PROMO CODES ────────────────────────────────────────────────────────
-const PROMO_CODES_MED = ["DZFRIEND", "DZPREVIEW", "DZTEST"];
+var PROMO_CODES = ["DZFRIEND", "DZPREVIEW", "DZTEST"];
+var DISCOUNT_CODES = ["DZHALF"];
 
-function PaywallGateMedical({ onUnlock, onSaveState }) {
-  const [input, setInput]   = React.useState("");
-  const [error, setError]   = React.useState("");
+function PaywallGateMedical({ onSaveState, setTier, setPromoUsed }) {
+  var [promoCode, setPromoCode]   = React.useState("");
+  var [promoError, setPromoError]   = React.useState("");
+  var [discountApplied, setDiscountApplied] = React.useState(false);
   const [shake, setShake]   = React.useState(false);
 
-  function tryPromo() {
-    if (PROMO_CODES_MED.map(c => c.toLowerCase()).includes(input.trim().toLowerCase())) {
-      onUnlock(3, true);
-    } else {
-      setError("Invalid code. Try again or purchase below.");
-      setShake(true);
-      setTimeout(() => setShake(false), 500);
-    }
-  }
+  var rec29Url = "https://buy.stripe.com/4gM3cv4wWbnldpP2FwdQQ04" + (discountApplied ? "?prefilled_promo_code=DZHALF" : "");
+  var rec34Url = "https://buy.stripe.com/00waEX4wWdvtdpP7ZQdQQ05" + (discountApplied ? "?prefilled_promo_code=DZHALF" : "");
 
   return (
     <MCard className="no-print" style={{marginBottom:14}}>
@@ -573,7 +568,7 @@ function PaywallGateMedical({ onUnlock, onSaveState }) {
               </li>
             ))}
           </ul>
-          <MBtn onClick={() => { onSaveState(); window.location.href = "https://buy.stripe.com/4gM3cv4wWbnldpP2FwdQQ04"; }} style={{width:"100%"}}>
+          <MBtn onClick={() => { onSaveState(); window.location.href = rec29Url; }} style={{width:"100%"}}>
             Get Recommendations →
           </MBtn>
         </div>
@@ -592,7 +587,7 @@ function PaywallGateMedical({ onUnlock, onSaveState }) {
             ))}
           </ul>
           <button
-            onClick={() => { onSaveState(); window.location.href = "https://buy.stripe.com/00waEX4wWdvtdpP7ZQdQQ05"; }}
+            onClick={() => { onSaveState(); window.location.href = rec34Url; }}
             style={{width:"100%",background:"#1a1d2e",color:"white",border:"none",borderRadius:8,padding:"11px 0",fontFamily:T.mono,fontSize:12,fontWeight:700,cursor:"pointer",letterSpacing:"0.06em"}}
           >Get PDF Report →</button>
         </div>
@@ -603,18 +598,50 @@ function PaywallGateMedical({ onUnlock, onSaveState }) {
         <MMono style={{color:T.dim,fontWeight:700,letterSpacing:"0.08em",display:"block",marginBottom:8,fontSize:11}}>HAVE A PROMO CODE?</MMono>
         <div style={{display:"flex",gap:8,animation:shake?"dzShake 0.4s ease":"none"}}>
           <input
-            value={input}
-            onChange={e=>{setInput(e.target.value);setError("");}}
-            onKeyDown={e=>{if(e.key==="Enter")tryPromo();}}
+            value={promoCode}
+            onChange={e=>{setPromoCode(e.target.value);setPromoError("");}}
+            onKeyDown={function (e) {
+              if (e.key !== "Enter") return;
+              var v = (promoCode || "").trim();
+              var isFree = PROMO_CODES.some(function(c) { return c.toLowerCase() === v.toLowerCase(); });
+              var isDiscount = DISCOUNT_CODES.some(function(c) { return c.toLowerCase() === v.toLowerCase(); });
+              if (isFree) {
+                setTier(2);
+                setPromoUsed(true);
+                setPromoError("");
+              } else if (isDiscount) {
+                setDiscountApplied(true);
+                setPromoError("");
+              } else {
+                setPromoError("That code isn't valid.");
+              }
+            }}
             placeholder="Enter code"
-            style={{flex:1,background:T.bg,border:"1px solid "+(error?T.red:T.bdr),borderRadius:8,padding:"10px 14px",fontSize:13,fontFamily:T.mono,color:T.txt,outline:"none"}}
+            style={{flex:1,background:T.bg,border:"1px solid "+(promoError?T.red:T.bdr),borderRadius:8,padding:"10px 14px",fontSize:13,fontFamily:T.mono,color:T.txt,outline:"none"}}
           />
           <button
-            onClick={tryPromo}
+            onClick={function () {
+     var v = (promoCode || "").trim();
+     var isFree = PROMO_CODES.some(function(c) { return c.toLowerCase() === v.toLowerCase(); });
+     var isDiscount = DISCOUNT_CODES.some(function(c) { return c.toLowerCase() === v.toLowerCase(); });
+     if (isFree) {
+       setTier(2);
+       setPromoUsed(true);
+       setPromoError("");
+     } else if (isDiscount) {
+       setDiscountApplied(true);
+       setPromoError("");
+     } else {
+       setPromoError("That code isn't valid.");
+     }
+   }}
             style={{background:T.surf,border:"1px solid "+T.bdr,borderRadius:8,padding:"10px 18px",fontSize:12,fontFamily:T.mono,fontWeight:700,color:T.mut,cursor:"pointer",letterSpacing:"0.06em"}}
           >APPLY</button>
         </div>
-        {error && <MMono style={{color:T.red,display:"block",marginTop:6,fontWeight:600,fontSize:11}}>{error}</MMono>}
+        {promoError && <MMono style={{color:T.red,display:"block",marginTop:6,fontWeight:600,fontSize:11}}>{promoError}</MMono>}
+        {discountApplied ? (
+          <div style={{ color: "#059669", fontSize: 14, marginTop: 8 }}>50% discount applied! Click a button above to pay.</div>
+        ) : null}
       </div>
     </MCard>
   );
@@ -687,8 +714,6 @@ export default function DefensibleZoneMedical({ reportMode = false }){
     setEmailSubmitting(false);
     runAnalysis();
   }
-
-  function handleUnlock(t, isPromo) { setTier(t); if (isPromo) setPromoUsed(true); }
 
   async function fetchRecommendations(scoredResults) {
     setRecsLoading(true);
@@ -1421,7 +1446,7 @@ export default function DefensibleZoneMedical({ reportMode = false }){
 
           {actionPlanBlock}
 
-          {showUpsell ? <PaywallGateMedical onUnlock={handleUnlock} onSaveState={saveStateForReturn} /> : null}
+          {showUpsell ? <PaywallGateMedical onSaveState={saveStateForReturn} setTier={setTier} setPromoUsed={setPromoUsed} /> : null}
 
           {degree==="DO"&&(
             <MCard style={{marginBottom:14,borderLeft:"4px solid "+T.grn}}>
