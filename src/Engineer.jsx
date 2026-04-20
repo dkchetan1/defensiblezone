@@ -196,6 +196,7 @@ function Chip(props) {
 // To add/remove bypass codes, edit this array.
 // Remove the array entirely (set to []) when going fully live.
 var PROMO_CODES = ["DZFRIEND", "DZPREVIEW", "DZTEST"];
+var DISCOUNT_CODES = ["DZHALF"];
 
 // ── MAIN APP ───────────────────────────────────────────────────────────
 export default function Engineer() {
@@ -226,6 +227,7 @@ export default function Engineer() {
   var [promoUsed, setPromoUsed]           = useState(false);
   var [promoCode, setPromoCode]           = useState("");
   var [promoError, setPromoError]         = useState("");
+  var [discountApplied, setDiscountApplied] = useState(false);
 
   function markAdjusted(skillId) {
     adjustedSkillsRef.current.add(skillId);
@@ -1466,8 +1468,8 @@ export default function Engineer() {
                 var showAllRecs = tier >= 2 || promoUsed;
                 var showUpsell = tier === 0 && !promoUsed;
 
-                var rec29Url = "https://buy.stripe.com/9B67sL0gGezx0D3a7YdQQ08";
-                var rec34Url = "https://buy.stripe.com/00wfZh8Ncezx0D3gwmdQQ09";
+                var rec29Url = "https://buy.stripe.com/9B67sL0gGezx0D3a7YdQQ08" + (discountApplied ? "?prefilled_promo_code=DZHALF" : "");
+                var rec34Url = "https://buy.stripe.com/00wfZh8Ncezx0D3gwmdQQ09" + (discountApplied ? "?prefilled_promo_code=DZHALF" : "");
 
                 var tier29Features = [
                   "All 8 personalized recommendations",
@@ -1788,17 +1790,19 @@ export default function Engineer() {
                             <button
                               type="button"
                               onClick={function () {
-                                var v = (promoCode || "").trim();
-                                var ok = PROMO_CODES.some(function (c) {
-                                  return c.toLowerCase() === v.toLowerCase();
-                                });
-                                if (ok) {
-                                  setTier(2);
-                                  setPromoUsed(true);
-                                  setPromoError("");
-                                } else {
-                                  setPromoError("That code isn't valid.");
-                                }
+     var v = (promoCode || "").trim();
+     var isFree = PROMO_CODES.some(function(c) { return c.toLowerCase() === v.toLowerCase(); });
+     var isDiscount = DISCOUNT_CODES.some(function(c) { return c.toLowerCase() === v.toLowerCase(); });
+     if (isFree) {
+       setTier(2);
+       setPromoUsed(true);
+       setPromoError("");
+     } else if (isDiscount) {
+       setDiscountApplied(true);
+       setPromoError("");
+     } else {
+       setPromoError("That code isn't valid.");
+     }
                               }}
                               style={{
                                 padding: "12px 20px",
@@ -1817,6 +1821,9 @@ export default function Engineer() {
                           </div>
                           {promoError ? (
                             <div style={{ color: S.red, fontSize: 14, marginTop: 8 }}>{promoError}</div>
+                          ) : null}
+                          {discountApplied ? (
+                            <div style={{ color: "#059669", fontSize: 14, marginTop: 8 }}>50% discount applied! Click a button above to pay.</div>
                           ) : null}
                         </div>
                       </div>
