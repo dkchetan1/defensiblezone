@@ -191,6 +191,93 @@ var WORK_FOCUS_BY_SECTOR = {
   ],
 };
 
+var AFFINITY_COPY = {
+  ib: {
+    conscience: {
+      question:
+        "When a model, deck, or recommendation goes out that you know is thin, rushed, or not up to institutional standard — how does that sit with you?",
+      explanation:
+        "This tells us whether execution quality and intellectual honesty in finance work genuinely matter to you, independent of whether the deal team or client pushes back.",
+    },
+    pull: {
+      question:
+        "Outside of work, with no bonus and no MD asking, how often does your mind drift toward markets, structures, or how a transaction or business could be valued or improved?",
+      explanation:
+        "This tells us whether capital-markets and deal thinking is something you're naturally drawn to, or something you do primarily for the career path.",
+    },
+  },
+  corporate: {
+    conscience: {
+      question:
+        "When forecasts, close packages, or board narratives are knowingly optimistic, opaque, or misaligned with what the numbers really say — how does that sit with you?",
+      explanation:
+        "This tells us whether you genuinely care about truthful reporting and planning, independent of whether leadership wants a smoother story.",
+    },
+    pull: {
+      question:
+        "Outside of work, how often do you find yourself thinking about cash, margins, planning cycles, or how a business could run more efficiently?",
+      explanation:
+        "This tells us whether corporate finance thinking is wired into how you see the world, or primarily a professional skill you apply at work.",
+    },
+  },
+  investment: {
+    conscience: {
+      question:
+        "When research, models, or portfolio narratives are stretched to fit a thesis you don't fully believe — how does that sit with you?",
+      explanation:
+        "This tells us whether intellectual rigor in investment judgment matters to you on its own, independent of short-term performance pressure.",
+    },
+    pull: {
+      question:
+        "Outside of work, how often does your mind drift toward companies, sectors, risk/reward, or how capital ought to be allocated?",
+      explanation:
+        "This tells us whether markets and security analysis are a genuine obsession, or chiefly how you earn a living.",
+    },
+  },
+  risk: {
+    conscience: {
+      question:
+        "When controls are weak, models are rubber-stamped, or regulatory obligations are treated as checkbox exercises — how does that sit with you?",
+      explanation:
+        "This tells us whether you genuinely care about sound risk and compliance culture, independent of whether it's politically easy to speak up.",
+    },
+    pull: {
+      question:
+        "Outside of work, how often do you notice flawed incentives, hidden risks, or how rules and guardrails actually behave in practice?",
+      explanation:
+        "This tells us whether risk and regulatory instinct is natural for you, or something you switch on when you're on the job.",
+    },
+  },
+  wealth: {
+    conscience: {
+      question:
+        "When client advice, suitability, or disclosures fall short of what you'd want for your own family — how does that sit with you?",
+      explanation:
+        "This tells us whether fiduciary-quality care genuinely matters to you, independent of sales targets or firm messaging.",
+    },
+    pull: {
+      question:
+        "Outside of work, how often do you think about people's financial lives — tradeoffs, goals, anxiety about money, or how advice could be clearer and fairer?",
+      explanation:
+        "This tells us whether client-centered financial thinking is something you're drawn to, or primarily a professional role.",
+    },
+  },
+  accounting: {
+    conscience: {
+      question:
+        "When filings, workpapers, or audit conclusions don't meet your bar for defensibility, documentation, or professional skepticism — how does that sit with you?",
+      explanation:
+        "This tells us whether technical and ethical quality in accounting work genuinely matters to you, independent of deadline pressure.",
+    },
+    pull: {
+      question:
+        "Outside of work, how often does your eye catch sloppy numbers, unclear disclosures, or how financial information could be presented more honestly?",
+      explanation:
+        "This tells us whether financial reporting and controls thinking is how your mind naturally works, or something you apply in a professional context.",
+    },
+  },
+};
+
 var VALID_FIRMS_BY_SECTOR = {
   ib: ["bulge_bracket", "regional_bank", "boutique_advisory", "pe_vc"],
   corporate: [
@@ -268,7 +355,8 @@ export default function Finance(props) {
   var [conscience, setConscience] = useState(5);
   var [pull, setPull] = useState(5);
   var [fluencies, setFluencies] = useState({});
-  var adjustedSkills = useRef(new Set());
+  var [adjustedSkills, setAdjustedSkills] = useState(new Set());
+  var adjustedSkillsRef = useRef(new Set());
   var [skills, setSkills] = useState([]);
   var [landscape, setLandscape] = useState("");
   var [loading, setLoading] = useState(false);
@@ -291,18 +379,6 @@ export default function Finance(props) {
   var [promoError, setPromoError] = useState("");
   var [promoUsed, setPromoUsed] = useState(false);
   var [discountApplied, setDiscountApplied] = useState(false);
-  void firmType;
-  void companySize;
-  void workFocus;
-  void conscience;
-  void pull;
-  void fluencies;
-  void adjustedSkills;
-  void skills;
-  void landscape;
-  void loading;
-  void loadingMsg;
-  void error;
   void results;
   void resultsLoading;
   void resultsError;
@@ -482,8 +558,517 @@ export default function Finance(props) {
     { id: "fintech", label: "Fintech / AI-native Firm", desc: "Stripe, Robinhood, Plaid, and AI-first financial companies" },
   ];
 
-  if (step === 4) {
-    return <div />;
+  function snapToStop(val) {
+    var stops = [0, 3, 5, 7, 10];
+    return stops.reduce(function (prev, curr) {
+      return Math.abs(curr - val) < Math.abs(prev - val) ? curr : prev;
+    });
+  }
+
+  function computeAffinity(c, p, f) {
+    return Math.round((c * 0.35 + p * 0.35 + f * 0.3) * 10) / 10;
+  }
+
+  function getSeed(c, p) {
+    var raw = Math.round((c * 0.5 + p * 0.5) * 10) / 10;
+    var stops = [0, 3, 5, 7, 10];
+    return stops.reduce(function (prev, curr) {
+      return Math.abs(curr - raw) < Math.abs(prev - raw) ? curr : prev;
+    });
+  }
+
+  function markAdjusted(id) {
+    adjustedSkillsRef.current.add(id);
+    setAdjustedSkills(new Set(adjustedSkillsRef.current));
+  }
+
+  function fluencyStopLabel(val) {
+    if (val === 0) return "Not part of my work";
+    if (val === 3) return "Basic familiarity";
+    if (val === 5) return "Competent";
+    if (val === 7) return "Strong";
+    if (val === 10) return "Expert-level";
+    return "";
+  }
+
+  async function fetchSkills() {
+    var loadingMsgs = [
+      "Mapping your position on the AI exposure curve…",
+      "Pulling current data on your sector…",
+      "Building your skill landscape…",
+    ];
+    setLoading(true);
+    setLoadingMsg(loadingMsgs[0]);
+    setError(null);
+    var msgIndex = 0;
+    var msgInterval = setInterval(function () {
+      msgIndex = (msgIndex + 1) % loadingMsgs.length;
+      setLoadingMsg(loadingMsgs[msgIndex]);
+    }, 3000);
+
+    var sectorRow = FINANCE_SECTORS.find(function (s) {
+      return s.id === sector;
+    });
+    var sectorFullLabel = sectorRow ? sectorRow.title : sector;
+    var firmOpt = firmTypeOptions.find(function (o) {
+      return o.id === firmType;
+    });
+    var firmTypeLabel = firmOpt ? firmOpt.label : firmType;
+    var workFocusJoined = (workFocus || []).join(", ");
+
+    var prompt =
+      "You are a senior finance career strategist specializing in AI labor market analysis for financial professionals.\n\nPROFESSIONAL PROFILE:\n- Sector: " +
+      sectorFullLabel +
+      "\n- Role: " +
+      role +
+      "\n- Seniority: " +
+      seniority +
+      "\n- Firm type: " +
+      firmTypeLabel +
+      "\n- Organization size: " +
+      companySize +
+      "\n- Work focus: " +
+      workFocusJoined +
+      "\n\nTask 1 — LANDSCAPE: Write 2-3 precise sentences about how AI is affecting this exact professional profile RIGHT NOW in 2026. Name specific tools where relevant (Bloomberg AI, OpenAI Mercury, Microsoft Copilot for Finance, Harvey, Kensho, Workiva, Alteryx). Be specific to this role, seniority, and firm type — not generic.\n\nTask 2 — SKILLS: Generate exactly 8 skills that are the most strategically important for this professional to assess for AI defensibility right now. Include a realistic mix — some genuinely at risk from AI, some defensible. Be specific to this seniority level and work focus area.\n\nReturn ONLY valid JSON with no preamble:\n{\"landscape\":\"...\",\"skills\":[\"skill1\",\"skill2\",\"skill3\",\"skill4\",\"skill5\",\"skill6\",\"skill7\",\"skill8\"]}";
+
+    try {
+      var res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-6",
+          max_tokens: 1000,
+          messages: [{ role: "user", content: prompt }],
+        }),
+      });
+      var data = await res.json();
+      if (!data.content) throw new Error(data.error || "API error");
+      var raw = data.content
+        .map(function (b) {
+          return b.text || "";
+        })
+        .join("");
+      var m = raw.match(/\{[\s\S]*\}/);
+      if (!m) throw new Error("No JSON in response");
+      var parsed = JSON.parse(m[0]);
+      if (!parsed.skills || !Array.isArray(parsed.skills)) throw new Error("Invalid skills");
+      var loaded = parsed.skills.map(function (text, i) {
+        return { id: "s" + i, text: text };
+      });
+      setLandscape(parsed.landscape || "");
+      setSkills(loaded);
+      adjustedSkillsRef.current = new Set();
+      setAdjustedSkills(new Set());
+      setFluencies({});
+    } catch (e) {
+      setError("Something went wrong loading your skills. Please try again.");
+    } finally {
+      clearInterval(msgInterval);
+      setLoading(false);
+    }
+  }
+
+  useEffect(
+    function () {
+      setFluencies(function (prev) {
+        var next = Object.assign({}, prev);
+        skills.forEach(function (skill) {
+          if (!adjustedSkillsRef.current.has(skill.id)) {
+            next[skill.id] = getSeed(conscience, pull);
+          }
+        });
+        return next;
+      });
+    },
+    [conscience, pull, skills]
+  );
+
+  useEffect(
+    function () {
+      if (step !== 4) return;
+      if (skills.length > 0) return;
+      fetchSkills();
+    },
+    [step, skills.length] // eslint-disable-line react-hooks/exhaustive-deps -- fetchSkills closes over latest form state on step 4 entry
+  );
+
+  if (step === 4 && error) {
+    return (
+      <div
+        style={{
+          background: S.bg,
+          minHeight: "100vh",
+          fontFamily: S.font,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "32px 20px",
+        }}
+      >
+        <div style={{ textAlign: "center", maxWidth: 400 }}>
+          <p style={{ color: S.red, fontSize: 15, margin: "0 0 20px", lineHeight: 1.5 }}>{error}</p>
+          <button
+            type="button"
+            onClick={function () {
+              setError(null);
+              fetchSkills();
+            }}
+            style={Object.assign({}, continueBtnBase, { marginTop: 0, width: "auto", minWidth: 200 })}
+          >
+            Try again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (step === 4 && (loading || skills.length === 0)) {
+    return (
+      <div
+        style={{
+          background: S.bg,
+          minHeight: "100vh",
+          fontFamily: S.font,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "32px 20px",
+        }}
+      >
+        <style
+          dangerouslySetInnerHTML={{
+            __html: "@keyframes dzFinanceDots{0%,100%{opacity:0.25}50%{opacity:1}}",
+          }}
+        />
+        <div style={{ textAlign: "center", maxWidth: 420 }}>
+          <div
+            style={{
+              fontFamily: S.mono,
+              fontSize: 12,
+              color: S.gold,
+              letterSpacing: "0.1em",
+              marginBottom: 16,
+              fontWeight: 600,
+            }}
+          >
+            DEFENSIBLE ZONE™ · FINANCE EDITION
+          </div>
+          <div style={{ fontFamily: S.serif, fontSize: 22, fontStyle: "italic", color: S.text, lineHeight: 1.45 }}>{loadingMsg}</div>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              gap: 6,
+              marginTop: 18,
+              fontFamily: S.mono,
+              fontSize: 22,
+              color: S.dim,
+              lineHeight: 1,
+            }}
+          >
+            <span style={{ animation: "dzFinanceDots 1s ease-in-out infinite" }}>.</span>
+            <span style={{ animation: "dzFinanceDots 1s ease-in-out 0.2s infinite" }}>.</span>
+            <span style={{ animation: "dzFinanceDots 1s ease-in-out 0.4s infinite" }}>.</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (step === 4 && skills.length > 0 && !loading) {
+    var affinityStops = [0, 3, 5, 7, 10];
+    var conscienceLabelTexts = [
+      "Relieved to move on",
+      "Mildly bothered",
+      "Somewhat unsettled",
+      "Want to fix it",
+      "Can't let it go",
+    ];
+    var pullLabelTexts = ["Almost never", "Occasionally", "Sometimes", "Regularly", "Constantly"];
+    var affinitySector = sector;
+    return (
+      <div style={{ background: S.bg, minHeight: "100vh", padding: "32px 20px", fontFamily: S.font }}>
+        <style
+          dangerouslySetInnerHTML={{
+            __html:
+              "input[type=range].dz-slider { -webkit-appearance: none; appearance: none; width: 100%; height: 6px; border-radius: 3px; outline: none; cursor: pointer; border: none; } input[type=range].dz-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 24px; height: 24px; border-radius: 50%; border: 3px solid white; cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,0.18); } input[type=range].conscience-sl::-webkit-slider-thumb { background: #7c3aed; } input[type=range].pull-sl::-webkit-slider-thumb { background: #0891b2; } input[type=range].fluency-sl::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%; background: #d97706; border: 2px solid white; cursor: pointer; }",
+          }}
+        />
+        <div style={{ maxWidth: 680, margin: "0 auto" }}>
+          <button type="button" onClick={() => setStep(3)} style={backBtnStyle}>
+            ← back
+          </button>
+          <ProgressDots current={4} />
+
+          <h1
+            style={{
+              fontFamily: S.serif,
+              fontSize: 38,
+              fontStyle: "italic",
+              color: S.text,
+              margin: "0 0 12px",
+              lineHeight: 1.15,
+              fontWeight: 600,
+            }}
+          >
+            How does this work feel to you?
+          </h1>
+          <p style={{ fontSize: 16, color: S.dim, lineHeight: 1.75, margin: "0 0 24px" }}>
+            These questions are not about how skilled you are. They are about whether this type of work genuinely fits you. Be honest — the model uses this to
+            weight your scores.
+          </p>
+
+          <div
+            style={{
+              background: S.card2,
+              border: "1px solid " + S.border,
+              borderRadius: 12,
+              padding: "20px 24px",
+              marginBottom: 32,
+            }}
+          >
+            <div
+              style={{
+                fontFamily: S.mono,
+                fontSize: 12,
+                color: S.gold,
+                textTransform: "uppercase",
+                letterSpacing: "0.1em",
+                marginBottom: 8,
+                fontWeight: 600,
+              }}
+            >
+              YOUR AI LANDSCAPE
+            </div>
+            <div style={{ fontSize: 15, fontFamily: S.font, color: S.muted, lineHeight: 1.7 }}>{landscape}</div>
+          </div>
+
+          <div
+            style={{
+              background: "#ffffff",
+              border: "1px solid " + S.border,
+              borderRadius: 14,
+              padding: "24px 28px",
+              marginBottom: 16,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+              <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#7c3aed", flexShrink: 0 }} />
+              <span
+                style={{
+                  fontFamily: S.mono,
+                  fontSize: 12,
+                  fontWeight: 700,
+                  color: "#7c3aed",
+                  letterSpacing: "0.08em",
+                }}
+              >
+                CRAFT CONSCIENCE
+              </span>
+            </div>
+            <p style={{ fontSize: 16, fontStyle: "italic", color: S.muted, lineHeight: 1.6, marginBottom: 6, marginTop: 0 }}>
+              {AFFINITY_COPY[affinitySector]?.conscience?.question ??
+                "When your work falls short of your own standard — analysis that felt rushed, or judgment you would not stand behind — how does that sit with you?"}
+            </p>
+            <p style={{ fontSize: 15, color: S.dim, lineHeight: 1.5, marginBottom: 20, marginTop: 0 }}>
+              {AFFINITY_COPY[affinitySector]?.conscience?.explanation ??
+                "This tells us whether quality and integrity in finance work genuinely matter to you, independent of whether anyone else notices."}
+            </p>
+            <input
+              className="dz-slider conscience-sl"
+              type="range"
+              min={0}
+              max={10}
+              step={1}
+              value={conscience}
+              onChange={function (e) {
+                setConscience(snapToStop(Number(e.target.value)));
+              }}
+              style={{
+                background:
+                  "linear-gradient(to right, #7c3aed " + (conscience / 10) * 100 + "%, " + S.border + " " + (conscience / 10) * 100 + "%)",
+              }}
+            />
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10 }}>
+              {affinityStops.map(function (stopValue, idx) {
+                return (
+                  <div
+                    key={stopValue}
+                    style={{
+                      width: "20%",
+                      textAlign: "center",
+                      fontSize: 12,
+                      fontFamily: S.mono,
+                      color: "#7c3aed",
+                      opacity: Math.abs(conscience - stopValue) <= 1 ? 1 : 0.25,
+                      fontWeight: Math.abs(conscience - stopValue) <= 1 ? 700 : 400,
+                    }}
+                  >
+                    {conscienceLabelTexts[idx]}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div
+            style={{
+              background: "#ffffff",
+              border: "1px solid " + S.border,
+              borderRadius: 14,
+              padding: "24px 28px",
+              marginBottom: 32,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+              <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#0891b2", flexShrink: 0 }} />
+              <span
+                style={{
+                  fontFamily: S.mono,
+                  fontSize: 12,
+                  fontWeight: 700,
+                  color: "#0891b2",
+                  letterSpacing: "0.08em",
+                }}
+              >
+                INTRINSIC PULL
+              </span>
+            </div>
+            <p style={{ fontSize: 16, fontStyle: "italic", color: S.muted, lineHeight: 1.6, marginBottom: 6, marginTop: 0 }}>
+              {AFFINITY_COPY[affinitySector]?.pull?.question ??
+                "Outside of work, with no deadlines and no brief, how often does your mind drift toward how financial decisions, markets, or organizations could work better?"}
+            </p>
+            <p style={{ fontSize: 15, color: S.dim, lineHeight: 1.5, marginBottom: 20, marginTop: 0 }}>
+              {AFFINITY_COPY[affinitySector]?.pull?.explanation ??
+                "This tells us whether finance thinking is something you're naturally drawn to, or something you do primarily because it pays well."}
+            </p>
+            <input
+              className="dz-slider pull-sl"
+              type="range"
+              min={0}
+              max={10}
+              step={1}
+              value={pull}
+              onChange={function (e) {
+                setPull(snapToStop(Number(e.target.value)));
+              }}
+              style={{
+                background:
+                  "linear-gradient(to right, #0891b2 " + (pull / 10) * 100 + "%, " + S.border + " " + (pull / 10) * 100 + "%)",
+              }}
+            />
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10 }}>
+              {affinityStops.map(function (stopValue, idx) {
+                return (
+                  <div
+                    key={stopValue}
+                    style={{
+                      width: "20%",
+                      textAlign: "center",
+                      fontSize: 12,
+                      fontFamily: S.mono,
+                      color: "#0891b2",
+                      opacity: Math.abs(pull - stopValue) <= 1 ? 1 : 0.25,
+                      fontWeight: Math.abs(pull - stopValue) <= 1 ? 700 : 400,
+                    }}
+                  >
+                    {pullLabelTexts[idx]}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div
+            style={{
+              fontFamily: S.mono,
+              fontSize: 12,
+              textTransform: "uppercase",
+              color: S.muted,
+              letterSpacing: "0.08em",
+              marginBottom: 8,
+              fontWeight: 600,
+            }}
+          >
+            RATE YOUR FLUENCY
+          </div>
+          <p style={{ fontSize: 15, color: S.dim, marginBottom: 24, marginTop: 0, lineHeight: 1.6 }}>
+            For each skill, how fluent are you? These sliders are pre-seeded from your answers above — adjust any that don&apos;t feel right.
+          </p>
+
+          {skills.map(function (skill) {
+            var fluencyVal = fluencies[skill.id] !== undefined ? fluencies[skill.id] : getSeed(conscience, pull);
+            return (
+              <div
+                key={skill.id}
+                style={{
+                  background: "#ffffff",
+                  border: "1px solid " + S.border,
+                  borderRadius: 12,
+                  padding: "20px 24px",
+                  marginBottom: 12,
+                }}
+              >
+                <div style={{ fontSize: 16, fontFamily: S.font, fontWeight: 600, color: S.text, marginBottom: 12 }}>{skill.text}</div>
+                <input
+                  className="dz-slider fluency-sl"
+                  type="range"
+                  min={0}
+                  max={10}
+                  step={1}
+                  value={fluencyVal}
+                  onChange={function (e) {
+                    var val = Number(e.target.value);
+                    setFluencies(function (prev) {
+                      return Object.assign({}, prev, { [skill.id]: val });
+                    });
+                    markAdjusted(skill.id);
+                  }}
+                  style={{
+                    background:
+                      "linear-gradient(to right, #d97706 " +
+                      (fluencyVal / 10) * 100 +
+                      "%, " +
+                      S.border +
+                      " " +
+                      (fluencyVal / 10) * 100 +
+                      "%)",
+                  }}
+                />
+                <div style={{ fontFamily: S.mono, fontSize: 12, color: S.gold, marginTop: 6 }}>{fluencyStopLabel(fluencyVal)}</div>
+              </div>
+            );
+          })}
+
+          <button
+            type="button"
+            onClick={function () {
+              try {
+                localStorage.setItem(
+                  "dz_saved_report_finance",
+                  JSON.stringify({
+                    sector: sector,
+                    role: role,
+                    seniority: seniority,
+                    firmType: firmType,
+                    companySize: companySize,
+                    workFocus: workFocus,
+                    skills: skills,
+                    conscience: conscience,
+                    pull: pull,
+                    fluencies: fluencies,
+                  })
+                );
+              } catch (e) {}
+              setStep(5);
+            }}
+            style={continueBtnBase}
+          >
+            See My Results →
+          </button>
+        </div>
+      </div>
+    );
   }
 
   if (step === 1) {
