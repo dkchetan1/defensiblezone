@@ -12,69 +12,120 @@ var FINANCE_SECTORS = [
 
 var ROLES_BY_SECTOR = {
   ib: [
-    "Investment Banking Analyst",
-    "Investment Banking Associate",
-    "Capital Markets Associate",
-    "M&A Advisor",
-    "Sales & Trading Associate",
-    "Equity Syndicate",
-    "Debt Capital Markets Analyst",
+    { name: "Investment Banking Analyst", desc: "Pitch books, financial models, and deal support at banks" },
+    { name: "Investment Banking Associate", desc: "Promoted analyst or MBA hire — more client exposure, same execution" },
+    { name: "Capital Markets Associate", desc: "Equity or debt capital markets — raising capital for companies" },
+    { name: "M&A Advisor", desc: "Advising on mergers, acquisitions, and divestitures" },
+    { name: "Sales & Trading Associate", desc: "Buying and selling securities on behalf of clients or the firm" },
+    { name: "Equity Syndicate", desc: "Coordinating equity offerings and book-building" },
+    { name: "Debt Capital Markets Analyst", desc: "Structuring and placing debt — bonds, leveraged loans, credit" },
   ],
   corporate: [
-    "FP&A Analyst",
-    "FP&A Manager",
-    "Senior Financial Analyst",
-    "Financial Controller",
-    "VP of Finance",
-    "CFO",
-    "Treasurer",
+    { name: "FP&A Analyst", desc: "Budgeting, forecasting, and variance analysis inside a company" },
+    { name: "FP&A Manager", desc: "Leading the FP&A team — planning cycles, stakeholder reporting" },
+    { name: "Senior Financial Analyst", desc: "Experienced individual contributor in corporate finance" },
+    { name: "Financial Controller", desc: "Head of accounting operations — senior role, 10+ years, reports to CFO" },
+    { name: "VP of Finance", desc: "Senior finance leader, one level below CFO" },
+    { name: "CFO", desc: "Chief Financial Officer — top finance executive" },
+    { name: "Treasurer", desc: "Managing cash, liquidity, investments, and banking relationships" },
   ],
   investment: [
-    "Equity Research Analyst",
-    "Associate Portfolio Manager",
-    "Portfolio Manager",
-    "Quantitative Analyst",
-    "Fund Manager",
-    "Credit Analyst",
-    "Investment Strategist",
+    { name: "Equity Research Associate", desc: "Junior role in sell-side research — supports the Research Analyst" },
+    { name: "Equity Research Analyst", desc: "Senior role in sell-side research — publishes reports under their name" },
+    { name: "Associate Portfolio Manager", desc: "Supporting a Portfolio Manager on buy-side investment decisions" },
+    { name: "Portfolio Manager", desc: "Buy-side — managing investment portfolios for institutional clients" },
+    { name: "Quantitative Analyst", desc: "Building quantitative models and algorithms for trading or investment" },
+    { name: "Fund Manager", desc: "Managing a mutual fund or pooled investment vehicle" },
+    { name: "Credit Analyst", desc: "Buy-side — analyzing bond and credit investments at asset managers or hedge funds" },
+    { name: "Investment Strategist", desc: "Developing macro or sector investment views and themes" },
   ],
   risk: [
-    "Credit Risk Analyst",
-    "Market Risk Analyst",
-    "Operational Risk Manager",
-    "Chief Risk Officer",
-    "Compliance Analyst",
-    "AML / KYC Analyst",
-    "Regulatory Affairs Manager",
+    { name: "Credit Risk Analyst", desc: "Bank/lending context — assessing borrower and portfolio credit risk" },
+    { name: "Market Risk Analyst", desc: "Measuring and managing market exposure — VaR, stress testing" },
+    { name: "Operational Risk Manager", desc: "Managing risk from internal processes, people, and systems" },
+    { name: "Chief Risk Officer", desc: "C-suite — overseeing enterprise-wide risk management" },
+    { name: "Compliance Analyst", desc: "Ensuring the organization meets regulatory requirements" },
+    { name: "AML / KYC Analyst", desc: "Anti-money laundering and know-your-customer compliance" },
+    { name: "Regulatory Affairs Manager", desc: "Interpreting and implementing regulatory requirements" },
   ],
   wealth: [
-    "Junior Financial Advisor",
-    "Financial Advisor",
-    "Senior Financial Advisor",
-    "Wealth Manager",
-    "Private Banker",
-    "Estate Planner",
-    "Retirement Planning Specialist",
+    { name: "Junior Financial Advisor", desc: "Entry-level — building a client base and supporting senior advisors" },
+    { name: "Financial Advisor", desc: "Managing client relationships and financial planning" },
+    { name: "Senior Financial Advisor", desc: "Experienced advisor managing high-value clients" },
+    { name: "Wealth Manager", desc: "Comprehensive wealth planning for high-net-worth clients" },
+    { name: "Private Banker", desc: "Ultra-HNW banking — clients typically $1M+ or $10M+ in assets" },
+    { name: "Estate Planner", desc: "Specialist in estate, trust, and inheritance planning" },
+    { name: "Retirement Planning Specialist", desc: "Specialist in retirement income and pension planning" },
   ],
   accounting: [
-    "Staff Accountant",
-    "Senior Accountant",
-    "Audit Associate",
-    "Audit Manager",
-    "Tax Analyst",
-    "Internal Auditor",
-    "Controller",
-    "Accounting Director",
+    { name: "Staff Accountant", desc: "Entry-level — reconciliations, basic financial statements, data entry" },
+    { name: "Senior Accountant", desc: "3–5 years — owns complex accounting tasks, guides junior staff" },
+    { name: "Audit Associate", desc: "Public accounting entry/mid — conducting audits at client organizations" },
+    { name: "Audit Manager", desc: "Managing audit engagements and teams — 7–10 years experience" },
+    { name: "Tax Analyst", desc: "Corporate or public accounting tax compliance and planning" },
+    { name: "Internal Auditor", desc: "In-house review of internal controls and financial processes" },
+    { name: "Controller", desc: "Head of accounting — senior role, 10+ years, reports to CFO" },
+    { name: "Accounting Director", desc: "Top accounting leadership below CFO — 15+ years typical" },
   ],
 };
 
-var SENIORITY_BY_SECTOR = {
-  ib: ["Analyst (1st year)", "Analyst (2nd-3rd year)", "Associate", "Vice President", "Director", "Managing Director"],
-  corporate: ["Analyst", "Senior Analyst", "Manager", "Senior Manager / Director", "VP", "CFO / Treasurer"],
-  investment: ["Junior Analyst", "Analyst", "Associate", "Senior Analyst / PM", "Portfolio Manager", "CIO"],
-  risk: ["Analyst", "Senior Analyst", "Manager", "Senior Manager", "Director", "CRO / CCO"],
-  wealth: ["Junior Advisor", "Advisor", "Senior Advisor", "Wealth Manager", "Director", "Principal / Partner"],
-  accounting: ["Staff", "Senior", "Supervisor", "Manager", "Senior Manager / Director", "Partner"],
+var SENIORITY_BY_SECTOR_AND_ROLE = {
+  ib: {
+    "Investment Banking Analyst": ["Analyst (1st year)", "Analyst (2nd year)", "Analyst (3rd year)"],
+    "Investment Banking Associate": ["Associate (Year 1)", "Associate (Year 2)", "Associate (Year 3)"],
+    "Capital Markets Associate": ["Analyst", "Associate", "Vice President"],
+    "M&A Advisor": ["Analyst", "Associate", "Vice President", "Director", "Managing Director"],
+    "Sales & Trading Associate": ["Analyst", "Associate", "Vice President", "Director / ED", "Managing Director"],
+    "Equity Syndicate": ["Analyst", "Associate", "Vice President", "Director"],
+    "Debt Capital Markets Analyst": ["Analyst", "Associate", "Vice President"],
+  },
+  corporate: {
+    "FP&A Analyst": ["FP&A Analyst", "Senior FP&A Analyst"],
+    "FP&A Manager": ["FP&A Manager", "Senior FP&A Manager"],
+    "Senior Financial Analyst": ["Senior Analyst", "Lead Analyst", "Principal Analyst"],
+    "Financial Controller": ["Assistant Controller", "Controller", "VP / Group Controller"],
+    "VP of Finance": ["VP of Finance", "SVP of Finance"],
+    "CFO": ["VP Finance (pre-CFO)", "CFO", "Group CFO / Division CFO"],
+    "Treasurer": ["Treasury Analyst", "Senior Treasury Analyst", "Treasury Manager", "Treasurer"],
+  },
+  investment: {
+    "Equity Research Associate": ["Research Associate (Junior)", "Research Associate (Senior)"],
+    "Equity Research Analyst": ["Research Analyst", "Senior Research Analyst", "VP-level Analyst", "MD-level Analyst / Head of Research"],
+    "Associate Portfolio Manager": ["Research Analyst", "Associate Portfolio Manager"],
+    "Portfolio Manager": ["Portfolio Manager", "Senior Portfolio Manager", "Head of Portfolio Management / CIO"],
+    "Quantitative Analyst": ["Junior Quant", "Quantitative Analyst", "Senior Quantitative Analyst", "Principal Quant / Head of Quant"],
+    "Fund Manager": ["Associate Fund Manager", "Fund Manager", "Senior Fund Manager"],
+    "Credit Analyst": ["Junior Credit Analyst", "Credit Analyst", "Senior Credit Analyst", "Credit Manager"],
+    "Investment Strategist": ["Strategist", "Senior Strategist", "Head of Strategy / CIO"],
+  },
+  risk: {
+    "Credit Risk Analyst": ["Credit Risk Analyst", "Senior Credit Risk Analyst", "Credit Risk Manager"],
+    "Market Risk Analyst": ["Market Risk Analyst", "Senior Market Risk Analyst", "Market Risk Manager"],
+    "Operational Risk Manager": ["Risk Analyst", "Risk Manager", "Senior Risk Manager"],
+    "Chief Risk Officer": ["VP of Risk", "Director of Risk", "CRO"],
+    "Compliance Analyst": ["Compliance Analyst", "Senior Compliance Analyst / Compliance Officer", "Compliance Manager"],
+    "AML / KYC Analyst": ["Analyst", "Senior Analyst", "AML / KYC Manager"],
+    "Regulatory Affairs Manager": ["Analyst", "Manager", "Senior Manager / Director"],
+  },
+  wealth: {
+    "Junior Financial Advisor": ["Trainee / Client Service Associate", "Junior Advisor", "Associate Advisor"],
+    "Financial Advisor": ["Financial Advisor", "Senior Financial Advisor"],
+    "Senior Financial Advisor": ["Senior Financial Advisor", "Lead Advisor", "Branch Manager"],
+    "Wealth Manager": ["Wealth Manager", "Senior Wealth Manager", "Director of Wealth Management"],
+    "Private Banker": ["Private Banker", "Senior Private Banker", "Managing Director"],
+    "Estate Planner": ["Associate", "Estate Planner", "Senior Estate Planner"],
+    "Retirement Planning Specialist": ["Specialist", "Senior Specialist", "Director"],
+  },
+  accounting: {
+    "Staff Accountant": ["Intern / Entry-Level", "Staff Accountant I", "Staff Accountant II"],
+    "Senior Accountant": ["Senior Accountant", "Lead Accountant", "Accounting Team Lead"],
+    "Audit Associate": ["Audit Associate", "Senior Audit Associate", "Audit Supervisor"],
+    "Audit Manager": ["Audit Manager", "Senior Audit Manager", "Audit Director"],
+    "Tax Analyst": ["Tax Analyst", "Senior Tax Analyst", "Tax Manager"],
+    "Internal Auditor": ["Internal Auditor", "Senior Internal Auditor", "Audit Manager"],
+    "Controller": ["Assistant Controller", "Controller", "VP / Group Controller"],
+    "Accounting Director": ["Accounting Director", "VP of Accounting", "CAO (Chief Accounting Officer)"],
+  },
 };
 
 var WORK_FOCUS_BY_SECTOR = {
@@ -139,6 +190,47 @@ var WORK_FOCUS_BY_SECTOR = {
     "External reporting",
   ],
 };
+
+var VALID_FIRMS_BY_SECTOR = {
+  ib: ["bulge_bracket", "regional_bank", "boutique_advisory", "pe_vc"],
+  corporate: [
+    "bulge_bracket",
+    "regional_bank",
+    "asset_management",
+    "pe_vc",
+    "hedge_fund",
+    "corporate",
+    "big4_consulting",
+    "fintech",
+    "boutique_advisory",
+  ],
+  investment: ["asset_management", "hedge_fund", "pe_vc", "bulge_bracket", "boutique_advisory", "fintech"],
+  risk: ["bulge_bracket", "regional_bank", "asset_management", "hedge_fund", "pe_vc", "corporate", "fintech", "big4_consulting"],
+  wealth: ["bulge_bracket", "regional_bank", "asset_management", "corporate", "fintech"],
+  accounting: ["big4_consulting", "corporate", "regional_bank", "asset_management", "fintech", "bulge_bracket"],
+};
+
+var DEFAULT_SIZES_BY_FIRM = {
+  bulge_bracket: ["5,001–50,000", "50,000+"],
+  regional_bank: ["Under 50", "51–500", "501–5,000", "5,001–50,000"],
+  boutique_advisory: ["Under 50", "51–500", "501–5,000"],
+  pe_vc: ["Under 50", "51–500", "501–5,000"],
+  hedge_fund: ["Under 50", "51–500"],
+  asset_management: ["Under 50", "51–500", "501–5,000", "5,001–50,000", "50,000+"],
+  corporate: ["Under 50", "51–500", "501–5,000", "5,001–50,000", "50,000+"],
+  big4_consulting: ["5,001–50,000", "50,000+"],
+  fintech: ["Under 50", "51–500", "501–5,000", "5,001–50,000"],
+};
+
+var OVERRIDE_SIZES = {
+  corporate: {
+    boutique_advisory: ["501–5,000"],
+  },
+};
+
+function getValidSizes(sectorId, firmTypeId) {
+  return (OVERRIDE_SIZES[sectorId] && OVERRIDE_SIZES[sectorId][firmTypeId]) || DEFAULT_SIZES_BY_FIRM[firmTypeId] || [];
+}
 
 // ── DESIGN TOKENS ──────────────────────────────────────────────────────
 var S = {
@@ -228,18 +320,6 @@ export default function Finance(props) {
   void promoError;
   void promoUsed;
   void discountApplied;
-
-  var VALID_SIZES_BY_FIRM = {
-    bulge_bracket: ["5,001–50,000", "50,000+"],
-    regional_bank: ["Under 50", "51–500", "501–5,000", "5,001–50,000"],
-    boutique_advisory: ["Under 50", "51–500", "501–5,000"],
-    pe_vc: ["Under 50", "51–500", "501–5,000"],
-    hedge_fund: ["Under 50", "51–500"],
-    asset_management: ["Under 50", "51–500", "501–5,000", "5,001–50,000", "50,000+"],
-    corporate: ["Under 50", "51–500", "501–5,000", "5,001–50,000", "50,000+"],
-    big4_consulting: ["5,001–50,000", "50,000+"],
-    fintech: ["Under 50", "51–500", "501–5,000", "5,001–50,000"],
-  };
 
   useEffect(function () {
     var link = document.createElement("link");
@@ -441,7 +521,11 @@ export default function Finance(props) {
               gap: 12,
             }}
           >
-            {firmTypeOptions.map(function (opt) {
+            {firmTypeOptions
+              .filter(function (opt) {
+                return (VALID_FIRMS_BY_SECTOR[sector] || []).indexOf(opt.id) !== -1;
+              })
+              .map(function (opt) {
               var selected = firmType === opt.id;
               var bg = selected ? S.gold + "12" : "#ffffff";
               var border = selected ? "1px solid " + S.gold : "1px solid " + S.border;
@@ -482,7 +566,7 @@ export default function Finance(props) {
   }
 
   if (step === 2) {
-    var sizes = VALID_SIZES_BY_FIRM[firmType] || [];
+    var sizes = getValidSizes(sector, firmType);
     var canContinue2 = companySize !== "";
     return (
       <div style={containerOuter}>
@@ -674,6 +758,8 @@ export default function Finance(props) {
     );
   }
 
+  var levelOptions = SENIORITY_BY_SECTOR_AND_ROLE[sector]?.[role] ?? [];
+
   return (
     <div style={containerOuter}>
       <div style={containerInner}>
@@ -776,26 +862,27 @@ export default function Finance(props) {
               What&apos;s your role?
             </div>
             <div style={{ display: "flex", flexWrap: "wrap" }}>
-              {(ROLES_BY_SECTOR[sector] || []).map(function (label) {
-                var sel = role === label;
+              {(ROLES_BY_SECTOR[sector] || []).map(function (item) {
+                var sel = role === item.name;
                 return (
                   <span
-                    key={label}
+                    key={item.name}
                     role="button"
                     tabIndex={0}
                     onClick={function () {
-                      setRole(label);
+                      setRole(item.name);
                       setSeniority("");
                     }}
                     onKeyDown={function (e) {
                       if (e.key === "Enter" || e.key === " ") {
-                        setRole(label);
+                        setRole(item.name);
                         setSeniority("");
                       }
                     }}
                     style={sel ? pillSelected : pillDefault}
                   >
-                    {label}
+                    <div style={{ fontSize: 15 }}>{item.name}</div>
+                    <div style={{ fontSize: 13, color: S.dim, fontStyle: "italic", marginTop: 4 }}>{item.desc}</div>
                   </span>
                 );
               })}
@@ -803,7 +890,7 @@ export default function Finance(props) {
           </div>
         ) : null}
 
-        {role !== "" ? (
+        {role !== "" && levelOptions.length > 0 ? (
           <div style={{ marginTop: 24 }}>
             <div
               style={{
@@ -819,7 +906,7 @@ export default function Finance(props) {
               What&apos;s your level?
             </div>
             <div style={{ display: "flex", flexWrap: "wrap" }}>
-              {(SENIORITY_BY_SECTOR[sector] || []).map(function (label) {
+              {levelOptions.map(function (label) {
                 var sel = seniority === label;
                 return (
                   <span
@@ -842,7 +929,7 @@ export default function Finance(props) {
           </div>
         ) : null}
 
-        {seniority !== "" ? (
+        {seniority !== "" && levelOptions.length > 0 ? (
           <button
             type="button"
             onClick={function () {
