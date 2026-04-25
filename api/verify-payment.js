@@ -31,6 +31,8 @@ const PRICE_TIER_MAP = {
 function tierFromAmount(amountTotal) {
   if (amountTotal <= 2900) return 2; // $29.00
   if (amountTotal <= 3400) return 3; // $34.00
+  if (amountTotal <= 5900) return 2; // $59.00 (Finance Edition)
+  if (amountTotal <= 6400) return 3; // $64.00 (Finance Edition)
   return 2; // default to tier 2
 }
 
@@ -46,7 +48,7 @@ export default async function handler(req, res) {
   }
 
   // Validate product is one of the known tools
-  const knownProducts = ["engineer", "doctor"];
+  const knownProducts = ["engineer", "doctor", "designer", "finance"];
   const safeProduct = knownProducts.includes(product) ? product : "engineer";
 
   if (!process.env.STRIPE_SECRET_KEY) {
