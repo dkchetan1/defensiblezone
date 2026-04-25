@@ -77,6 +77,69 @@ var SENIORITY_BY_SECTOR = {
   accounting: ["Staff", "Senior", "Supervisor", "Manager", "Senior Manager / Director", "Partner"],
 };
 
+var WORK_FOCUS_BY_SECTOR = {
+  ib: [
+    "Financial modeling",
+    "Pitch deck production",
+    "Deal origination",
+    "Due diligence",
+    "Client relationship management",
+    "Regulatory navigation",
+    "Valuation (DCF / LBO / Comps)",
+    "Debt & equity structuring",
+  ],
+  corporate: [
+    "Budgeting & forecasting",
+    "Variance analysis",
+    "Financial modeling",
+    "Board & exec reporting",
+    "ERP & systems management",
+    "Strategic planning",
+    "Cash flow management",
+    "Cross-functional leadership",
+  ],
+  investment: [
+    "Equity research & company analysis",
+    "Portfolio construction",
+    "Quantitative modeling",
+    "Risk-adjusted performance",
+    "Macro & sector research",
+    "Client communication",
+    "ESG integration",
+    "Factor modeling",
+  ],
+  risk: [
+    "Credit risk modeling",
+    "Stress testing & scenario analysis",
+    "Regulatory reporting",
+    "AML / KYC processes",
+    "Policy & control design",
+    "Enterprise risk frameworks",
+    "Model validation",
+    "Regulatory relationships",
+  ],
+  wealth: [
+    "Client relationship management",
+    "Financial planning",
+    "Portfolio construction",
+    "Estate & tax planning",
+    "Retirement income planning",
+    "Investment recommendations",
+    "Client onboarding",
+    "Business development",
+  ],
+  accounting: [
+    "Financial statement preparation",
+    "Audit procedures",
+    "Tax compliance & planning",
+    "Internal controls",
+    "Month-end close",
+    "Revenue recognition",
+    "Technical accounting research",
+    "External reporting",
+  ],
+};
+
 // ── DESIGN TOKENS ──────────────────────────────────────────────────────
 var S = {
   bg: "#f8f9fc",
@@ -166,6 +229,18 @@ export default function Finance(props) {
   void promoUsed;
   void discountApplied;
 
+  var VALID_SIZES_BY_FIRM = {
+    bulge_bracket: ["5,001–50,000", "50,000+"],
+    regional_bank: ["Under 50", "51–500", "501–5,000", "5,001–50,000"],
+    boutique_advisory: ["Under 50", "51–500", "501–5,000"],
+    pe_vc: ["Under 50", "51–500", "501–5,000"],
+    hedge_fund: ["Under 50", "51–500"],
+    asset_management: ["Under 50", "51–500", "501–5,000", "5,001–50,000", "50,000+"],
+    corporate: ["Under 50", "51–500", "501–5,000", "5,001–50,000", "50,000+"],
+    big4_consulting: ["5,001–50,000", "50,000+"],
+    fintech: ["Under 50", "51–500", "501–5,000", "5,001–50,000"],
+  };
+
   useEffect(function () {
     var link = document.createElement("link");
     link.href =
@@ -194,9 +269,12 @@ export default function Finance(props) {
     }
   }, [step]);
 
-  if (step > 0) {
-    return <div style={{ background: "#ffffff", minHeight: "100vh" }} />;
-  }
+  useEffect(
+    function () {
+      setCompanySize("");
+    },
+    [firmType]
+  );
 
   var tileBase = {
     textAlign: "left",
@@ -238,19 +316,367 @@ export default function Finance(props) {
     lineHeight: 1.3,
   };
 
+  var containerOuter = {
+    background: S.bg,
+    minHeight: "100vh",
+    padding: "32px 20px",
+    fontFamily: S.font,
+    boxSizing: "border-box",
+    display: "flex",
+    justifyContent: "center",
+  };
+
+  var containerInner = { maxWidth: 640, width: "100%", margin: "0 auto" };
+
+  var backBtnStyle = {
+    fontFamily: S.mono,
+    fontSize: 12,
+    color: S.dim,
+    border: "none",
+    background: "transparent",
+    cursor: "pointer",
+    padding: 0,
+  };
+
+  function ProgressDots(props2) {
+    var current = props2.current;
+    return (
+      <div style={{ marginBottom: 32 }}>
+        {[0, 1, 2, 3, 4].map(function (i) {
+          var filled = i <= current;
+          var color = filled ? S.gold : S.border;
+          return (
+            <span
+              key={i}
+              style={{
+                width: 8,
+                height: 8,
+                borderRadius: 999,
+                display: "inline-block",
+                marginRight: 6,
+                background: color,
+              }}
+            />
+          );
+        })}
+      </div>
+    );
+  }
+
+  var continueBtnBase = {
+    width: "100%",
+    marginTop: 20,
+    background: S.accent,
+    color: "#ffffff",
+    border: "none",
+    borderRadius: 10,
+    padding: 16,
+    fontSize: 16,
+    fontWeight: 600,
+    fontFamily: S.mono,
+    letterSpacing: "0.06em",
+    cursor: "pointer",
+  };
+
+  var firmTypeOptions = [
+    {
+      id: "bulge_bracket",
+      label: "Bulge Bracket / Global Bank",
+      desc: "JPMorgan, Goldman, Morgan Stanley, Citi, Barclays, Deutsche Bank",
+    },
+    { id: "regional_bank", label: "Regional / Boutique Bank", desc: "Mid-size commercial and regional banks" },
+    {
+      id: "boutique_advisory",
+      label: "Boutique Advisory",
+      desc: "Independent M&A and restructuring advisors (Lazard, Evercore, PJT)",
+    },
+    { id: "pe_vc", label: "Private Equity / Venture Capital", desc: "Buyout, growth, and venture investment firms" },
+    { id: "hedge_fund", label: "Hedge Fund", desc: "Long/short, macro, quant, and multi-strategy funds" },
+    {
+      id: "asset_management",
+      label: "Asset Management / Mutual Fund",
+      desc: "Fidelity, Vanguard, BlackRock, and independent managers",
+    },
+    { id: "corporate", label: "Corporate (In-house)", desc: "Finance team inside a company — any industry" },
+    { id: "big4_consulting", label: "Big 4 / Consulting", desc: "Deloitte, PwC, EY, KPMG, McKinsey, Bain, BCG" },
+    { id: "fintech", label: "Fintech / AI-native Firm", desc: "Stripe, Robinhood, Plaid, and AI-first financial companies" },
+  ];
+
+  if (step === 4) {
+    return <div />;
+  }
+
+  if (step === 1) {
+    var canContinue1 = firmType !== "";
+    return (
+      <div style={containerOuter}>
+        <div style={containerInner}>
+          <button type="button" onClick={() => setStep(0)} style={backBtnStyle}>
+            ← back
+          </button>
+          <ProgressDots current={1} />
+
+          <h1
+            style={{
+              fontFamily: S.serif,
+              fontSize: 38,
+              fontStyle: "italic",
+              color: S.text,
+              margin: "0 0 12px",
+              lineHeight: 1.15,
+              fontWeight: 600,
+            }}
+          >
+            Where do you work?
+          </h1>
+
+          <p style={{ fontSize: 16, color: S.dim, lineHeight: 1.75, margin: "0 0 32px" }}>
+            Your firm type affects how AI is being deployed around you and what your market looks like.
+          </p>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+              gap: 12,
+            }}
+          >
+            {firmTypeOptions.map(function (opt) {
+              var selected = firmType === opt.id;
+              var bg = selected ? S.gold + "12" : "#ffffff";
+              var border = selected ? "1px solid " + S.gold : "1px solid " + S.border;
+              return (
+                <div
+                  key={opt.id}
+                  role="button"
+                  tabIndex={0}
+                  onClick={function () {
+                    setFirmType(opt.id);
+                  }}
+                  onKeyDown={function (e) {
+                    if (e.key === "Enter" || e.key === " ") setFirmType(opt.id);
+                  }}
+                  style={Object.assign({}, tileBase, { background: bg, border: border })}
+                >
+                  <div style={{ fontSize: 16, fontWeight: 600, color: S.text, marginBottom: 6, lineHeight: 1.25 }}>{opt.label}</div>
+                  <div style={{ fontSize: 14, color: S.dim, lineHeight: 1.55 }}>{opt.desc}</div>
+                </div>
+              );
+            })}
+          </div>
+
+          <button
+            type="button"
+            disabled={!canContinue1}
+            onClick={function () {
+              if (!canContinue1) return;
+              setStep(2);
+            }}
+            style={Object.assign({}, continueBtnBase, !canContinue1 ? { opacity: 0.5, cursor: "not-allowed" } : null)}
+          >
+            CONTINUE →
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (step === 2) {
+    var sizes = VALID_SIZES_BY_FIRM[firmType] || [];
+    var canContinue2 = companySize !== "";
+    return (
+      <div style={containerOuter}>
+        <div style={containerInner}>
+          <button type="button" onClick={() => setStep(1)} style={backBtnStyle}>
+            ← back
+          </button>
+          <ProgressDots current={2} />
+
+          <h1
+            style={{
+              fontFamily: S.serif,
+              fontSize: 38,
+              fontStyle: "italic",
+              color: S.text,
+              margin: "0 0 12px",
+              lineHeight: 1.15,
+              fontWeight: 600,
+            }}
+          >
+            How big is your organization?
+          </h1>
+
+          <p style={{ fontSize: 16, color: S.dim, lineHeight: 1.75, margin: "0 0 32px" }}>
+            This is the size of your overall organization, not your team.
+          </p>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+              gap: 12,
+            }}
+          >
+            {sizes.map(function (label) {
+              var selected = companySize === label;
+              var bg = selected ? S.gold + "12" : "#ffffff";
+              var border = selected ? "1px solid " + S.gold : "1px solid " + S.border;
+              return (
+                <div
+                  key={label}
+                  role="button"
+                  tabIndex={0}
+                  onClick={function () {
+                    setCompanySize(label);
+                  }}
+                  onKeyDown={function (e) {
+                    if (e.key === "Enter" || e.key === " ") setCompanySize(label);
+                  }}
+                  style={Object.assign({}, tileBase, {
+                    background: bg,
+                    border: border,
+                    textAlign: "center",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    minHeight: 64,
+                  })}
+                >
+                  <div style={{ fontSize: 16, fontWeight: 600, color: S.text, lineHeight: 1.25 }}>{label}</div>
+                </div>
+              );
+            })}
+          </div>
+
+          <button
+            type="button"
+            disabled={!canContinue2}
+            onClick={function () {
+              if (!canContinue2) return;
+              setStep(3);
+            }}
+            style={Object.assign({}, continueBtnBase, !canContinue2 ? { opacity: 0.5, cursor: "not-allowed" } : null)}
+          >
+            CONTINUE →
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (step === 3) {
+    var focusOptions = WORK_FOCUS_BY_SECTOR[sector] || [];
+    var selectedCount = (workFocus || []).length;
+    var canContinue3 = selectedCount > 0;
+    var countColor = selectedCount > 0 ? S.gold : S.dim;
+    var chipBase = {
+      display: "inline-block",
+      padding: "10px 18px",
+      borderRadius: 20,
+      fontSize: 15,
+      border: "1px solid " + S.border,
+      marginRight: 8,
+      marginBottom: 8,
+      cursor: "pointer",
+      background: "#ffffff",
+      color: S.text,
+      fontFamily: S.font,
+      lineHeight: 1.3,
+    };
+    return (
+      <div style={containerOuter}>
+        <div style={containerInner}>
+          <button type="button" onClick={() => setStep(2)} style={backBtnStyle}>
+            ← back
+          </button>
+          <ProgressDots current={3} />
+
+          <h1
+            style={{
+              fontFamily: S.serif,
+              fontSize: 38,
+              fontStyle: "italic",
+              color: S.text,
+              margin: "0 0 12px",
+              lineHeight: 1.15,
+              fontWeight: 600,
+            }}
+          >
+            What do you actually work on?
+          </h1>
+
+          <p style={{ fontSize: 16, color: S.dim, lineHeight: 1.75, margin: "0 0 8px" }}>
+            Pick up to 4 areas. Be honest about where your time actually goes — not what looks good on paper.
+          </p>
+
+          <div
+            style={{
+              fontSize: 14,
+              fontFamily: S.mono,
+              color: countColor,
+              marginBottom: 24,
+            }}
+          >
+            {selectedCount} of 4 selected
+          </div>
+
+          <div>
+            {focusOptions.map(function (label) {
+              var isSelected = (workFocus || []).indexOf(label) !== -1;
+              var maxed = selectedCount >= 4;
+              var disabled = !isSelected && maxed;
+              var style = isSelected
+                ? Object.assign({}, chipBase, { background: S.accent, color: "#ffffff", border: "1px solid " + S.accent })
+                : Object.assign({}, chipBase, disabled ? { opacity: 0.4, cursor: "not-allowed" } : null);
+              return (
+                <span
+                  key={label}
+                  role="button"
+                  tabIndex={0}
+                  onClick={function () {
+                    if (disabled) return;
+                    if (isSelected) {
+                      setWorkFocus(workFocus.filter((x) => x !== label));
+                      return;
+                    }
+                    setWorkFocus(workFocus.concat([label]));
+                  }}
+                  onKeyDown={function (e) {
+                    if (e.key !== "Enter" && e.key !== " ") return;
+                    if (disabled) return;
+                    if (isSelected) {
+                      setWorkFocus(workFocus.filter((x) => x !== label));
+                      return;
+                    }
+                    setWorkFocus(workFocus.concat([label]));
+                  }}
+                  style={style}
+                >
+                  {label}
+                </span>
+              );
+            })}
+          </div>
+
+          <button
+            type="button"
+            disabled={!canContinue3}
+            onClick={function () {
+              if (!canContinue3) return;
+              setStep(4);
+            }}
+            style={Object.assign({}, continueBtnBase, !canContinue3 ? { opacity: 0.5, cursor: "not-allowed" } : null)}
+          >
+            CONTINUE →
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div
-      style={{
-        background: S.bg,
-        minHeight: "100vh",
-        padding: "32px 20px",
-        fontFamily: S.font,
-        boxSizing: "border-box",
-        display: "flex",
-        justifyContent: "center",
-      }}
-    >
-      <div style={{ maxWidth: 640, width: "100%" }}>
+    <div style={containerOuter}>
+      <div style={containerInner}>
         <div
           style={{
             fontFamily: S.mono,
