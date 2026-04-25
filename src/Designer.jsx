@@ -389,6 +389,15 @@ export default function Designer() {
     [step]
   );
 
+  useEffect(() => {
+    if (window.gtag) {
+      window.gtag("event", "assessment_step", {
+        product: "designer",
+        step_number: step,
+      });
+    }
+  }, [step]);
+
   useEffect(function () {
     function decodeJwt(token) {
       try {

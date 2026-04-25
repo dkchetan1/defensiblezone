@@ -366,6 +366,15 @@ export default function Engineer() {
     window.scrollTo(0, 0);
   }, [step]);
 
+  useEffect(function() {
+    if (window.gtag) {
+      window.gtag("event", "assessment_step", {
+        product: "engineer",
+        step_number: step,
+      });
+    }
+  }, [step]);
+
   function getVisibleContexts() {
     if (!devType || devType === "other" || showAllCtx) return WORK_CONTEXTS;
     var allowed = CONTEXT_MAP[devType] || [];

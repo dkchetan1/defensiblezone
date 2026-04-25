@@ -9,6 +9,14 @@ import Confirmed from "./Confirmed.jsx";
 export default function App() {
   var [path, setPath] = useState(window.location.pathname);
 
+  useEffect(() => {
+    if (window.gtag) {
+      window.gtag("config", "G-6F5WG5HRTE", {
+        page_path: window.location.pathname,
+      });
+    }
+  }, []);
+
   useEffect(function() {
     function onPop() { setPath(window.location.pathname); }
     window.addEventListener("popstate", onPop);

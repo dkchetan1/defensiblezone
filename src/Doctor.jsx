@@ -671,6 +671,15 @@ export default function DefensibleZoneMedical({ reportMode = false }){
   const [emailSubmitting, setEmailSubmitting] = useState(false);
   useEffect(() => { window.scrollTo(0, 0); }, [step]);
 
+  useEffect(() => {
+    if (window.gtag) {
+      window.gtag("event", "assessment_step", {
+        product: "doctor",
+        step_number: step,
+      });
+    }
+  }, [step]);
+
   function markAdjusted(id) {
     adjustedSkillsRef.current.add(id);
     setAdjustedSkills(new Set(adjustedSkillsRef.current));
