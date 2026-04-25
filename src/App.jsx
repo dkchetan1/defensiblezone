@@ -3,6 +3,7 @@ import Landing from "./pages/Index.tsx";
 import Engineer from "./Engineer.jsx";
 import Doctor from "./Doctor.jsx";
 import Designer from "./Designer.jsx";
+import Finance from "./Finance.jsx";
 import About from "./About.jsx";
 import Confirmed from "./Confirmed.jsx";
 
@@ -31,5 +32,7 @@ export default function App() {
   if (path === "/designer" || path === "/designer/") return <Designer />;
   if (path === "/about" || path === "/about/") return <About />;
   if (path === "/confirmed" || path === "/confirmed/") return <Confirmed />;
+  if (path === "/finance" || path === "/finance/") return <Finance />;
+  if (path === "/finance/report" || path === "/finance/report/") return <Finance reportMode={true} />;
   return <Landing />;
 }
