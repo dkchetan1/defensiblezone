@@ -420,6 +420,10 @@ export default function Finance(props) {
       if (d.conscience !== undefined) setConscience(d.conscience);
       if (d.pull !== undefined) setPull(d.pull);
       if (d.fluencies) setFluencies(d.fluencies);
+      if (d.promoUsed) {
+        setPromoUsed(true);
+        setTier(3);
+      }
       if (d.results) {
         setResults(d.results);
         setStep(6);
@@ -545,6 +549,7 @@ export default function Finance(props) {
   useEffect(
     function () {
       if (!reportMode) return;
+      var restoredAfterToken = false;
       var storedToken = localStorage.getItem("dz_token_finance");
       if (storedToken) {
         try {
@@ -554,6 +559,8 @@ export default function Finance(props) {
             var now = Math.floor(Date.now() / 1000);
             if (payload.exp > now && payload.product === "finance") {
               setTier(payload.tier || 2);
+              restoreReport();
+              restoredAfterToken = true;
             }
           }
         } catch (e) {}
@@ -563,9 +570,43 @@ export default function Finance(props) {
         window.location.href = "/finance";
         return;
       }
-      restoreReport();
+      if (!restoredAfterToken) {
+        restoreReport();
+      }
     },
     [] // eslint-disable-line react-hooks/exhaustive-deps -- mount-only report deep-link
+  );
+
+  useEffect(
+    function () {
+      if (reportMode) return;
+      try {
+        var saved = localStorage.getItem("dz_saved_report_finance");
+        if (!saved) return;
+        var d = JSON.parse(saved);
+        if (d.results && d.step === 6) {
+          if (d.sector) setSector(d.sector);
+          if (d.role) setRole(d.role);
+          if (d.seniority) setSeniority(d.seniority);
+          if (d.firmType) setFirmType(d.firmType);
+          if (d.companySize) setCompanySize(d.companySize);
+          if (d.workFocus) setWorkFocus(d.workFocus);
+          if (d.skills) setSkills(d.skills);
+          if (d.conscience !== undefined) setConscience(d.conscience);
+          if (d.pull !== undefined) setPull(d.pull);
+          if (d.fluencies) setFluencies(d.fluencies);
+          if (d.promoUsed) {
+            setPromoUsed(true);
+            setTier(3);
+          }
+          setResults(d.results);
+          setStep(6);
+        }
+      } catch (e) {
+        console.error("auto-restore error:", e);
+      }
+    },
+    [] // eslint-disable-line react-hooks/exhaustive-deps -- mount-only auto-restore
   );
 
   useEffect(function () {
@@ -1013,6 +1054,7 @@ export default function Finance(props) {
             conscience: conscience,
             pull: pull,
             fluencies: fluencies,
+            promoUsed: promoUsed,
             results: resultsObject,
           })
         );
@@ -2090,6 +2132,7 @@ export default function Finance(props) {
                     conscience: conscience,
                     pull: pull,
                     fluencies: fluencies,
+                    promoUsed: promoUsed,
                   })
                 );
               } catch (e) {}
