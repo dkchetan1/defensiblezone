@@ -1734,6 +1734,8 @@ export default function Finance(props) {
     ];
     var pullLabelTexts = ["Almost never", "Occasionally", "Sometimes", "Regularly", "Constantly"];
     var affinitySector = sector;
+    var consciencePct = (conscience / 10) * 100;
+    var pullPct = (pull / 10) * 100;
     return (
       <div style={{ background: S.bg, minHeight: "100vh", padding: "32px 20px", fontFamily: S.font }}>
         <style
@@ -1833,8 +1835,7 @@ export default function Finance(props) {
                 setConscience(snapToStop(Number(e.target.value)));
               }}
               style={{
-                background:
-                  "linear-gradient(to right, #7c3aed " + (conscience / 10) * 100 + "%, " + S.border + " " + (conscience / 10) * 100 + "%)",
+                background: `linear-gradient(to right, #7c3aed 0%, #7c3aed ${consciencePct}%, ${S.card2} ${consciencePct}%, ${S.card2} 100%)`,
               }}
             />
             <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10 }}>
@@ -1901,8 +1902,7 @@ export default function Finance(props) {
                 setPull(snapToStop(Number(e.target.value)));
               }}
               style={{
-                background:
-                  "linear-gradient(to right, #0891b2 " + (pull / 10) * 100 + "%, " + S.border + " " + (pull / 10) * 100 + "%)",
+                background: `linear-gradient(to right, #0891b2 0%, #0891b2 ${pullPct}%, ${S.card2} ${pullPct}%, ${S.card2} 100%)`,
               }}
             />
             <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10 }}>
@@ -1946,6 +1946,7 @@ export default function Finance(props) {
 
           {skills.map(function (skill) {
             var fluencyVal = fluencies[skill.id] !== undefined ? fluencies[skill.id] : getSeed(conscience, pull);
+            var pct = ((fluencies[skill.id] ?? getSeed(conscience, pull)) / 10) * 100;
             return (
               <div
                 key={skill.id}
@@ -1973,14 +1974,7 @@ export default function Finance(props) {
                     markAdjusted(skill.id);
                   }}
                   style={{
-                    background:
-                      "linear-gradient(to right, #d97706 " +
-                      (fluencyVal / 10) * 100 +
-                      "%, " +
-                      S.border +
-                      " " +
-                      (fluencyVal / 10) * 100 +
-                      "%)",
+                    background: `linear-gradient(to right, ${S.gold} 0%, ${S.gold} ${pct}%, ${S.card2} ${pct}%, ${S.card2} 100%)`,
                   }}
                 />
                 <div style={{ fontFamily: S.mono, fontSize: 12, color: S.gold, marginTop: 6 }}>{fluencyStopLabel(fluencyVal)}</div>
