@@ -365,6 +365,7 @@ export default function Finance(props) {
   var [results, setResults] = useState(null);
   var [resultsLoading, setResultsLoading] = useState(false);
   var [resultsError, setResultsError] = useState(null);
+  var [resultsLoadingMsg, setResultsLoadingMsg] = useState("Scoring your skills against market demand…");
   var [recommendations, setRecommendations] = useState(null);
   var [recsLoading, setRecsLoading] = useState(false);
   var [recsError, setRecsError] = useState(null);
@@ -385,6 +386,7 @@ export default function Finance(props) {
   void results;
   void resultsLoading;
   void resultsError;
+  void resultsLoadingMsg;
   void recommendations;
   void recsLoading;
   void recsError;
@@ -642,6 +644,10 @@ export default function Finance(props) {
     });
   }
 
+  function calcDZ(aff, aiR, mkt) {
+    return Math.min(100, Math.round(100 * Math.pow(aff / 10, 0.35) * Math.pow((10 - aiR) / 10, 0.40) * Math.pow(mkt / 10, 0.25)));
+  }
+
   function computeAffinity(c, p, f) {
     return Math.round((c * 0.35 + p * 0.35 + f * 0.3) * 10) / 10;
   }
@@ -745,10 +751,198 @@ export default function Finance(props) {
     }
   }
 
-  function fetchResults() {
-    setResultsLoading(true);
-    setStep(6);
+  async function fetchRecommendations(scoredSkills, overallDZOverride) {
+    setRecsLoading(true);
+    setRecsError(null);
+
+    var firmOpt = firmTypeOptions.find(function (o) {
+      return o.id === firmType;
+    });
+    var firmTypeLabel = firmOpt ? firmOpt.label : firmType;
+    var workFocusJoined = (workFocus || []).join(", ");
+    var overallDZ =
+      overallDZOverride !== undefined ? overallDZOverride : results && results.overallDZ !== undefined ? results.overallDZ : "";
+
+    var listLines = (scoredSkills || []).map(function (s, idx) {
+      var txt = s && s.text ? s.text : "";
+      var aiR = s && s.aiR !== undefined ? s.aiR : "";
+      var market = s && s.market !== undefined ? s.market : "";
+      return idx + 1 + ". " + txt + " — AI Risk: " + aiR + "/10, Market Demand: " + market + "/10";
+    });
+
+    var prompt =
+      "You are a senior finance career strategist.\n\nA " +
+      seniority +
+      " " +
+      role +
+      " at a " +
+      firmTypeLabel +
+      ",\norganization size " +
+      companySize +
+      ", focused on\n" +
+      workFocusJoined +
+      ", just completed a\nDefensible Zone assessment.\n\nTheir overall Defensible Zone score is " +
+      overallDZ +
+      "/100.\n\nSkills with scores:\n" +
+      listLines.join("\n") +
+      '\n\nFor each skill write a short personalized recommendation.\nBe direct and specific to their seniority, firm type, \nand focus area.\nDo not use the words threat, danger, or risk.\nDo not use emojis.\nFinance professionals appreciate precision over \nencouragement.\n\nReturn ONLY valid JSON:\n{"recommendations":[{"id":"s0",\n"headline":"5-7 word action headline",\n"action":"One specific thing to do in the next \n90 days.",\n"why":"One sentence on why this matters for \ntheir exact situation."}]}';
+
+    try {
+      var res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-6",
+          max_tokens: 2000,
+          messages: [{ role: "user", content: prompt }],
+        }),
+      });
+      var data = await res.json();
+      if (!data.content) throw new Error(data.error || "API error");
+      var raw = data.content
+        .map(function (b) {
+          return b.text || "";
+        })
+        .join("");
+      var m = raw.match(/\{[\s\S]*\}/);
+      if (!m) throw new Error("No JSON in response");
+      var parsed = JSON.parse(m[0]);
+      if (!parsed.recommendations || !Array.isArray(parsed.recommendations)) throw new Error("Invalid recommendations");
+      setRecommendations(parsed.recommendations);
+    } catch (e) {
+      setRecsError("Could not load recommendations.");
+    } finally {
+      setRecsLoading(false);
+    }
   }
+
+  async function fetchResults() {
+    var loadingMsgs = ["Scoring your skills against market demand…", "Running the numbers…", "Calculating your Defensible Zone™…"];
+    setResultsLoading(true);
+    setResultsLoadingMsg(loadingMsgs[0]);
+    setResultsError(null);
+    var msgIndex = 0;
+    var msgInterval = setInterval(function () {
+      msgIndex = (msgIndex + 1) % loadingMsgs.length;
+      setResultsLoadingMsg(loadingMsgs[msgIndex]);
+    }, 3000);
+
+    var sectorRow = FINANCE_SECTORS.find(function (s) {
+      return s.id === sector;
+    });
+    var sectorFullLabel = sectorRow ? sectorRow.title : sector;
+    var firmOpt = firmTypeOptions.find(function (o) {
+      return o.id === firmType;
+    });
+    var firmTypeLabel = firmOpt ? firmOpt.label : firmType;
+    var workFocusJoined = (workFocus || []).join(", ");
+
+    var skillsLines = (skills || []).map(function (sk, idx) {
+      var flu = fluencies[sk.id] !== undefined ? fluencies[sk.id] : 5;
+      return idx + 1 + ". " + sk.text + " (user fluency: " + flu + "/10)";
+    });
+
+    var prompt =
+      "You are a senior finance career strategist and AI labor \nmarket analyst.\n\nPROFESSIONAL PROFILE:\n- Sector: " +
+      sectorFullLabel +
+      "\n- Role: " +
+      role +
+      "\n- Seniority: " +
+      seniority +
+      "\n- Firm type: " +
+      firmTypeLabel +
+      "\n- Organization size: " +
+      companySize +
+      "\n- Work focus: " +
+      workFocusJoined +
+      "\n\nSKILLS TO SCORE:\n" +
+      skillsLines.join("\n") +
+      '\n\nFor each skill return:\n- ai_replaceability: float 0-10\n- market_demand: float 0-10\n- rationale: one precise sentence for this specific profile\n\nReturn ONLY valid JSON:\n{"skills":[{"id":"s0","aiR":7.5,"market":8.0,\n"rationale":"..."},{"id":"s1","aiR":3.0,\n"market":7.5,"rationale":"..."}]}';
+
+    try {
+      var res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-6",
+          max_tokens: 1500,
+          messages: [{ role: "user", content: prompt }],
+        }),
+      });
+      var data = await res.json();
+      if (!data.content) throw new Error(data.error || "API error");
+      var raw = data.content
+        .map(function (b) {
+          return b.text || "";
+        })
+        .join("");
+      var m = raw.match(/\{[\s\S]*\}/);
+      if (!m) throw new Error("No JSON in response");
+      var parsed = JSON.parse(m[0]);
+      if (!parsed.skills || !Array.isArray(parsed.skills)) throw new Error("Invalid skills");
+
+      var textById = {};
+      (skills || []).forEach(function (s) {
+        textById[s.id] = s.text;
+      });
+
+      var dzScores = [];
+      var scoredSkills = parsed.skills.map(function (s) {
+        var flu = fluencies[s.id] !== undefined ? fluencies[s.id] : 5;
+        var aff = computeAffinity(conscience, pull, flu);
+        var dz = calcDZ(aff, s.aiR, s.market);
+        dzScores.push(dz);
+        return Object.assign({}, s, { dz: dz, text: textById[s.id] || "" });
+      });
+
+      var overallDZ = 0;
+      if (dzScores.length > 0) {
+        overallDZ = Math.round(
+          dzScores.reduce(function (sum, v) {
+            return sum + v;
+          }, 0) / dzScores.length
+        );
+      }
+
+      var resultsObject = { overallDZ: overallDZ, skills: scoredSkills };
+
+      try {
+        localStorage.setItem(
+          "dz_saved_report_finance",
+          JSON.stringify({
+            step: 6,
+            sector: sector,
+            role: role,
+            seniority: seniority,
+            firmType: firmType,
+            companySize: companySize,
+            workFocus: workFocus,
+            skills: skills,
+            conscience: conscience,
+            pull: pull,
+            fluencies: fluencies,
+            results: resultsObject,
+          })
+        );
+      } catch (e) {}
+
+      setResults(resultsObject);
+      setResultsLoading(false);
+      setStep(6);
+      fetchRecommendations(resultsObject.skills, resultsObject.overallDZ);
+    } catch (e) {
+      setResultsError("Something went wrong scoring your skills. Please try again.");
+      setResultsLoading(false);
+    } finally {
+      clearInterval(msgInterval);
+    }
+  }
+
+  useEffect(function () {
+    if (results && (tier >= 2 || promoUsed) && recommendations === null && !recsLoading) {
+      fetchRecommendations(results.skills, results.overallDZ);
+    }
+  }, [results, tier, promoUsed]); // eslint-disable-line react-hooks/exhaustive-deps -- intentional gating deps
 
   useEffect(
     function () {
@@ -845,6 +1039,43 @@ export default function Finance(props) {
     },
     [step, skills.length] // eslint-disable-line react-hooks/exhaustive-deps -- fetchSkills closes over latest form state on step 4 entry
   );
+
+  if (resultsLoading) {
+    return (
+      <div
+        style={{
+          background: S.bg,
+          minHeight: "100vh",
+          fontFamily: S.font,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "32px 20px",
+        }}
+      >
+        <style
+          dangerouslySetInnerHTML={{
+            __html: "@keyframes dzFinanceDots{0%,100%{opacity:0.25}50%{opacity:1}}",
+          }}
+        />
+        <div style={{ textAlign: "center", maxWidth: 420 }}>
+          <div style={{ fontFamily: S.mono, fontSize: 12, color: S.gold, letterSpacing: "0.12em", marginBottom: 24, fontWeight: 600 }}>
+            DEFENSIBLE ZONE™ · FINANCE EDITION
+          </div>
+          <div style={{ fontFamily: S.serif, fontSize: 24, fontStyle: "italic", color: S.text, lineHeight: 1.45 }}>{resultsLoadingMsg}</div>
+          <div style={{ display: "flex", justifyContent: "center", gap: 6, marginTop: 18, fontFamily: S.mono, fontSize: 22, color: S.dim, lineHeight: 1 }}>
+            <span style={{ animation: "dzFinanceDots 1s ease-in-out infinite" }}>.</span>
+            <span style={{ animation: "dzFinanceDots 1s ease-in-out 0.2s infinite" }}>.</span>
+            <span style={{ animation: "dzFinanceDots 1s ease-in-out 0.4s infinite" }}>.</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (step === 6) {
+    return <div style={{ background: "#ffffff", minHeight: "100vh" }} />;
+  }
 
   if (step === 4 && error) {
     return (
@@ -1272,7 +1503,22 @@ export default function Finance(props) {
             <div style={{ fontFamily: S.mono, fontSize: 12, color: S.gold, letterSpacing: "0.12em", marginBottom: 24, fontWeight: 600 }}>
               DEFENSIBLE ZONE™ · FINANCE EDITION
             </div>
-            <div style={{ fontFamily: S.serif, fontSize: 24, fontStyle: "italic", color: S.text, lineHeight: 1.45 }}>{gateScoreMsg}</div>
+            {resultsError ? (
+              <div>
+                <div style={{ color: S.red, fontSize: 15, margin: "0 0 20px", lineHeight: 1.5 }}>{resultsError}</div>
+                <button
+                  type="button"
+                  onClick={function () {
+                    fetchResults();
+                  }}
+                  style={Object.assign({}, continueBtnBase, { marginTop: 0, width: "auto", minWidth: 200 })}
+                >
+                  Try again
+                </button>
+              </div>
+            ) : (
+              <div style={{ fontFamily: S.serif, fontSize: 24, fontStyle: "italic", color: S.text, lineHeight: 1.45 }}>{gateScoreMsg}</div>
+            )}
             <div style={{ display: "flex", justifyContent: "center", gap: 6, marginTop: 18, fontFamily: S.mono, fontSize: 22, color: S.dim, lineHeight: 1 }}>
               <span style={{ animation: "dzFinanceDots 1s ease-in-out infinite" }}>.</span>
               <span style={{ animation: "dzFinanceDots 1s ease-in-out 0.2s infinite" }}>.</span>
