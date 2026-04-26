@@ -1,6 +1,6 @@
 // ── CORS headers ────────────────────────────────────────────────────────────
 function setCors(res) {
-  res.setHeader("Access-Control-Allow-Origin", "https://defensiblezone.ai");
+  res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 }
@@ -84,7 +84,7 @@ export default async function handler(req, res) {
         </div>
       `.trim();
 
-      void fetch("https://api.resend.com/emails", {
+      const resendResponse = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${resendKey}`,
@@ -96,16 +96,13 @@ export default async function handler(req, res) {
           subject: "Your Defensible Zone™ Finance report is ready",
           html,
         }),
-      })
-        .then(async (r) => {
-          if (!r.ok) {
-            const text = await r.text().catch(() => "");
-            console.error("Resend error:", r.status, text);
-          }
-        })
-        .catch((err) => {
-          console.error("Resend fetch error:", err?.message ?? err);
-        });
+      });
+      if (!resendResponse.ok) {
+        const text = await resendResponse.text().catch(() => "");
+        console.error("Resend error:", resendResponse.status, text);
+      } else {
+        console.log("Resend email sent successfully to:", trimmedEmail);
+      }
     }
   } catch (err) {
     console.error("send-gate-email: unexpected resend error:", err?.message ?? err);
