@@ -25,6 +25,8 @@ const PRICE_TIER_MAP = {
   // Engineer & Doctor $34 PDF
   "price_engineer_34": 3,
   "price_doctor_34":   3,
+  "price_1TQHh9EtPD2ThqDe2e4WrgNA": 3,
+  "price_1TQHcQEtPD2ThqDeMU5Qqia7": 2,
 };
 
 // Fallback: if Price ID isn't mapped, infer tier from amount
