@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import PDFButton from "./PDFButton";
 
 // ── DATA CONSTANTS ──────────────────────────────────────────────────────
 var FINANCE_SECTORS = [
@@ -1074,7 +1075,569 @@ export default function Finance(props) {
   }
 
   if (step === 6) {
-    return <div style={{ background: "#ffffff", minHeight: "100vh" }} />;
+    function getScoreBand(score) {
+      if (score <= 30) return { label: "Minimal AI Exposure", color: S.green };
+      if (score <= 55) return { label: "Moderate AI Integration", color: S.blue };
+      if (score <= 74) return { label: "High AI Augmentation", color: S.gold };
+      return { label: "Extensive AI Transformation", color: S.red };
+    }
+
+    var firmOpt = firmTypeOptions.find(function (o) {
+      return o.id === firmType;
+    });
+    var firmTypeLabel = firmOpt ? firmOpt.label : firmType;
+
+    var showResultsError = resultsError !== null;
+    var showNullResultsError = !resultsLoading && results === null;
+    if (showResultsError || showNullResultsError) {
+      var msg = showResultsError ? resultsError : "Something went wrong. Please start over.";
+      return (
+        <div
+          style={{
+            background: S.bg,
+            minHeight: "100vh",
+            fontFamily: S.font,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "32px 20px",
+            boxSizing: "border-box",
+          }}
+        >
+          <div style={{ textAlign: "center", maxWidth: 420 }}>
+            <div style={{ color: S.red, fontSize: 15, margin: "0 0 20px", lineHeight: 1.5 }}>{msg}</div>
+            {showResultsError ? (
+              <button
+                type="button"
+                onClick={function () {
+                  setResultsError(null);
+                  fetchResults();
+                }}
+                style={Object.assign({}, continueBtnBase, { marginTop: 0, width: "auto", minWidth: 200 })}
+              >
+                Try again
+              </button>
+            ) : null}
+          </div>
+        </div>
+      );
+    }
+
+    var overallScore = results && typeof results.overallDZ === "number" ? results.overallDZ : 0;
+    var overallBand = getScoreBand(overallScore);
+
+    var skillsList = (results && Array.isArray(results.skills) ? results.skills : []).slice();
+    var mostDefensible = null;
+    var highestExposure = null;
+    skillsList.forEach(function (s) {
+      if (!s) return;
+      if (!mostDefensible || (typeof s.aiR === "number" && s.aiR < mostDefensible.aiR)) mostDefensible = s;
+      if (!highestExposure || (typeof s.aiR === "number" && s.aiR > highestExposure.aiR)) highestExposure = s;
+    });
+
+    function skillBandColor(s) {
+      var dz = s && typeof s.dz === "number" ? s.dz : 0;
+      return getScoreBand(dz).color;
+    }
+
+    return (
+      <div style={{ background: S.bg, minHeight: "100vh", padding: "32px 20px", fontFamily: S.font, boxSizing: "border-box" }}>
+        <style
+          dangerouslySetInnerHTML={{
+            __html:
+              "@media (max-width:640px){.dz-finance-highlights{flex-wrap:wrap !important;}.dz-finance-highlights > div{min-width:100% !important;}}@media print{.no-print{display:none !important;}}",
+          }}
+        />
+        <div style={{ maxWidth: 720, margin: "0 auto" }}>
+          <div id="dz-finance-report">
+            <a
+              className="no-print"
+              href="/"
+              style={{
+                display: "block",
+                marginBottom: 24,
+                fontFamily: S.mono,
+                fontSize: 12,
+                color: S.muted,
+                textDecoration: "none",
+              }}
+            >
+              ← DEFENSIBLE ZONE™
+            </a>
+
+            <div style={{ fontFamily: S.mono, fontSize: 12, color: S.gold, letterSpacing: "0.12em", marginBottom: 8, fontWeight: 600 }}>
+              DEFENSIBLE ZONE™ · FINANCE EDITION
+            </div>
+
+            <div style={{ textAlign: "center", marginTop: 16 }}>
+              <div
+                style={{
+                  width: 96,
+                  height: 96,
+                  borderRadius: "50%",
+                  border: "4px solid " + overallBand.color,
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  margin: "0 auto",
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: 32,
+                    fontWeight: 700,
+                    color: overallBand.color,
+                    lineHeight: 1,
+                    fontFamily: S.mono,
+                  }}
+                >
+                  {overallScore}
+                </span>
+                <span style={{ fontSize: 12, color: "#9ca3af", fontFamily: S.mono, marginTop: 2 }}>/ 100</span>
+              </div>
+              <div
+                style={{
+                  fontFamily: S.mono,
+                  fontSize: 16,
+                  fontWeight: 600,
+                  color: overallBand.color,
+                  textAlign: "center",
+                  marginTop: 8,
+                }}
+              >
+                {overallBand.label}
+              </div>
+            </div>
+
+            <div
+              style={{
+                background: "#ffffff",
+                border: "1px solid " + S.border,
+                borderRadius: 12,
+                padding: 24,
+                marginTop: 24,
+                marginBottom: 24,
+              }}
+            >
+              <div style={{ fontSize: 18, fontFamily: S.font, fontWeight: 600, color: S.text, marginBottom: 10 }}>What your score means</div>
+              <div style={{ fontSize: 15, color: S.dim, lineHeight: 1.7 }}>
+                Your {overallScore}/100 reflects how your specific skills as a {seniority} {role} at a {firmTypeLabel} balance against AI displacement risk and
+                market demand. A higher score means more of your work sits in areas where human judgment, relationships, and contextual expertise still command a
+                premium.
+              </div>
+              <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, fontStyle: "italic", marginTop: 12, lineHeight: 1.55 }}>
+                Role levels and sector classifications sourced from: BLS Occupational Outlook Handbook · Wall Street Prep · Mergers &amp; Acquisitions
+                (mergersandinquisitions.com) · Corporate Finance Institute · eFinancialCareers · CFA Institute
+              </div>
+            </div>
+
+            <div className="dz-finance-highlights" style={{ display: "flex", gap: 16, marginBottom: 24, flexWrap: "wrap" }}>
+              <div
+                style={{
+                  background: "#ffffff",
+                  border: "1px solid " + S.border,
+                  borderRadius: 12,
+                  padding: 20,
+                  flex: 1,
+                  minWidth: 240,
+                  borderLeft: "4px solid " + S.green,
+                  boxSizing: "border-box",
+                }}
+              >
+                <div style={{ fontFamily: S.mono, fontSize: 11, color: S.green, textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 700 }}>
+                  MOST DEFENSIBLE
+                </div>
+                <div style={{ fontSize: 16, fontWeight: 600, color: S.text, marginTop: 6, lineHeight: 1.35 }}>
+                  {mostDefensible && mostDefensible.text ? mostDefensible.text : "—"}
+                </div>
+                <div style={{ fontFamily: S.mono, fontSize: 14, color: S.green, marginTop: 6, fontWeight: 700 }}>
+                  DZ {mostDefensible && typeof mostDefensible.dz === "number" ? mostDefensible.dz : "—"}
+                </div>
+              </div>
+
+              <div
+                style={{
+                  background: "#ffffff",
+                  border: "1px solid " + S.border,
+                  borderRadius: 12,
+                  padding: 20,
+                  flex: 1,
+                  minWidth: 240,
+                  borderLeft: "4px solid " + S.red,
+                  boxSizing: "border-box",
+                }}
+              >
+                <div style={{ fontFamily: S.mono, fontSize: 11, color: S.red, textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 700 }}>
+                  HIGHEST AI EXPOSURE
+                </div>
+                <div style={{ fontSize: 16, fontWeight: 600, color: S.text, marginTop: 6, lineHeight: 1.35 }}>
+                  {highestExposure && highestExposure.text ? highestExposure.text : "—"}
+                </div>
+                <div style={{ fontFamily: S.mono, fontSize: 14, color: S.red, marginTop: 6, fontWeight: 700 }}>
+                  DZ {highestExposure && typeof highestExposure.dz === "number" ? highestExposure.dz : "—"}
+                </div>
+              </div>
+            </div>
+
+            <div
+              style={{
+                fontFamily: S.mono,
+                fontSize: 12,
+                color: S.muted,
+                textTransform: "uppercase",
+                letterSpacing: "0.08em",
+                marginBottom: 16,
+                fontWeight: 600,
+              }}
+            >
+              SKILL BREAKDOWN
+            </div>
+
+            {skillsList.map(function (skill, idx) {
+              var dz = skill && typeof skill.dz === "number" ? skill.dz : 0;
+              var col = skillBandColor(skill);
+              var aiRVal = skill && typeof skill.aiR === "number" ? skill.aiR : 0;
+              var mktVal = skill && typeof skill.market === "number" ? skill.market : 0;
+              return (
+                <div
+                  key={(skill && skill.id ? skill.id : "skill") + "-" + idx}
+                  style={{
+                    background: "#ffffff",
+                    border: "1px solid " + S.border,
+                    borderRadius: 12,
+                    padding: "20px 24px",
+                    marginBottom: 12,
+                    boxSizing: "border-box",
+                  }}
+                >
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, marginBottom: 12 }}>
+                    <div style={{ fontSize: 16, fontWeight: 600, color: S.text, lineHeight: 1.35, flex: 1, minWidth: 0 }}>
+                      {skill && skill.text ? skill.text : "—"}
+                    </div>
+                    <div
+                      style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: "50%",
+                        border: "2px solid " + col,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontFamily: S.mono,
+                        fontSize: 14,
+                        fontWeight: 700,
+                        color: col,
+                        flexShrink: 0,
+                        lineHeight: 1,
+                      }}
+                    >
+                      {dz}
+                    </div>
+                  </div>
+
+                  <div style={{ marginBottom: 10 }}>
+                    <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, marginBottom: 4 }}>AI Replaceability</div>
+                    <div style={{ height: 6, borderRadius: 3, background: S.card2, overflow: "hidden" }}>
+                      <div style={{ width: (aiRVal / 10) * 100 + "%", height: "100%", background: S.red, borderRadius: 3 }} />
+                    </div>
+                  </div>
+
+                  <div>
+                    <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, marginBottom: 4 }}>Market Demand</div>
+                    <div style={{ height: 6, borderRadius: 3, background: S.card2, overflow: "hidden" }}>
+                      <div style={{ width: (mktVal / 10) * 100 + "%", height: "100%", background: S.green, borderRadius: 3 }} />
+                    </div>
+                  </div>
+
+                  {skill && skill.rationale ? (
+                    <div style={{ fontSize: 14, color: S.dim, fontStyle: "italic", marginTop: 10, lineHeight: 1.55 }}>{skill.rationale}</div>
+                  ) : null}
+                </div>
+              );
+            })}
+
+            <div
+              style={{
+                fontFamily: S.mono,
+                fontSize: 12,
+                color: S.muted,
+                textTransform: "uppercase",
+                letterSpacing: "0.08em",
+                marginBottom: 16,
+                marginTop: 32,
+                fontWeight: 600,
+              }}
+            >
+              90-DAY ACTION PLAN
+            </div>
+
+            {tier === 0 && !promoUsed ? (
+              (function () {
+                var recs = Array.isArray(recommendations) ? recommendations : [];
+                var first = recs[0];
+                return (
+                  <div>
+                    {first ? (
+                      <div
+                        style={{
+                          background: "#ffffff",
+                          border: "1px solid " + S.border,
+                          borderRadius: 12,
+                          padding: "20px 24px",
+                          marginBottom: 12,
+                          boxSizing: "border-box",
+                        }}
+                      >
+                        <div style={{ fontSize: 16, fontWeight: 600, color: S.text, lineHeight: 1.3 }}>{first.headline}</div>
+                        <div style={{ fontSize: 15, color: S.dim, marginTop: 6, lineHeight: 1.6 }}>{first.action}</div>
+                        <div style={{ fontSize: 14, color: S.dim, fontStyle: "italic", marginTop: 4, lineHeight: 1.55 }}>{first.why}</div>
+                      </div>
+                    ) : null}
+
+                    <div style={{ position: "relative" }}>
+                      <div style={{ filter: "blur(4px)", userSelect: "none", pointerEvents: "none" }}>
+                        {[0, 1, 2].map(function (i) {
+                          return (
+                            <div
+                              key={i}
+                              style={{
+                                background: "#ffffff",
+                                border: "1px solid " + S.border,
+                                borderRadius: 12,
+                                padding: "20px 24px",
+                                marginBottom: 12,
+                                boxSizing: "border-box",
+                              }}
+                            >
+                              <div style={{ fontSize: 16, fontWeight: 600, color: S.text, lineHeight: 1.3 }}>Recommendation {i + 2}</div>
+                              <div style={{ fontSize: 15, color: S.dim, marginTop: 6, lineHeight: 1.6 }}>
+                                Specific action steps tailored to your role…
+                              </div>
+                              <div style={{ fontSize: 14, color: S.dim, fontStyle: "italic", marginTop: 4, lineHeight: 1.55 }}>
+                                Why this matters in your sector…
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      <div
+                        className="no-print"
+                        style={{
+                          position: "absolute",
+                          top: "50%",
+                          left: "50%",
+                          transform: "translate(-50%,-50%)",
+                          background: "#ffffff",
+                          borderRadius: 16,
+                          padding: 32,
+                          textAlign: "center",
+                          boxShadow: "0 8px 40px rgba(0,0,0,0.12)",
+                          maxWidth: 380,
+                          width: "calc(100% - 32px)",
+                          boxSizing: "border-box",
+                        }}
+                      >
+                        <div style={{ fontSize: 20, fontWeight: 600, color: S.text, marginBottom: 8 }}>Unlock Your Full Action Plan</div>
+                        <div style={{ fontSize: 14, color: S.dim, marginBottom: 24, lineHeight: 1.6 }}>
+                          See exactly what to do in the next 90 days — specific to your role, your firm, and where AI is moving in your sector.
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={function () {
+                            var url =
+                              "https://buy.stripe.com/00weVdbZocrp99z93UdQQ0a" +
+                              (gateEmail ? "?prefilled_email=" + encodeURIComponent(gateEmail) : "");
+                            window.open(url, "_blank", "noopener,noreferrer");
+                          }}
+                          style={{
+                            width: "100%",
+                            background: S.accent,
+                            color: "#ffffff",
+                            borderRadius: 10,
+                            padding: 14,
+                            fontSize: 15,
+                            fontWeight: 600,
+                            marginBottom: 10,
+                            cursor: "pointer",
+                            border: "none",
+                            fontFamily: S.font,
+                          }}
+                        >
+                          Unlock My Action Plan — $59
+                        </button>
+
+                        <div style={{ position: "relative" }}>
+                          <div
+                            style={{
+                              position: "absolute",
+                              top: -10,
+                              right: -10,
+                              background: S.gold,
+                              color: "#ffffff",
+                              borderRadius: 20,
+                              padding: "2px 10px",
+                              fontSize: 11,
+                              fontWeight: 700,
+                              fontFamily: S.mono,
+                            }}
+                          >
+                            BEST VALUE
+                          </div>
+                          <button
+                            type="button"
+                            onClick={function () {
+                              var url =
+                                "https://buy.stripe.com/7sYcN5bZobnlclL3JAdQQ0b" +
+                                (gateEmail ? "?prefilled_email=" + encodeURIComponent(gateEmail) : "");
+                              window.open(url, "_blank", "noopener,noreferrer");
+                            }}
+                            style={{
+                              width: "100%",
+                              background: S.gold,
+                              color: "#ffffff",
+                              borderRadius: 10,
+                              padding: 14,
+                              fontSize: 15,
+                              fontWeight: 600,
+                              cursor: "pointer",
+                              border: "none",
+                              fontFamily: S.font,
+                            }}
+                          >
+                            Unlock Plan + PDF — $64
+                          </button>
+                        </div>
+
+                        <div style={{ color: S.dim, fontSize: 13, margin: "16px 0", lineHeight: 1 }}>or</div>
+
+                        <div style={{ display: "flex", gap: 10, alignItems: "stretch" }}>
+                          <input
+                            type="text"
+                            placeholder="Have a promo code?"
+                            value={promoCode}
+                            onChange={function (e) {
+                              setPromoCode(e.target.value);
+                              if (promoError) setPromoError("");
+                            }}
+                            style={{
+                              flex: 1,
+                              minWidth: 0,
+                              padding: "12px 14px",
+                              fontSize: 15,
+                              fontFamily: S.mono,
+                              border: "1px solid " + S.border,
+                              borderRadius: 10,
+                              background: "#ffffff",
+                              color: S.text,
+                              boxSizing: "border-box",
+                            }}
+                          />
+                          <button
+                            type="button"
+                            onClick={function () {
+                              var v = (promoCode || "").trim().toUpperCase();
+                              if (v === "DZFRIEND" || v === "DZPREVIEW" || v === "DZTEST") {
+                                setPromoUsed(true);
+                                setTier(3);
+                                setPromoError("");
+                              } else {
+                                setPromoError("Invalid code");
+                              }
+                            }}
+                            style={{
+                              padding: "12px 20px",
+                              fontSize: 15,
+                              fontFamily: S.font,
+                              fontWeight: 600,
+                              background: S.accent,
+                              color: "#ffffff",
+                              border: "none",
+                              borderRadius: 10,
+                              cursor: "pointer",
+                            }}
+                          >
+                            Apply
+                          </button>
+                        </div>
+                        {promoError ? <div style={{ color: S.red, fontSize: 13, marginTop: 8 }}>{promoError}</div> : null}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()
+            ) : (
+              <div>
+                {recsLoading ? (
+                  <div style={{ fontSize: 14, color: S.dim, fontStyle: "italic", textAlign: "center", padding: "14px 0" }}>
+                    Generating your recommendations…
+                  </div>
+                ) : recsError ? (
+                  <div style={{ textAlign: "center", padding: "10px 0" }}>
+                    <div style={{ color: S.red, fontSize: 14, marginBottom: 12 }}>{recsError}</div>
+                    <button
+                      type="button"
+                      onClick={function () {
+                        fetchRecommendations(results.skills);
+                      }}
+                      style={Object.assign({}, continueBtnBase, { marginTop: 0, width: "auto", minWidth: 200 })}
+                    >
+                      Try again
+                    </button>
+                  </div>
+                ) : null}
+
+                {(Array.isArray(recommendations) ? recommendations : []).slice(0, 8).map(function (rec, idx) {
+                  return (
+                    <div
+                      key={(rec && rec.id ? rec.id : "rec") + "-" + idx}
+                      style={{
+                        background: "#ffffff",
+                        border: "1px solid " + S.border,
+                        borderRadius: 12,
+                        padding: "20px 24px",
+                        marginBottom: 12,
+                        boxSizing: "border-box",
+                      }}
+                    >
+                      <div style={{ fontFamily: S.mono, fontSize: 11, color: S.gold, fontWeight: 700 }}>{idx + 1}</div>
+                      <div style={{ fontSize: 16, fontWeight: 600, color: S.text, marginTop: 4, lineHeight: 1.3 }}>
+                        {rec && rec.headline ? rec.headline : "—"}
+                      </div>
+                      <div style={{ fontSize: 15, color: S.dim, marginTop: 8, lineHeight: 1.6 }}>{rec && rec.action ? rec.action : ""}</div>
+                      <div style={{ fontSize: 14, color: S.dim, fontStyle: "italic", marginTop: 4, lineHeight: 1.55 }}>{rec && rec.why ? rec.why : ""}</div>
+                    </div>
+                  );
+                })}
+
+                {tier >= 3 || promoUsed ? (
+                  <div className="no-print" style={{ marginTop: 12 }}>
+                    <PDFButton contentId="dz-finance-report" />
+                  </div>
+                ) : null}
+              </div>
+            )}
+
+            <div
+              style={{
+                marginTop: 48,
+                paddingTop: 24,
+                borderTop: "1px solid " + S.border,
+                fontFamily: S.mono,
+                fontSize: 11,
+                color: S.dim,
+                textAlign: "center",
+                lineHeight: 1.6,
+              }}
+            >
+              DEFENSIBLE ZONE™ is a product of Recursio Lab. All rights reserved.
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (step === 4 && error) {
