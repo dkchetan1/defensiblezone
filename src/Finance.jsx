@@ -343,7 +343,6 @@ var S = {
 
 export default function Finance(props) {
   var reportMode = Boolean(props && props.reportMode);
-  void reportMode;
 
   // --- STATE VARIABLES (declare at top) ---
   var [step, setStep] = useState(0);
@@ -405,6 +404,30 @@ export default function Finance(props) {
   void promoError;
   void promoUsed;
   void discountApplied;
+
+  function restoreReport() {
+    try {
+      var saved = localStorage.getItem("dz_saved_report_finance");
+      if (!saved) return;
+      var d = JSON.parse(saved);
+      if (d.sector) setSector(d.sector);
+      if (d.role) setRole(d.role);
+      if (d.seniority) setSeniority(d.seniority);
+      if (d.firmType) setFirmType(d.firmType);
+      if (d.companySize) setCompanySize(d.companySize);
+      if (d.workFocus) setWorkFocus(d.workFocus);
+      if (d.skills) setSkills(d.skills);
+      if (d.conscience !== undefined) setConscience(d.conscience);
+      if (d.pull !== undefined) setPull(d.pull);
+      if (d.fluencies) setFluencies(d.fluencies);
+      if (d.results) {
+        setResults(d.results);
+        setStep(6);
+      }
+    } catch (e) {
+      console.error("restoreReport error:", e);
+    }
+  }
 
   useEffect(function () {
     // --- ON-LOAD: DETECT gate_token IN URL ---
@@ -475,7 +498,75 @@ export default function Finance(props) {
           setGateLoading(false);
         });
     }
-  }, []);
+
+    var sessionId = params.get("session_id");
+    if (sessionId) {
+      window.history.replaceState({}, "", window.location.pathname);
+      (async function () {
+        try {
+          var r = await fetch("/api/verify-payment", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              session_id: sessionId,
+              product: "finance",
+            }),
+          });
+          var data = await r.json();
+          if (data && data.token) {
+            localStorage.setItem("dz_token_finance", data.token);
+            setTier(data.tier || 2);
+            restoreReport();
+          }
+        } catch (e) {
+          console.error("verify-payment error:", e);
+        }
+      })();
+    }
+
+    var storedToken = localStorage.getItem("dz_token_finance");
+    if (storedToken) {
+      try {
+        var parts = storedToken.split(".");
+        if (parts.length === 3) {
+          var payload = JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")));
+          var now = Math.floor(Date.now() / 1000);
+          if (payload.exp > now && payload.product === "finance") {
+            setTier(payload.tier || 2);
+            restoreReport();
+          }
+        }
+      } catch (e) {
+        console.error("token decode error:", e);
+      }
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- on-load only; restoreReport uses stable setters
+
+  useEffect(
+    function () {
+      if (!reportMode) return;
+      var storedToken = localStorage.getItem("dz_token_finance");
+      if (storedToken) {
+        try {
+          var parts = storedToken.split(".");
+          if (parts.length === 3) {
+            var payload = JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")));
+            var now = Math.floor(Date.now() / 1000);
+            if (payload.exp > now && payload.product === "finance") {
+              setTier(payload.tier || 2);
+            }
+          }
+        } catch (e) {}
+      }
+      var saved = localStorage.getItem("dz_saved_report_finance");
+      if (!saved) {
+        window.location.href = "/finance";
+        return;
+      }
+      restoreReport();
+    },
+    [] // eslint-disable-line react-hooks/exhaustive-deps -- mount-only report deep-link
+  );
 
   useEffect(function () {
     var link = document.createElement("link");
