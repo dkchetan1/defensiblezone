@@ -345,16 +345,7 @@ export default function Finance(props) {
   var reportMode = Boolean(props && props.reportMode);
 
   // --- STATE VARIABLES (declare at top) ---
-  var [step, setStep] = useState(function () {
-    try {
-      var saved = localStorage.getItem("dz_saved_report_finance");
-      if (saved) {
-        var d = JSON.parse(saved);
-        if (d && d.results && d.step === 6) return 6;
-      }
-    } catch (e) {}
-    return 0;
-  });
+  var [step, setStep] = useState(0);
   var [sector, setSector] = useState("");
   var [role, setRole] = useState("");
   var [seniority, setSeniority] = useState("");
