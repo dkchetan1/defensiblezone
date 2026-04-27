@@ -382,28 +382,6 @@ export default function Finance(props) {
   var [promoCode, setPromoCode] = useState("");
   var [promoError, setPromoError] = useState("");
   var [promoUsed, setPromoUsed] = useState(false);
-  var [discountApplied, setDiscountApplied] = useState(false);
-  void results;
-  void resultsLoading;
-  void resultsError;
-  void resultsLoadingMsg;
-  void recommendations;
-  void recsLoading;
-  void recsError;
-  void gateEmail;
-  void gateSent;
-  void gateVerified;
-  void gateError;
-  void gateLoading;
-  void showResend;
-  void gateOnDifferentDevice;
-  void gateInputFocused;
-  void gateScoreMsg;
-  void tier;
-  void promoCode;
-  void promoError;
-  void promoUsed;
-  void discountApplied;
 
   function restoreReport() {
     try {
@@ -549,7 +527,6 @@ export default function Finance(props) {
   useEffect(
     function () {
       if (!reportMode) return;
-      var restoredAfterToken = false;
       var storedToken = localStorage.getItem("dz_token_finance");
       if (storedToken) {
         try {
@@ -559,35 +536,7 @@ export default function Finance(props) {
             var now = Math.floor(Date.now() / 1000);
             if (payload.exp > now && payload.product === "finance") {
               setTier(payload.tier || 2);
-              // Always try to restore results if they exist in localStorage
-              try {
-                var savedReport = localStorage.getItem("dz_saved_report_finance");
-                if (savedReport) {
-                  var parsedReport = JSON.parse(savedReport);
-                  if (parsedReport && parsedReport.results &&
-                      parsedReport.step === 6) {
-                    if (parsedReport.sector) setSector(parsedReport.sector);
-                    if (parsedReport.role) setRole(parsedReport.role);
-                    if (parsedReport.seniority) setSeniority(parsedReport.seniority);
-                    if (parsedReport.firmType) setFirmType(parsedReport.firmType);
-                    if (parsedReport.companySize) setCompanySize(parsedReport.companySize);
-                    if (parsedReport.workFocus) setWorkFocus(parsedReport.workFocus);
-                    if (parsedReport.skills) setSkills(parsedReport.skills);
-                    if (parsedReport.conscience !== undefined) setConscience(parsedReport.conscience);
-                    if (parsedReport.pull !== undefined) setPull(parsedReport.pull);
-                    if (parsedReport.fluencies) setFluencies(parsedReport.fluencies);
-                    if (parsedReport.promoUsed) {
-                      setPromoUsed(true);
-                      setTier(3);
-                    }
-                    setResults(parsedReport.results);
-                    setStep(6);
-                  }
-                }
-              } catch (e) {
-                console.error("auto-restore error:", e);
-              }
-              restoredAfterToken = true;
+              restoreReport();
             }
           }
         } catch (e) {}
@@ -597,70 +546,8 @@ export default function Finance(props) {
         window.location.href = "/finance";
         return;
       }
-      if (!restoredAfterToken) {
-        // Always try to restore results if they exist in localStorage
-        try {
-          var savedReport = localStorage.getItem("dz_saved_report_finance");
-          if (savedReport) {
-            var parsedReport = JSON.parse(savedReport);
-            if (parsedReport && parsedReport.results &&
-                parsedReport.step === 6) {
-              if (parsedReport.sector) setSector(parsedReport.sector);
-              if (parsedReport.role) setRole(parsedReport.role);
-              if (parsedReport.seniority) setSeniority(parsedReport.seniority);
-              if (parsedReport.firmType) setFirmType(parsedReport.firmType);
-              if (parsedReport.companySize) setCompanySize(parsedReport.companySize);
-              if (parsedReport.workFocus) setWorkFocus(parsedReport.workFocus);
-              if (parsedReport.skills) setSkills(parsedReport.skills);
-              if (parsedReport.conscience !== undefined) setConscience(parsedReport.conscience);
-              if (parsedReport.pull !== undefined) setPull(parsedReport.pull);
-              if (parsedReport.fluencies) setFluencies(parsedReport.fluencies);
-              if (parsedReport.promoUsed) {
-                setPromoUsed(true);
-                setTier(3);
-              }
-              setResults(parsedReport.results);
-              setStep(6);
-            }
-          }
-        } catch (e) {
-          console.error("auto-restore error:", e);
-        }
-      }
     },
     [] // eslint-disable-line react-hooks/exhaustive-deps -- mount-only report deep-link
-  );
-
-  useEffect(
-    function () {
-      if (reportMode) return;
-      try {
-        var saved = localStorage.getItem("dz_saved_report_finance");
-        if (!saved) return;
-        var d = JSON.parse(saved);
-        if (d.results && d.step === 6) {
-          if (d.sector) setSector(d.sector);
-          if (d.role) setRole(d.role);
-          if (d.seniority) setSeniority(d.seniority);
-          if (d.firmType) setFirmType(d.firmType);
-          if (d.companySize) setCompanySize(d.companySize);
-          if (d.workFocus) setWorkFocus(d.workFocus);
-          if (d.skills) setSkills(d.skills);
-          if (d.conscience !== undefined) setConscience(d.conscience);
-          if (d.pull !== undefined) setPull(d.pull);
-          if (d.fluencies) setFluencies(d.fluencies);
-          if (d.promoUsed) {
-            setPromoUsed(true);
-            setTier(3);
-          }
-          setResults(d.results);
-          setStep(6);
-        }
-      } catch (e) {
-        console.error("auto-restore error:", e);
-      }
-    },
-    [] // eslint-disable-line react-hooks/exhaustive-deps -- mount-only auto-restore
   );
 
   useEffect(function () {
