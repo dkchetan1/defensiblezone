@@ -553,35 +553,6 @@ export default function Finance(props) {
         console.error("token decode error:", e);
       }
     }
-
-    // Always try to restore results if they exist in localStorage
-    try {
-      var savedReport = localStorage.getItem("dz_saved_report_finance");
-      if (savedReport) {
-        var parsedReport = JSON.parse(savedReport);
-        if (parsedReport && parsedReport.results &&
-            parsedReport.step === 6) {
-          if (parsedReport.sector) setSector(parsedReport.sector);
-          if (parsedReport.role) setRole(parsedReport.role);
-          if (parsedReport.seniority) setSeniority(parsedReport.seniority);
-          if (parsedReport.firmType) setFirmType(parsedReport.firmType);
-          if (parsedReport.companySize) setCompanySize(parsedReport.companySize);
-          if (parsedReport.workFocus) setWorkFocus(parsedReport.workFocus);
-          if (parsedReport.skills) setSkills(parsedReport.skills);
-          if (parsedReport.conscience !== undefined) setConscience(parsedReport.conscience);
-          if (parsedReport.pull !== undefined) setPull(parsedReport.pull);
-          if (parsedReport.fluencies) setFluencies(parsedReport.fluencies);
-          if (parsedReport.promoUsed) {
-            setPromoUsed(true);
-            setTier(3);
-          }
-          setResults(parsedReport.results);
-          setStep(6);
-        }
-      }
-    } catch (e) {
-      console.error("auto-restore error:", e);
-    }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps -- on-load only; restoreReport uses stable setters
 
   useEffect(
