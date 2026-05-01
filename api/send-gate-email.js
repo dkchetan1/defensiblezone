@@ -5,6 +5,29 @@ function setCors(res) {
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 }
 
+const PRODUCT_CONFIG = {
+  finance: {
+    path: "/finance",
+    subject: "Your Defensible Zone™ Finance report is ready",
+    productName: "Defensible Zone Finance Edition",
+  },
+  designer: {
+    path: "/designer",
+    subject: "Your Defensible Zone™ UX Professional report is ready",
+    productName: "Defensible Zone UX Professional Edition",
+  },
+  doctor: {
+    path: "/doctor",
+    subject: "Your Defensible Zone™ Physician report is ready",
+    productName: "Defensible Zone Doctor Edition",
+  },
+  engineer: {
+    path: "/engineer",
+    subject: "Your Defensible Zone™ Engineer report is ready",
+    productName: "Defensible Zone Engineer Edition",
+  },
+};
+
 function isValidEmail(email) {
   if (typeof email !== "string") return false;
   const trimmed = email.trim();
@@ -43,6 +66,14 @@ export default async function handler(req, res) {
     }
   }
 
+  const rawProduct = body && body.product;
+  const productKey =
+    typeof rawProduct === "string" && rawProduct.trim() ? rawProduct.trim().toLowerCase() : "";
+  const productCfg = productKey ? PRODUCT_CONFIG[productKey] : undefined;
+  if (!productCfg) {
+    return res.status(400).json({ error: "Unknown or missing product" });
+  }
+
   const { email } = body || {};
   if (!isValidEmail(email)) {
     return res.status(400).json({ error: "Invalid email" });
@@ -57,7 +88,7 @@ export default async function handler(req, res) {
     if (!secret) {
       console.warn("send-gate-email: JWT_SECRET not configured");
     } else {
-      token = jwt.sign({ email: trimmedEmail, product: "finance", type: "gate" }, secret, {
+      token = jwt.sign({ email: trimmedEmail, product: productKey, type: "gate" }, secret, {
         expiresIn: "24h",
       });
     }
@@ -70,7 +101,7 @@ export default async function handler(req, res) {
     if (!resendKey) {
       console.warn("send-gate-email: RESEND_API_KEY not configured (skipping email)");
     } else {
-      const link = `https://app.defensiblezone.ai/finance?gate_token=${encodeURIComponent(token)}`;
+      const link = `https://app.defensiblezone.ai${productCfg.path}?gate_token=${encodeURIComponent(token)}`;
       const html = `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; line-height: 1.5;">
           <h1 style="margin: 0 0 12px 0; font-size: 22px;">Your report is ready</h1>
@@ -93,7 +124,7 @@ export default async function handler(req, res) {
         body: JSON.stringify({
           from: "noreply@defensiblezone.ai",
           to: [trimmedEmail],
-          subject: "Your Defensible Zone™ Finance report is ready",
+          subject: productCfg.subject,
           html,
         }),
       });
@@ -118,7 +149,7 @@ export default async function handler(req, res) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email: trimmedEmail,
-          productName: "Defensible Zone Finance Edition",
+          productName: productCfg.productName,
         }),
       }).catch((err) => {
         console.error("send-gate-email: subscribe fetch error:", err?.message ?? err);
@@ -130,4 +161,3 @@ export default async function handler(req, res) {
 
   return res.status(200).json({ success: true });
 }
-

@@ -622,7 +622,7 @@ export default function Designer() {
       await fetch("/api/send-gate-email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: gateEmail }),
+        body: JSON.stringify({ email: gateEmail, product: "designer" }),
       });
       setGateSent(true);
       setGateLoading(false);

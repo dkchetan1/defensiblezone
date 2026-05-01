@@ -1081,7 +1081,7 @@ export default function Finance(props) {
       await fetch("/api/send-gate-email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: gateEmail }),
+        body: JSON.stringify({ email: gateEmail, product: "finance" }),
       });
       setGateSent(true);
       setGateLoading(false);
