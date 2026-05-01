@@ -539,7 +539,7 @@ export default function Designer() {
       });
       setLandscape(parsed.landscape);
       setSkills(loaded);
-      setStep(2);
+      setStep(3);
     } catch (e) {
       setError("Something went wrong — please try again.");
     } finally {
@@ -763,7 +763,7 @@ export default function Designer() {
           <button
             type="button"
             onClick={function () {
-              setStep(2);
+              setStep(1);
             }}
             style={{
               fontFamily: S.mono,
