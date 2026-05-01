@@ -1058,6 +1058,18 @@ export default function Designer() {
           <button
             type="button"
             onClick={function () {
+              try {
+                localStorage.setItem("dz_saved_report_designer", JSON.stringify({
+                  designerType: designerType,
+                  seniority: seniority,
+                  companySize: companySize,
+                  workFocus: workFocus,
+                  skills: skills,
+                  conscience: conscience,
+                  pull: pull,
+                  fluencies: fluencies,
+                }));
+              } catch (e) {}
               setStep(4);
             }}
             style={{
