@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from "react";
-import EmailGate from "./EmailGate";
 import PDFButton from "./PDFButton";
 
 // ── ENGINEER TYPES ─────────────────────────────────────────────────────
@@ -228,6 +227,14 @@ export default function Engineer() {
   var [promoCode, setPromoCode]           = useState("");
   var [promoError, setPromoError]         = useState("");
   var [discountApplied, setDiscountApplied] = useState(false);
+  var [gateEmail, setGateEmail] = useState("");
+  var [gateSent, setGateSent] = useState(false);
+  var [gateVerified, setGateVerified] = useState(false);
+  var [gateError, setGateError] = useState("");
+  var [gateLoading, setGateLoading] = useState(false);
+  var [showResend, setShowResend] = useState(false);
+  var [gateOnDifferentDevice, setGateOnDifferentDevice] = useState(false);
+  var [gateInputFocused, setGateInputFocused] = useState(false);
 
   function markAdjusted(skillId) {
     adjustedSkillsRef.current.add(skillId);
@@ -245,6 +252,94 @@ export default function Engineer() {
       return next;
     });
   }, [conscience, pull, skills]);
+
+  useEffect(function () {
+    var params = new URLSearchParams(window.location.search);
+    var gateToken = params.get("gate_token");
+    if (!gateToken) return;
+    window.history.replaceState({}, "", window.location.pathname);
+    setGateLoading(true);
+    (async function () {
+      try {
+        var res = await fetch("/api/verify-gate-token", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token: gateToken }),
+        });
+        var data = await res.json();
+        if (data && data.valid === true) {
+          var savedRaw = null;
+          try {
+            savedRaw = localStorage.getItem("dz_saved_report_engineer");
+          } catch (e) {}
+          if (savedRaw) {
+            try {
+              var s = JSON.parse(savedRaw);
+              if (s.devType) setDevType(s.devType);
+              if (s.devTypeOther !== undefined) setDevTypeOther(s.devTypeOther);
+              if (s.seniority) setSeniority(s.seniority);
+              if (s.workContexts) setWorkContexts(s.workContexts);
+              if (s.customContexts) setCustomContexts(s.customContexts);
+              if (s.companyType) setCompanyType(s.companyType);
+              if (s.skills) {
+                setSkills(s.skills);
+                var adj = new Set(s.skills.map(function (sk) { return sk.id; }));
+                adjustedSkillsRef.current = adj;
+                setAdjustedSkills(new Set(adj));
+              }
+              if (s.fluencies) setFluencies(s.fluencies);
+              if (s.conscience !== undefined) setConscience(s.conscience);
+              if (s.pull !== undefined) setPull(s.pull);
+            } catch (e) {}
+            setGateVerified(true);
+            setStep(3);
+          } else {
+            setStep(0);
+            setGateOnDifferentDevice(true);
+          }
+          setGateLoading(false);
+          return;
+        }
+        if (data && data.valid === false && data.reason === "expired") {
+          setGateError("expired");
+        } else {
+          setGateError("invalid");
+        }
+        setStep(3);
+        setGateLoading(false);
+      } catch (e) {
+        setGateError("invalid");
+        setStep(3);
+        setGateLoading(false);
+      }
+    })();
+  }, []);
+
+  useEffect(
+    function () {
+      if (step === 3 && gateVerified === true && skills.length > 0) {
+        runAnalysis();
+      }
+    },
+    [step, gateVerified, skills]
+  );
+
+  useEffect(
+    function () {
+      if (!gateSent) {
+        setShowResend(false);
+        return;
+      }
+      setShowResend(false);
+      var t = setTimeout(function () {
+        setShowResend(true);
+      }, 20000);
+      return function () {
+        clearTimeout(t);
+      };
+    },
+    [gateSent]
+  );
 
   // ── Payment verification ────────────────────────────────────────────────
   // On mount: (1) check localStorage for existing valid token,
@@ -515,6 +610,36 @@ export default function Engineer() {
     }
   }
 
+  function isValidEmail(email) {
+    var at = email.indexOf("@");
+    if (at === -1) return false;
+    return email.indexOf(".", at + 1) !== -1;
+  }
+
+  async function handleGateSubmit() {
+    var trimmed = gateEmail.trim();
+    if (!isValidEmail(trimmed)) {
+      setGateError("Please enter a valid email address.");
+      return;
+    }
+    setGateError("");
+    setGateLoading(true);
+    try {
+      var res = await fetch("/api/send-gate-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: trimmed, product: "engineer" }),
+      });
+      var data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Request failed");
+      setGateSent(true);
+    } catch (e) {
+      setGateError("Something went wrong. Please try again.");
+    } finally {
+      setGateLoading(false);
+    }
+  }
+
   async function runAnalysis() {
     setLoading(true); setLoadingMsg("Scoring your Defensible Zone™…"); setError(null);
     var profile = buildProfile(devType, devTypeOther, seniority, workContexts, companyType);
@@ -605,6 +730,40 @@ export default function Engineer() {
           <p style={{fontFamily:S.mono,fontSize:12,color:S.muted,margin:0,letterSpacing:"0.08em"}}>
             {step===0?"READING YOUR ENGINEERING LANDSCAPE · GENERATING SKILL MAP":"SCORING AI REPLACEABILITY · CALIBRATING TO YOUR LEVEL"}
           </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (gateLoading) {
+    return (
+      <div
+        style={{
+          background: S.bg,
+          minHeight: "100vh",
+          fontFamily: S.font,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "32px 20px",
+          boxSizing: "border-box",
+        }}
+      >
+        <style
+          dangerouslySetInnerHTML={{
+            __html: "@keyframes dzEngineerGateDots{0%,100%{opacity:0.25}50%{opacity:1}}",
+          }}
+        />
+        <div style={{ textAlign: "center", maxWidth: 420 }}>
+          <div style={{ fontFamily: S.mono, fontSize: 12, color: S.gold, letterSpacing: "0.12em", marginBottom: 24, fontWeight: 600 }}>
+            DEFENSIBLE ZONE™ · SOFTWARE ENGINEER EDITION
+          </div>
+          <div style={{ fontFamily: S.serif, fontSize: 24, fontStyle: "italic", color: S.text, lineHeight: 1.45 }}>Verifying your email…</div>
+          <div style={{ display: "flex", justifyContent: "center", gap: 6, marginTop: 18, fontFamily: S.mono, fontSize: 22, color: S.dim, lineHeight: 1 }}>
+            <span style={{ animation: "dzEngineerGateDots 1s ease-in-out infinite" }}>.</span>
+            <span style={{ animation: "dzEngineerGateDots 1s ease-in-out 0.2s infinite" }}>.</span>
+            <span style={{ animation: "dzEngineerGateDots 1s ease-in-out 0.4s infinite" }}>.</span>
+          </div>
         </div>
       </div>
     );
@@ -1006,50 +1165,289 @@ export default function Engineer() {
   }
 
   if (step === 3) {
-    return (
-      <div
-        style={{
-          background: "#f8f9fc",
-          minHeight: "100vh",
-          fontFamily: S.mono,
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          padding: "32px 20px",
-          boxSizing: "border-box",
-        }}
-      >
-        <div
-          style={{
-            fontSize: 11,
-            color: "#d97706",
-            letterSpacing: "0.12em",
-            fontWeight: 600,
-            textAlign: "center",
-            marginBottom: 24,
-          }}
-        >
-          DEFENSIBLE ZONE™ · SOFTWARE ENGINEER EDITION
+    var fullScreenCenter = {
+      background: S.bg,
+      minHeight: "100vh",
+      fontFamily: S.font,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: "32px 20px",
+      boxSizing: "border-box",
+    };
+    var gateTryAgainBtn = {
+      width: "100%",
+      marginTop: 20,
+      background: S.accent,
+      color: "#ffffff",
+      border: "none",
+      borderRadius: 10,
+      padding: 16,
+      fontSize: 16,
+      fontWeight: 600,
+      fontFamily: S.mono,
+      letterSpacing: "0.06em",
+      cursor: "pointer",
+    };
+
+    if (gateVerified) {
+      return (
+        <div style={fullScreenCenter}>
+          <style
+            dangerouslySetInnerHTML={{
+              __html: "@keyframes dzEngineerGateDots{0%,100%{opacity:0.25}50%{opacity:1}}",
+            }}
+          />
+          <div style={{ textAlign: "center", maxWidth: 420 }}>
+            <div style={{ fontFamily: S.mono, fontSize: 12, color: S.gold, letterSpacing: "0.12em", marginBottom: 24, fontWeight: 600 }}>
+              DEFENSIBLE ZONE™ · SOFTWARE ENGINEER EDITION
+            </div>
+            {error ? (
+              <div>
+                <div style={{ color: S.red, fontSize: 15, margin: "0 0 20px", lineHeight: 1.5 }}>{error}</div>
+                <button
+                  type="button"
+                  onClick={function () {
+                    runAnalysis();
+                  }}
+                  style={Object.assign({}, gateTryAgainBtn, { marginTop: 0, width: "auto", minWidth: 200 })}
+                >
+                  Try again
+                </button>
+              </div>
+            ) : (
+              <div style={{ fontFamily: S.serif, fontSize: 24, fontStyle: "italic", color: S.text, lineHeight: 1.45 }}>Scoring your Defensible Zone™…</div>
+            )}
+            <div style={{ display: "flex", justifyContent: "center", gap: 6, marginTop: 18, fontFamily: S.mono, fontSize: 22, color: S.dim, lineHeight: 1 }}>
+              <span style={{ animation: "dzEngineerGateDots 1s ease-in-out infinite" }}>.</span>
+              <span style={{ animation: "dzEngineerGateDots 1s ease-in-out 0.2s infinite" }}>.</span>
+              <span style={{ animation: "dzEngineerGateDots 1s ease-in-out 0.4s infinite" }}>.</span>
+            </div>
+            <div
+              style={{
+                fontSize: 10,
+                color: S.dim,
+                textAlign: "center",
+                marginTop: 32,
+                maxWidth: 480,
+                lineHeight: 1.5,
+              }}
+            >
+              DEFENSIBLE ZONE™ is a trademark of its creator. All rights reserved.
+            </div>
+          </div>
         </div>
-        <EmailGate
-          productName="Defensible Zone™ Engineer Edition"
-          onUnlock={function () {
-            runAnalysis();
-          }}
-        />
-        {error && <p style={{color:S.red,fontSize:14,marginTop:16,textAlign:"center",fontFamily:S.mono,fontWeight:600,maxWidth:480}}>{error}</p>}
-        <div
-          style={{
-            fontSize: 10,
-            color: S.dim,
-            textAlign: "center",
-            marginTop: 32,
-            maxWidth: 480,
-            lineHeight: 1.5,
-          }}
-        >
-          DEFENSIBLE ZONE™ is a trademark of its creator. All rights reserved.
+      );
+    }
+
+    var formShell = {
+      background: S.bg,
+      minHeight: "100vh",
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: "32px 20px",
+      boxSizing: "border-box",
+      fontFamily: S.font,
+    };
+    var card = { maxWidth: 480, width: "100%", margin: "0 auto", textAlign: "center" };
+
+    if (gateSent) {
+      return (
+        <div style={formShell}>
+          <div style={card}>
+            <div
+              style={{
+                fontFamily: S.mono,
+                fontSize: 12,
+                color: S.gold,
+                letterSpacing: "0.12em",
+                textTransform: "uppercase",
+                marginBottom: 24,
+                fontWeight: 600,
+              }}
+            >
+              CHECK YOUR INBOX
+            </div>
+
+            <div style={{ fontFamily: S.serif, fontSize: 34, fontStyle: "italic", color: S.text, marginBottom: 10, lineHeight: 1.15 }}>
+              We sent you a link.
+            </div>
+
+            <div style={{ fontSize: 16, color: S.dim, lineHeight: 1.75, marginBottom: 20 }}>
+              Click the button in the email from noreply@defensiblezone.ai to open your results. Check your spam folder if you do not see it within a minute.
+            </div>
+
+            <div
+              style={{
+                display: "inline-block",
+                padding: "4px 14px",
+                borderRadius: 20,
+                background: S.card2,
+                border: "1px solid " + S.border,
+                fontFamily: S.mono,
+                fontSize: 13,
+                color: S.muted,
+                marginBottom: 28,
+              }}
+            >
+              {gateEmail}
+            </div>
+
+            {showResend ? (
+              <button
+                type="button"
+                onClick={function () {
+                  setShowResend(false);
+                  handleGateSubmit();
+                }}
+                style={{
+                  background: "transparent",
+                  border: "1px solid " + S.border,
+                  borderRadius: 10,
+                  padding: "10px 20px",
+                  fontFamily: S.mono,
+                  fontSize: 12,
+                  color: S.muted,
+                  cursor: "pointer",
+                }}
+              >
+                Resend the link
+              </button>
+            ) : null}
+
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={function () {
+                setGateEmail("");
+                setGateSent(false);
+                setGateError("");
+                setGateVerified(false);
+                setGateLoading(false);
+                setShowResend(false);
+                setStep(0);
+              }}
+              onKeyDown={function (e) {
+                if (e.key !== "Enter" && e.key !== " ") return;
+                setGateEmail("");
+                setGateSent(false);
+                setGateError("");
+                setGateVerified(false);
+                setGateLoading(false);
+                setShowResend(false);
+                setStep(0);
+              }}
+              style={{ fontFamily: S.mono, fontSize: 12, color: S.dim, cursor: "pointer", marginTop: 24 }}
+            >
+              Start over
+            </div>
+
+            <div
+              style={{
+                fontSize: 10,
+                color: S.dim,
+                textAlign: "center",
+                marginTop: 32,
+                maxWidth: 480,
+                lineHeight: 1.5,
+              }}
+            >
+              DEFENSIBLE ZONE™ is a trademark of its creator. All rights reserved.
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    var showExpiredInvalid = gateError === "expired" || gateError === "invalid";
+    return (
+      <div style={formShell}>
+        <div style={card}>
+          <div style={{ fontFamily: S.mono, fontSize: 12, color: S.gold, letterSpacing: "0.12em", marginBottom: 24, fontWeight: 600 }}>
+            DEFENSIBLE ZONE™ · SOFTWARE ENGINEER EDITION
+          </div>
+
+          <div style={{ fontFamily: S.serif, fontSize: 34, fontStyle: "italic", color: S.text, marginBottom: 10, lineHeight: 1.15 }}>
+            Your report is ready.
+          </div>
+
+          <div style={{ fontSize: 16, color: S.dim, lineHeight: 1.75, marginBottom: 28 }}>
+            Enter your email to unlock it. We&apos;ll send you a link.
+          </div>
+
+          {gateError === "expired" ? (
+            <div style={{ color: S.red, fontSize: 14, marginBottom: 12 }}>This link has expired. Enter your email to get a new one.</div>
+          ) : null}
+          {gateError === "invalid" ? (
+            <div style={{ color: S.red, fontSize: 14, marginBottom: 12 }}>Something went wrong. Please enter your email to continue.</div>
+          ) : null}
+
+          <input
+            type="email"
+            placeholder="your@email.com"
+            value={gateEmail}
+            disabled={gateLoading}
+            onFocus={function () {
+              setGateInputFocused(true);
+            }}
+            onBlur={function () {
+              setGateInputFocused(false);
+            }}
+            onChange={function (e) {
+              setGateEmail(e.target.value);
+              if (showExpiredInvalid) setGateError("");
+            }}
+            style={{
+              width: "100%",
+              padding: "14px 16px",
+              fontSize: 16,
+              fontFamily: S.font,
+              border: gateLoading ? "1px solid " + S.border : gateInputFocused ? "1px solid " + S.gold : "1px solid " + S.border,
+              borderRadius: 10,
+              outline: "none",
+              boxSizing: "border-box",
+              background: "#ffffff",
+              color: S.text,
+            }}
+          />
+
+          {gateError && !showExpiredInvalid ? <div style={{ color: S.red, fontSize: 13, marginTop: 8 }}>{gateError}</div> : null}
+
+          <button
+            type="button"
+            onClick={handleGateSubmit}
+            disabled={gateLoading}
+            style={{
+              width: "100%",
+              padding: 14,
+              fontSize: 16,
+              fontWeight: 600,
+              fontFamily: S.font,
+              background: gateLoading ? "#e5a820" : S.gold,
+              color: "#ffffff",
+              border: "none",
+              borderRadius: 10,
+              cursor: gateLoading ? "not-allowed" : "pointer",
+              marginTop: 12,
+            }}
+          >
+            Send me my report
+          </button>
+
+          <div
+            style={{
+              fontSize: 10,
+              color: S.dim,
+              textAlign: "center",
+              marginTop: 32,
+              maxWidth: 480,
+              lineHeight: 1.5,
+            }}
+          >
+            DEFENSIBLE ZONE™ is a trademark of its creator. All rights reserved.
+          </div>
         </div>
       </div>
     );
