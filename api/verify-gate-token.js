@@ -1,6 +1,6 @@
 // ── CORS headers ────────────────────────────────────────────────────────────
 function setCors(res) {
-  res.setHeader("Access-Control-Allow-Origin", "https://defensiblezone.ai");
+  res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 }
@@ -36,7 +36,8 @@ export default async function handler(req, res) {
       return res.status(200).json({ valid: false, reason: "invalid" });
     }
 
-    if (decoded.type !== "gate" || decoded.product !== "finance") {
+    const VALID_PRODUCTS = ["finance", "designer", "doctor", "engineer"];
+    if (decoded.type !== "gate" || !VALID_PRODUCTS.includes(decoded.product)) {
       return res.status(200).json({ valid: false, reason: "invalid" });
     }
 
