@@ -982,7 +982,23 @@ export default function Engineer() {
           </div>
           <div style={{display:"flex",gap:12,marginBottom:12}}>
             <button onClick={function(){setStep(1);}} style={{flex:1,background:"transparent",border:"1px solid "+S.border,color:S.muted,borderRadius:12,padding:"15px 0",fontSize:14,fontFamily:S.mono,cursor:"pointer",letterSpacing:"0.06em",fontWeight:600}}>← BACK</button>
-            <PrimaryBtn onClick={function(){ setStep(3); }} disabled={skills.length===0} style={{flex:3}}>ANALYZE MY DEFENSIBLE ZONE™ →</PrimaryBtn>
+            <PrimaryBtn onClick={function(){
+              try {
+                localStorage.setItem("dz_saved_report_engineer", JSON.stringify({
+                  devType,
+                  devTypeOther,
+                  seniority,
+                  workContexts,
+                  customContexts,
+                  companyType,
+                  skills,
+                  conscience,
+                  pull,
+                  fluencies
+                }));
+              } catch (_e) {}
+              setStep(3);
+            }} disabled={skills.length===0} style={{flex:3}}>ANALYZE MY DEFENSIBLE ZONE™ →</PrimaryBtn>
           </div>
         </div>
       </div>
