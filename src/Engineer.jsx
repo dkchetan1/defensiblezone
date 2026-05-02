@@ -295,7 +295,7 @@ export default function Engineer() {
         if (s.benchmark) setBenchmark(s.benchmark);
         if (s.results) {
           setResults(s.results);
-          setStep(3);
+          setStep(4);
         }
       } catch (e) {}
     }
@@ -548,7 +548,7 @@ export default function Engineer() {
       });
       setBenchmark(parsed.benchmark);
       setResults(enriched);
-      setStep(3);
+      setStep(4);
       try {
         localStorage.setItem("dz_saved_report_engineer", JSON.stringify({
           step: 3, devType, seniority, workContexts, customContexts: [],
@@ -578,7 +578,7 @@ export default function Engineer() {
           });
           setBenchmark(parsed2.benchmark);
           setResults(enriched2);
-          setStep(3);
+          setStep(4);
           try {
             localStorage.setItem("dz_saved_report_engineer", JSON.stringify({
               step: 3, devType, seniority, workContexts, customContexts,
@@ -982,14 +982,14 @@ export default function Engineer() {
           </div>
           <div style={{display:"flex",gap:12,marginBottom:12}}>
             <button onClick={function(){setStep(1);}} style={{flex:1,background:"transparent",border:"1px solid "+S.border,color:S.muted,borderRadius:12,padding:"15px 0",fontSize:14,fontFamily:S.mono,cursor:"pointer",letterSpacing:"0.06em",fontWeight:600}}>← BACK</button>
-            <PrimaryBtn onClick={function(){ setStep(2.5); }} disabled={skills.length===0} style={{flex:3}}>ANALYZE MY DEFENSIBLE ZONE™ →</PrimaryBtn>
+            <PrimaryBtn onClick={function(){ setStep(3); }} disabled={skills.length===0} style={{flex:3}}>ANALYZE MY DEFENSIBLE ZONE™ →</PrimaryBtn>
           </div>
         </div>
       </div>
     );
   }
 
-  if (step === 2.5) {
+  if (step === 3) {
     return (
       <div
         style={{
@@ -1040,7 +1040,7 @@ export default function Engineer() {
   }
 
   // ── STEP 3: RESULTS ────────────────────────────────────────────────────
-  if (step === 3 && results) {
+  if (step === 4 && results) {
     var profile3 = buildProfile(devType, devTypeOther, seniority, workContexts, companyType);
     var skillDZs = skills.map(function (skill) {
       var r = results.find(function (x) {
