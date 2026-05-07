@@ -580,7 +580,7 @@ export default function Engineer() {
       (profile.companyLabel || "not specified") +
       " focused on " +
       wcStr +
-      " just completed a Defensible Zone assessment.\n\nFor each skill below, write a short personalized recommendation. Be specific to their seniority and context. Use plain English. Do not use the word 'threat'. Be direct and practical. For each recommendation, assign a phase (1, 2, or 3) based only on feasibility of starting — not score. Phase 1: actions the engineer can begin immediately within their current role, no org setup needed. Phase 2: actions requiring some setup, coordination, or organizational standing. Phase 3: actions with longer horizons that lock in gains from phases 1 and 2.\n\nSkills with scores:\n" +
+      " just completed a Defensible Zone assessment.\n\nFor each skill below, write a short personalized recommendation. Be specific to their seniority and context. Use plain English. Do not use the word 'threat'. Be direct and practical. For each recommendation, assign a phase (1, 2, or 3) based strictly on feasibility of starting — not score. You MUST distribute cards across all three phases. Do not put more than 4 cards in any single phase. Phase 1 (Weeks 1–4): actions the engineer can begin immediately within their current role — no org setup, no stakeholder buy-in, just personal execution. Phase 2 (Weeks 5–8): actions requiring some coordination with others, organizational standing, or setup before starting. Phase 3 (Weeks 9–12): actions with longer horizons — structural moves that only land after Phase 1 and 2 have created the conditions. Aim for roughly 3 cards in Phase 1, 3 in Phase 2, and 2 in Phase 3.\n\nSkills with scores:\n" +
       skillSummary +
       '\n\nReturn ONLY valid JSON, no preamble:\n{"recommendations":[{"id":"s0","headline":"5-7 word action headline","action":"One specific thing to do in the next 90 days.","why":"One sentence on why this matters for their exact situation.","phase":1},{"id":"s1","headline":"...","action":"...","why":"...","phase":1},{"id":"s2","headline":"...","action":"...","why":"...","phase":1},{"id":"s3","headline":"...","action":"...","why":"...","phase":1},{"id":"s4","headline":"...","action":"...","why":"...","phase":1},{"id":"s5","headline":"...","action":"...","why":"...","phase":1},{"id":"s6","headline":"...","action":"...","why":"...","phase":1},{"id":"s7","headline":"...","action":"...","why":"...","phase":1}]}';
     try {
@@ -1960,30 +1960,42 @@ export default function Engineer() {
                         return (
                           <div key={groupIdx}>
                             {group.meta && (
-                              <div style={{ marginBottom: 16, marginTop: groupIdx === 0 ? 0 : 32 }}>
-                                <div
-                                  style={{
-                                    fontFamily: S.mono,
-                                    fontSize: 11,
-                                    fontWeight: 700,
-                                    letterSpacing: "0.1em",
-                                    color: S.purple,
-                                    textTransform: "uppercase",
-                                    marginBottom: 6,
-                                  }}
-                                >
-                                  {group.meta.label}
+                              <div style={{
+                                marginBottom: 20,
+                                marginTop: groupIdx === 0 ? 0 : 48,
+                                background: "linear-gradient(135deg, #1a1d2e 0%, #2d1f6e 100%)",
+                                borderRadius: 14,
+                                padding: "22px 24px",
+                              }}>
+                                <div style={{
+                                  fontFamily: S.mono,
+                                  fontSize: 11,
+                                  fontWeight: 700,
+                                  letterSpacing: "0.14em",
+                                  color: "rgba(255,255,255,0.55)",
+                                  textTransform: "uppercase",
+                                  marginBottom: 8,
+                                }}>
+                                  {group.meta.label.split("—")[0].trim()}
                                 </div>
-                                <div
-                                  style={{
-                                    fontSize: 14,
-                                    color: "#6b7280",
-                                    lineHeight: 1.6,
-                                    fontStyle: "italic",
-                                    borderLeft: "3px solid " + S.purple,
-                                    paddingLeft: 12,
-                                  }}
-                                >
+                                <div style={{
+                                  fontFamily: S.serif,
+                                  fontSize: 22,
+                                  fontWeight: 700,
+                                  color: "#ffffff",
+                                  lineHeight: 1.2,
+                                  marginBottom: 10,
+                                }}>
+                                  {group.meta.label.split("—").slice(1).join("—").trim()}
+                                </div>
+                                <div style={{
+                                  fontSize: 14,
+                                  color: "rgba(255,255,255,0.7)",
+                                  lineHeight: 1.65,
+                                  borderTop: "1px solid rgba(255,255,255,0.15)",
+                                  paddingTop: 10,
+                                  fontStyle: "italic",
+                                }}>
                                   {group.meta.framing}
                                 </div>
                               </div>
