@@ -1956,61 +1956,92 @@ export default function Engineer() {
                     </div>
 
                     <div style={{ marginBottom: showUpsell ? 0 : 28 }}>
-                      {recList.map(function (rec, idx) {
-                        var skillRow = skillDZs.find(function (sd) {
-                          return sd.id === rec.id;
-                        });
-                        var skillName =
-                          (skills.find(function (sk) {
-                            return sk.id === rec.id;
-                          }) || {}).text || rec.id;
-                        var dzForBar = skillRow ? skillRow.dz : 0;
-                        var barColor = dzBarColor(dzForBar);
-                        var lockedBlur = !showAllRecs && idx > 0;
+                      {(hasPhases ? groupedByPhase : [{ meta: null, recs: recList }]).map(function (group, groupIdx) {
                         return (
-                          <div
-                            key={rec.id + "-" + idx}
-                            style={{
-                              display: "flex",
-                              background: "#ffffff",
-                              border: "1px solid #d0d7e8",
-                              borderRadius: 12,
-                              marginBottom: 12,
-                              overflow: "hidden",
-                              filter: lockedBlur ? "blur(5px)" : "none",
-                              userSelect: lockedBlur ? "none" : "auto",
-                              pointerEvents: lockedBlur ? "none" : "auto",
-                            }}
-                          >
-                            <div style={{ width: 4, background: barColor, flexShrink: 0 }} />
-                            <div style={{ padding: "20px 22px", flex: 1, minWidth: 0 }}>
-                              <div
-                                style={{
-                                  fontFamily: S.mono,
-                                  fontSize: 12,
-                                  textTransform: "uppercase",
-                                  letterSpacing: "0.06em",
-                                  color: "#6b7280",
-                                  marginBottom: 8,
-                                }}
-                              >
-                                {skillName}
+                          <div key={groupIdx}>
+                            {group.meta && (
+                              <div style={{ marginBottom: 16, marginTop: groupIdx === 0 ? 0 : 32 }}>
+                                <div
+                                  style={{
+                                    fontFamily: S.mono,
+                                    fontSize: 11,
+                                    fontWeight: 700,
+                                    letterSpacing: "0.1em",
+                                    color: S.purple,
+                                    textTransform: "uppercase",
+                                    marginBottom: 6,
+                                  }}
+                                >
+                                  {group.meta.label}
+                                </div>
+                                <div
+                                  style={{
+                                    fontSize: 14,
+                                    color: "#6b7280",
+                                    lineHeight: 1.6,
+                                    fontStyle: "italic",
+                                    borderLeft: "3px solid " + S.purple,
+                                    paddingLeft: 12,
+                                  }}
+                                >
+                                  {group.meta.framing}
+                                </div>
                               </div>
-                              <div
-                                style={{
-                                  fontFamily: S.serif,
-                                  fontSize: 20,
-                                  fontWeight: 600,
-                                  color: S.text,
-                                  lineHeight: 1.3,
-                                  marginBottom: 10,
-                                }}
-                              >
-                                {rec.headline || "—"}
-                              </div>
-                              <div style={{ fontSize: 16, color: S.text, lineHeight: 1.6, marginBottom: 10 }}>{rec.action}</div>
-                              <div style={{ fontSize: 14, color: "#6b7280", fontStyle: "italic", lineHeight: 1.55 }}>{rec.why}</div>
-                            </div>
+                            )}
+                            {group.recs.map(function (rec, idx) {
+                              var globalIdx = recList.indexOf(rec);
+                              var skillRow = skillDZs.find(function (sd) { return sd.id === rec.id; });
+                              var skillName = (skills.find(function (sk) { return sk.id === rec.id; }) || {}).text || rec.id;
+                              var dzForBar = skillRow ? skillRow.dz : 0;
+                              var barColor = dzBarColor(dzForBar);
+                              var lockedBlur = !showAllRecs && globalIdx > 0;
+                              return (
+                                <div
+                                  key={rec.id + "-" + globalIdx}
+                                  style={{
+                                    display: "flex",
+                                    background: "#ffffff",
+                                    border: "1px solid #d0d7e8",
+                                    borderRadius: 12,
+                                    marginBottom: 12,
+                                    overflow: "hidden",
+                                    filter: lockedBlur ? "blur(5px)" : "none",
+                                    userSelect: lockedBlur ? "none" : "auto",
+                                    pointerEvents: lockedBlur ? "none" : "auto",
+                                  }}
+                                >
+                                  <div style={{ width: 4, background: barColor, flexShrink: 0 }} />
+                                  <div style={{ padding: "20px 22px", flex: 1, minWidth: 0 }}>
+                                    <div
+                                      style={{
+                                        fontFamily: S.mono,
+                                        fontSize: 12,
+                                        textTransform: "uppercase",
+                                        letterSpacing: "0.06em",
+                                        color: "#6b7280",
+                                        marginBottom: 8,
+                                      }}
+                                    >
+                                      {skillName}
+                                    </div>
+                                    <div
+                                      style={{
+                                        fontFamily: S.serif,
+                                        fontSize: 20,
+                                        fontWeight: 600,
+                                        color: S.text,
+                                        lineHeight: 1.3,
+                                        marginBottom: 10,
+                                      }}
+                                    >
+                                      {rec.headline || "—"}
+                                    </div>
+                                    <div style={{ fontSize: 16, color: S.text, lineHeight: 1.6, marginBottom: 10 }}>{rec.action}</div>
+                                    <div style={{ fontSize: 14, color: "#6b7280", fontStyle: "italic", lineHeight: 1.55 }}>{rec.why}</div>
+                                  </div>
+                                </div>
+                              );
+                            })}
                           </div>
                         );
                       })}
