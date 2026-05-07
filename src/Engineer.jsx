@@ -1888,6 +1888,33 @@ export default function Engineer() {
                   }
                 });
                 var recList = rawRecs.slice(0, 8);
+                var PHASE_META = [
+                  {
+                    phase: 1,
+                    label: "Phase 1 — Weeks 1–4 — Establish your position",
+                    framing: "Start here because these actions require nothing beyond your own time and existing role — no buy-in, no setup, just execution.",
+                  },
+                  {
+                    phase: 2,
+                    label: "Phase 2 — Weeks 5–8 — Build visible authority",
+                    framing: "These actions become available once you have momentum from Phase 1 — they require coordination, organizational standing, or others to notice you.",
+                  },
+                  {
+                    phase: 3,
+                    label: "Phase 3 — Weeks 9–12 — Compound and protect",
+                    framing: "These are the moves that lock in what you built — longer-horizon actions that only land well after the earlier phases have created the conditions for them.",
+                  },
+                ];
+
+                var groupedByPhase = PHASE_META.map(function (meta) {
+                  return {
+                    meta: meta,
+                    recs: recList.filter(function (r) { return r.phase === meta.phase; }),
+                  };
+                }).filter(function (g) { return g.recs.length > 0; });
+
+                var hasPhases = groupedByPhase.length > 1;
+
                 var showAllRecs = tier >= 2 || promoUsed;
                 var showUpsell = tier === 0 && !promoUsed;
 
