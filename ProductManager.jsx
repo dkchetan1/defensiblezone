@@ -395,7 +395,163 @@ export default function ProductManager() {
     );
   }
 
+  var visibleCtx = getVisibleContexts();
+  var hiddenCount = WORK_CONTEXTS.length - visibleCtx.length;
+  var progressPct = ((step + 1) / 6) * 100;
+
+  if (step === 0) {
+    return (
+      <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font, padding: "40px 20px", boxSizing: "border-box" }}>
+        <style
+          dangerouslySetInnerHTML={{
+            __html:
+              "@media(max-width:520px){.pm-sel-grid{grid-template-columns:1fr!important}} .pm-sel-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}",
+          }}
+        />
+        <div style={{ maxWidth: 680, margin: "0 auto" }}>
+          <div style={{ marginBottom: 28 }}>
+            <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.1em", marginBottom: 10, fontWeight: 600 }}>
+              STEP 1 OF 6 — YOUR PROFILE
+            </div>
+            <div style={{ height: 4, background: S.border, borderRadius: 2, overflow: "hidden" }}>
+              <div style={{ height: "100%", width: progressPct + "%", background: S.accent, borderRadius: 2, transition: "width 0.25s ease" }} />
+            </div>
+          </div>
+
+          <div style={{ marginBottom: 32 }}>
+            <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.1em", marginBottom: 12, fontWeight: 600 }}>
+              DEFENSIBLE ZONE™ — PRODUCT MANAGER EDITION
+            </div>
+            <h1 style={{ fontFamily: S.serif, fontSize: 32, color: S.text, margin: "0 0 12px", lineHeight: 1.2, fontWeight: 600 }}>
+              Find your defensible zone.
+            </h1>
+            <p style={{ color: S.dim, fontSize: 16, lineHeight: 1.7, margin: 0 }}>
+              AI is reshaping product management faster than most PMs realize. This assessment maps exactly where you're exposed — and where you're protected.
+            </p>
+          </div>
+
+          <Card style={{ marginBottom: 12 }}>
+            <Label>WHAT TYPE OF PM ARE YOU?</Label>
+            <div className="pm-sel-grid">
+              {PM_TYPES.map(function (pt) {
+                var active = pmType === pt.id;
+                return (
+                  <SelBtn key={pt.id} active={active} onClick={function () { setPmType(pt.id); }}>
+                    <div style={{ fontWeight: 700, fontSize: 16 }}>{pt.label}</div>
+                    <div style={{ fontSize: 13, color: active ? "rgba(255,255,255,0.75)" : S.dim, marginTop: 4, lineHeight: 1.4 }}>{pt.desc}</div>
+                  </SelBtn>
+                );
+              })}
+            </div>
+          </Card>
+
+          <Card style={{ marginBottom: 12 }}>
+            <Label>YOUR LEVEL</Label>
+            <div className="pm-sel-grid">
+              {SENIORITY_LEVELS.map(function (sl) {
+                var active = seniority === sl.id;
+                return (
+                  <SelBtn key={sl.id} active={active} onClick={function () { setSeniority(sl.id); }}>
+                    <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 2 }}>{sl.label}</div>
+                    <div style={{ fontSize: 13, color: active ? "rgba(255,255,255,0.75)" : S.dim }}>{sl.sub}</div>
+                    <div style={{ fontSize: 12, color: active ? "rgba(255,255,255,0.6)" : S.dim, marginTop: 3, lineHeight: 1.35 }}>{sl.note}</div>
+                  </SelBtn>
+                );
+              })}
+            </div>
+          </Card>
+
+          <Card style={{ marginBottom: 12 }}>
+            <Label>WHERE DO YOU WORK?</Label>
+            <div className="pm-sel-grid">
+              {COMPANY_TYPES.map(function (ct) {
+                var active = companyType === ct.id;
+                return (
+                  <SelBtn key={ct.id} active={active} onClick={function () { setCompanyType(companyType === ct.id ? "" : ct.id); }}>
+                    <div style={{ fontWeight: 700, fontSize: 16 }}>{ct.label}</div>
+                    <div style={{ fontSize: 13, color: active ? "rgba(255,255,255,0.75)" : S.dim, marginTop: 4 }}>{ct.sub}</div>
+                  </SelBtn>
+                );
+              })}
+            </div>
+          </Card>
+
+          <Card style={{ marginBottom: 20 }}>
+            <Label>WHAT DOES YOUR WORK ACTUALLY INVOLVE? (pick all that apply)</Label>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 10 }}>
+              {visibleCtx.map(function (wc) {
+                return <Chip key={wc.id} label={wc.label} active={workContexts.indexOf(wc.id) !== -1} onClick={function () { toggleCtx(wc.id); }} />;
+              })}
+            </div>
+            {pmType && !showAllCtx && hiddenCount > 0 && (
+              <button
+                type="button"
+                onClick={function () { setShowAllCtx(true); }}
+                style={{ background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: S.mono, fontSize: 12, color: S.blue, textDecoration: "underline", marginBottom: 10 }}
+              >
+                Show all contexts
+              </button>
+            )}
+            <p style={{ fontFamily: S.mono, fontSize: 12, color: S.dim, margin: 0 }}>Select at least one</p>
+          </Card>
+
+          <PrimaryBtn onClick={function () { setStep(1); }} disabled={!canProceed}>
+            ANALYSE MY PROFILE →
+          </PrimaryBtn>
+
+          <div style={{ marginTop: 40, paddingTop: 24, borderTop: "1px solid " + S.border, textAlign: "center" }}>
+            <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, lineHeight: 1.7, marginBottom: 8 }}>
+              DEFENSIBLE ZONE™ is a product of Recursion Lab
+            </div>
+            <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, lineHeight: 1.7 }}>
+              <a href="https://defensiblezone.ai" style={{ color: S.blue, textDecoration: "none" }}>
+                defensiblezone.ai
+              </a>
+              {" · "}
+              <a href="mailto:support@recursiolab.com" style={{ color: S.blue, textDecoration: "none" }}>
+                Questions or feedback → support@recursiolab.com
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div style={{ fontFamily: S.mono, padding: 40, color: S.text }}>ProductManager — building…</div>
+    <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font, padding: "40px 20px", boxSizing: "border-box" }}>
+      <div style={{ maxWidth: 680, margin: "0 auto" }}>
+        <div style={{ marginBottom: 28 }}>
+          <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.1em", marginBottom: 10, fontWeight: 600 }}>
+            STEP {step + 1} OF 6
+          </div>
+          <div style={{ height: 4, background: S.border, borderRadius: 2, overflow: "hidden" }}>
+            <div style={{ height: "100%", width: progressPct + "%", background: S.accent, borderRadius: 2 }} />
+          </div>
+        </div>
+        {step > 0 && (
+          <button
+            type="button"
+            onClick={resetAll}
+            style={{
+              background: "transparent",
+              border: "1px solid " + S.border,
+              color: S.dim,
+              borderRadius: 10,
+              padding: "10px 16px",
+              fontFamily: S.mono,
+              fontSize: 12,
+              fontWeight: 600,
+              cursor: "pointer",
+              letterSpacing: "0.06em",
+              marginBottom: 24,
+            }}
+          >
+            START OVER
+          </button>
+        )}
+        <p style={{ fontFamily: S.mono, fontSize: 14, color: S.dim }}>Step {step + 1} — coming in a later prompt.</p>
+      </div>
+    </div>
   );
 }
