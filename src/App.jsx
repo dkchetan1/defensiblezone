@@ -4,6 +4,7 @@ import Engineer from "./Engineer.jsx";
 import Doctor from "./Doctor.jsx";
 import Designer from "./Designer.jsx";
 import Finance from "./Finance.jsx";
+import ProductManager from "./ProductManager.jsx";
 import About from "./About.jsx";
 import Confirmed from "./Confirmed.jsx";
 
@@ -34,5 +35,6 @@ export default function App() {
   if (path === "/confirmed" || path === "/confirmed/") return <Confirmed />;
   if (path === "/finance" || path === "/finance/") return <Finance />;
   if (path === "/finance/report" || path === "/finance/report/") return <Finance reportMode={true} />;
+  if (path === "/pm" || path === "/pm/") return <ProductManager />;
   return <Landing />;
 }

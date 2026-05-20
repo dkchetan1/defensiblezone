@@ -273,21 +273,15 @@ export default function ProductManager() {
               if (s.seniority) setSeniority(s.seniority);
               if (s.companyType) setCompanyType(s.companyType);
               if (s.workContexts) setWorkContexts(s.workContexts);
-              if (s.skills) {
-                setSkills(s.skills);
-                var adj = new Set(s.skills.map(function (sk) { return sk.id; }));
-                adjustedSkillsRef.current = adj;
-                setAdjustedSkills(new Set(adj));
-              }
-              if (s.fluencies) setFluencies(s.fluencies);
               if (s.conscience !== undefined) setConscience(s.conscience);
               if (s.pull !== undefined) setPull(s.pull);
               if (s.gateEmail) setGateEmail(s.gateEmail);
             } catch (e) {}
+            if (data.email) setGateEmail(data.email);
             setGateVerified(true);
-            setStep(3);
+            setStep(2);
           } else {
-            setStep(0);
+            setStep(1);
             setGateOnDifferentDevice(true);
           }
           setGateLoading(false);
@@ -298,15 +292,53 @@ export default function ProductManager() {
         } else {
           setGateError("invalid");
         }
-        setStep(3);
+        setStep(1);
         setGateLoading(false);
       } catch (e) {
         setGateError("invalid");
-        setStep(3);
+        setStep(1);
         setGateLoading(false);
       }
     })();
   }, []);
+
+  useEffect(
+    function () {
+      if (!gateSent) {
+        setShowResend(false);
+        return;
+      }
+      setShowResend(false);
+      var t = setTimeout(function () {
+        setShowResend(true);
+      }, 30000);
+      return function () {
+        clearTimeout(t);
+      };
+    },
+    [gateSent]
+  );
+
+  useEffect(
+    function () {
+      if (step !== 1) return;
+      try {
+        localStorage.setItem(
+          "dz_saved_report_pm",
+          JSON.stringify({
+            pmType: pmType,
+            seniority: seniority,
+            companyType: companyType,
+            workContexts: workContexts,
+            conscience: conscience,
+            pull: pull,
+            gateEmail: gateEmail,
+          })
+        );
+      } catch (_e) {}
+    },
+    [step, pmType, seniority, companyType, workContexts, conscience, pull, gateEmail]
+  );
 
   useEffect(function() {
     if (!pmType) return;
@@ -332,6 +364,37 @@ export default function ProductManager() {
     setWorkContexts(function(prev) {
       return prev.indexOf(id) !== -1 ? prev.filter(function(x) { return x !== id; }) : prev.concat([id]);
     });
+  }
+
+  function isValidEmail(email) {
+    var at = email.indexOf("@");
+    if (at === -1) return false;
+    return email.indexOf(".", at + 1) !== -1;
+  }
+
+  async function handleGateSubmit() {
+    var trimmed = gateEmail.trim();
+    if (!isValidEmail(trimmed)) {
+      setGateError("Please enter a valid email address.");
+      return;
+    }
+    setGateError("");
+    setGateLoading(true);
+    try {
+      var res = await fetch("/api/send-gate-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: trimmed, product: "pm" }),
+      });
+      var data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Request failed");
+      setGateEmail(trimmed);
+      setGateSent(true);
+    } catch (e) {
+      setGateError("Something went wrong. Please try again.");
+    } finally {
+      setGateLoading(false);
+    }
   }
 
   function resetAll() {
@@ -513,6 +576,260 @@ export default function ProductManager() {
               </a>
             </div>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (step === 1) {
+    var gateTryAgainBtn = {
+      width: "100%",
+      marginTop: 16,
+      background: S.accent,
+      color: "#ffffff",
+      border: "none",
+      borderRadius: 10,
+      padding: 16,
+      fontSize: 16,
+      fontWeight: 600,
+      fontFamily: S.mono,
+      letterSpacing: "0.06em",
+      cursor: "pointer",
+    };
+    var showExpiredInvalid = gateError === "expired" || gateError === "invalid";
+
+    return (
+      <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font, padding: "40px 20px", boxSizing: "border-box" }}>
+        <style
+          dangerouslySetInnerHTML={{
+            __html: "@keyframes dzPMGateSpin{to{transform:rotate(360deg)}}",
+          }}
+        />
+        <div style={{ maxWidth: 680, margin: "0 auto" }}>
+          <div style={{ marginBottom: 28 }}>
+            <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.1em", marginBottom: 10, fontWeight: 600 }}>
+              STEP 2 OF 6 — VERIFY YOUR EMAIL
+            </div>
+            <div style={{ height: 4, background: S.border, borderRadius: 2, overflow: "hidden" }}>
+              <div style={{ height: "100%", width: progressPct + "%", background: S.accent, borderRadius: 2, transition: "width 0.25s ease" }} />
+            </div>
+          </div>
+
+          {gateOnDifferentDevice ? (
+            <Card style={{ marginBottom: 20, textAlign: "center" }}>
+              <p style={{ fontSize: 16, color: S.text, lineHeight: 1.7, margin: "0 0 20px" }}>
+                It looks like you opened the link on a different device. Please start again on this device.
+              </p>
+              <button
+                type="button"
+                onClick={resetAll}
+                style={gateTryAgainBtn}
+              >
+                Start over
+              </button>
+            </Card>
+          ) : gateSent ? (
+            <Card style={{ textAlign: "center" }}>
+              <Label style={{ color: S.gold, marginBottom: 16 }}>CHECK YOUR INBOX</Label>
+              <h2 style={{ fontFamily: S.serif, fontSize: 28, color: S.text, margin: "0 0 12px", lineHeight: 1.2, fontWeight: 600 }}>
+                Almost there.
+              </h2>
+              <p style={{ fontSize: 16, color: S.dim, lineHeight: 1.75, margin: "0 0 20px" }}>
+                We sent a link to{" "}
+                <span style={{ fontFamily: S.mono, fontSize: 14, color: S.muted, fontWeight: 600 }}>{gateEmail}</span>. Click it to continue your assessment.
+              </p>
+              {showResend ? (
+                <button
+                  type="button"
+                  onClick={function () {
+                    setShowResend(false);
+                    handleGateSubmit();
+                  }}
+                  style={{
+                    background: "transparent",
+                    border: "1px solid " + S.border,
+                    borderRadius: 10,
+                    padding: "10px 20px",
+                    fontFamily: S.mono,
+                    fontSize: 12,
+                    color: S.muted,
+                    cursor: "pointer",
+                    marginBottom: 8,
+                  }}
+                >
+                  Resend the link
+                </button>
+              ) : null}
+              <div style={{ marginTop: 20 }}>
+                <button
+                  type="button"
+                  onClick={function () {
+                    setGateSent(false);
+                    setShowResend(false);
+                    setGateError("");
+                  }}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    padding: 0,
+                    cursor: "pointer",
+                    fontFamily: S.mono,
+                    fontSize: 12,
+                    color: S.blue,
+                    textDecoration: "underline",
+                  }}
+                >
+                  Use a different email
+                </button>
+              </div>
+            </Card>
+          ) : (
+            <Card>
+              <Label>ONE QUICK STEP</Label>
+              <h2 style={{ fontFamily: S.serif, fontSize: 28, color: S.text, margin: "0 0 12px", lineHeight: 1.2, fontWeight: 600 }}>
+                Where should we send your results?
+              </h2>
+              <p style={{ color: S.dim, fontSize: 16, lineHeight: 1.7, margin: "0 0 24px" }}>
+                Enter your email to start the assessment. Your free results will be emailed to you as a PDF when you&apos;re done.
+              </p>
+
+              {gateError === "expired" ? (
+                <div style={{ color: S.red, fontSize: 14, marginBottom: 12, lineHeight: 1.5 }}>
+                  That link has expired. Please request a new one.
+                </div>
+              ) : null}
+              {gateError === "invalid" ? (
+                <div style={{ color: S.red, fontSize: 14, marginBottom: 12, lineHeight: 1.5 }}>
+                  That link isn&apos;t valid. Please try again.
+                </div>
+              ) : null}
+
+              <input
+                type="email"
+                placeholder="your@email.com"
+                value={gateEmail}
+                disabled={gateLoading}
+                onFocus={function () {
+                  setGateInputFocused(true);
+                }}
+                onBlur={function () {
+                  setGateInputFocused(false);
+                }}
+                onChange={function (e) {
+                  setGateEmail(e.target.value);
+                  if (showExpiredInvalid) setGateError("");
+                }}
+                style={{
+                  width: "100%",
+                  padding: "14px 16px",
+                  fontSize: 16,
+                  fontFamily: S.font,
+                  border: gateLoading ? "1px solid " + S.border : gateInputFocused ? "1px solid " + S.gold : "1px solid " + S.border,
+                  borderRadius: 10,
+                  outline: "none",
+                  boxSizing: "border-box",
+                  background: "#ffffff",
+                  color: S.text,
+                }}
+              />
+
+              {gateError && !showExpiredInvalid ? (
+                <div style={{ color: S.red, fontSize: 13, marginTop: 8 }}>{gateError}</div>
+              ) : null}
+
+              <button
+                type="button"
+                onClick={handleGateSubmit}
+                disabled={gateLoading}
+                style={{
+                  width: "100%",
+                  padding: 14,
+                  fontSize: 16,
+                  fontWeight: 600,
+                  fontFamily: S.font,
+                  background: gateLoading ? "#e5a820" : S.gold,
+                  color: "#ffffff",
+                  border: "none",
+                  borderRadius: 10,
+                  cursor: gateLoading ? "not-allowed" : "pointer",
+                  marginTop: 12,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 10,
+                }}
+              >
+                {gateLoading ? (
+                  <span
+                    style={{
+                      width: 18,
+                      height: 18,
+                      border: "2px solid rgba(255,255,255,0.35)",
+                      borderTop: "2px solid #ffffff",
+                      borderRadius: "50%",
+                      animation: "dzPMGateSpin 0.85s linear infinite",
+                      flexShrink: 0,
+                    }}
+                  />
+                ) : null}
+                {gateLoading ? "Sending…" : "Send verification link"}
+              </button>
+
+              {showExpiredInvalid ? (
+                <button
+                  type="button"
+                  onClick={function () {
+                    setGateError("");
+                    handleGateSubmit();
+                  }}
+                  disabled={gateLoading}
+                  style={Object.assign({}, gateTryAgainBtn, { marginTop: 12, opacity: gateLoading ? 0.6 : 1 })}
+                >
+                  Request a new link
+                </button>
+              ) : null}
+            </Card>
+          )}
+
+          <button
+            type="button"
+            onClick={function () { setStep(0); }}
+            style={{
+              marginTop: 20,
+              background: "transparent",
+              border: "none",
+              padding: 0,
+              cursor: "pointer",
+              fontFamily: S.mono,
+              fontSize: 12,
+              color: S.dim,
+              letterSpacing: "0.06em",
+            }}
+          >
+            ← BACK
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (step === 2) {
+    return (
+      <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font, padding: "40px 20px", boxSizing: "border-box" }}>
+        <div style={{ maxWidth: 680, margin: "0 auto" }}>
+          <div style={{ marginBottom: 28 }}>
+            <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.1em", marginBottom: 10, fontWeight: 600 }}>
+              STEP 3 OF 6 — ASSESSMENT
+            </div>
+            <div style={{ height: 4, background: S.border, borderRadius: 2, overflow: "hidden" }}>
+              <div style={{ height: "100%", width: progressPct + "%", background: S.accent, borderRadius: 2, transition: "width 0.25s ease" }} />
+            </div>
+          </div>
+          <Card>
+            <p style={{ fontFamily: S.mono, fontSize: 14, color: S.dim, margin: 0 }}>
+              {gateVerified ? "Email verified. " : ""}Assessment — coming in a later prompt.
+            </p>
+          </Card>
         </div>
       </div>
     );

@@ -26,6 +26,11 @@ const PRODUCT_CONFIG = {
     subject: "Your Defensible Zone™ Engineer report is ready",
     productName: "Defensible Zone Engineer Edition",
   },
+  pm: {
+    path: "/pm",
+    subject: "Your Defensible Zone™ Product Manager report is ready",
+    productName: "Defensible Zone Product Manager Edition",
+  },
 };
 
 function isValidEmail(email) {
