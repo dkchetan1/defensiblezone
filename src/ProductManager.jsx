@@ -116,6 +116,25 @@ function calcDZ(aff, aiR, mkt) {
   var v = 100 * Math.pow(aff / 10, 0.35) * Math.pow((10 - aiR) / 10, 0.40) * Math.pow(mkt / 10, 0.25);
   return Math.min(100, Math.round(v));
 }
+function dzScoreColor(score) {
+  if (score < 40) return S.red;
+  if (score <= 65) return S.gold;
+  return S.green;
+}
+function getOverallSubLabel(score) {
+  if (score <= 39) return "High exposure. Significant repositioning needed.";
+  if (score <= 59) return "Moderate exposure. Some strong anchors, gaps to address.";
+  if (score <= 74) return "Solid foundation. Targeted moves will strengthen your position.";
+  if (score <= 89) return "Well-positioned. Protect your anchors and extend your lead.";
+  return "Exceptional. You're operating in rare territory.";
+}
+function getSkillInterpretation(aiRisk, mkt, aff) {
+  if (aiRisk >= 7) return "High AI exposure — your affinity is what keeps this defensible.";
+  if (aiRisk <= 3 && mkt >= 7) return "Low AI risk, high market value — a strong anchor.";
+  if (aff >= 7 && aiRisk >= 6) return "Your affinity is your edge here — lean into it.";
+  if (aff <= 3 && aiRisk >= 6) return "Vulnerable. Consider whether this is worth defending.";
+  return "Moderate position — context and execution matter here.";
+}
 function buildProfile(pmType, seniority, workContexts, companyType) {
   var pt = PM_TYPES.find(function(p) { return p.id === pmType; });
   var sl = SENIORITY_LEVELS.find(function(s) { return s.id === seniority; });
@@ -513,6 +532,7 @@ export default function ProductManager() {
   var STUB_MARKET_DEMAND = 7;
   var skillStepBarPct = (3 / 6) * 100;
   var scoreStepBarPct = (4 / 6) * 100;
+  var resultsStepBarPct = (5 / 6) * 100;
 
   async function fetchLandscapeAndSkills() {
     if (!canProceed) return;
@@ -1655,6 +1675,447 @@ export default function ProductManager() {
           <PrimaryBtn onClick={fetchScores} disabled={skills.length === 0}>
             CALCULATE MY DEFENSIBLE ZONE →
           </PrimaryBtn>
+        </div>
+      </div>
+    );
+  }
+
+  // ── STEP 4: FREE RESULTS ─────────────────────────────────────────────
+  if (step === 4 && results) {
+    var profileRes = results.profile || buildProfile(pmType, seniority, workContexts, companyType);
+    var landscapeText = results.landscape || landscape;
+    var scoredSkills = Array.isArray(results.skills) ? results.skills : [];
+    var wcLabels = profileRes.workContextLabels || [];
+    var wcPart = wcLabels.slice(0, 2).join(", ");
+    if (wcLabels.length > 2) {
+      wcPart = wcPart + ", +" + (wcLabels.length - 2) + " more";
+    }
+    var profileSummaryLine =
+      profileRes.seniorityLabel +
+      " " +
+      profileRes.pmLabel +
+      " · " +
+      (profileRes.companyLabel || "—") +
+      (wcPart ? " · " + wcPart : "");
+    var totalDZ =
+      scoredSkills.length > 0
+        ? Math.round(
+            scoredSkills.reduce(function (sum, s) {
+              return sum + (typeof s.dz === "number" ? s.dz : 0);
+            }, 0) / scoredSkills.length
+          )
+        : 0;
+    var overallColor = dzScoreColor(totalDZ);
+    var sortedByDz = scoredSkills.slice().sort(function (a, b) {
+      return (b.dz || 0) - (a.dz || 0);
+    });
+    var topSkill = sortedByDz[0];
+    var topSkillName = topSkill ? topSkill.text || topSkill.name || "your strongest skill" : "your strongest skill";
+    var planActionCount = Math.max(9, scoredSkills.length * 3);
+    var teaserText =
+      "Based on your strongest anchor (" +
+      topSkillName +
+      "), your first move is to make it unmistakably visible — inside your org and in the market.";
+
+    function applyPromoCode() {
+      var v = (promoCode || "").trim();
+      var isFree = PROMO_CODES.some(function (c) {
+        return c.toLowerCase() === v.toLowerCase();
+      });
+      var isDiscount = DISCOUNT_CODES.some(function (c) {
+        return c.toLowerCase() === v.toLowerCase();
+      });
+      if (isFree) {
+        setTier(2);
+        setPromoUsed(true);
+        setPromoError("");
+        setStep(5);
+      } else if (isDiscount) {
+        setDiscountApplied(true);
+        setPromoError("");
+      } else {
+        setPromoError("That code isn't valid.");
+      }
+    }
+
+    var blurredPhases = [
+      {
+        title: "Phase 1 — Weeks 1–4 — Establish your position",
+        items: [
+          "Document your top 3 product decisions from the last quarter with measurable outcomes",
+          "Schedule a 30-minute sync with your most senior stakeholder to align on priorities",
+          "Publish one internal artifact that makes your judgment visible to the org",
+        ],
+      },
+      {
+        title: "Phase 2 — Weeks 5–8 — Build visible authority",
+        items: [
+          "Lead a cross-functional review that surfaces trade-offs only you can make",
+          "Ship a customer-facing narrative tied to your strongest product bet",
+          "Identify one skill with high AI exposure and redesign how you deliver it",
+        ],
+      },
+      {
+        title: "Phase 3 — Weeks 9–12 — Compound and protect",
+        items: [
+          "Create a repeatable framework your team can use without you in the room",
+          "Present your product strategy to an external audience (conference, blog, podcast)",
+          "Lock in a mentorship or advisory relationship that extends your market signal",
+        ],
+      },
+    ];
+
+    return (
+      <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font, padding: "40px 20px", boxSizing: "border-box" }}>
+        <div style={{ maxWidth: 680, margin: "0 auto" }}>
+          <div style={{ marginBottom: 28 }}>
+            <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.1em", marginBottom: 10, fontWeight: 600 }}>
+              STEP 5 OF 6 — YOUR RESULTS
+            </div>
+            <div style={{ height: 4, background: S.border, borderRadius: 2, overflow: "hidden" }}>
+              <div
+                style={{
+                  height: "100%",
+                  width: resultsStepBarPct + "%",
+                  background: S.accent,
+                  borderRadius: 2,
+                  transition: "width 0.25s ease",
+                }}
+              />
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={resetAll}
+            style={{
+              background: "transparent",
+              border: "1px solid " + S.border,
+              color: S.dim,
+              borderRadius: 10,
+              padding: "10px 16px",
+              fontFamily: S.mono,
+              fontSize: 12,
+              fontWeight: 600,
+              cursor: "pointer",
+              letterSpacing: "0.06em",
+              marginBottom: 24,
+            }}
+          >
+            START OVER
+          </button>
+
+          <div style={{ fontFamily: S.mono, fontSize: 11, color: S.gold, letterSpacing: "0.12em", marginBottom: 20, fontWeight: 600 }}>
+            DEFENSIBLE ZONE™ · PRODUCT MANAGER EDITION
+          </div>
+
+          <h1 style={{ fontFamily: S.serif, fontSize: 32, color: S.text, margin: "0 0 8px", lineHeight: 1.2, fontWeight: 600 }}>
+            Your Defensible Zone™
+          </h1>
+
+          <p style={{ fontFamily: S.mono, fontSize: 12, color: S.muted, margin: "0 0 28px", lineHeight: 1.5, letterSpacing: "0.02em" }}>
+            {profileSummaryLine}
+          </p>
+
+          <div
+            style={{
+              background: S.accent,
+              borderRadius: 14,
+              padding: 22,
+              marginBottom: 24,
+              position: "relative",
+              overflow: "hidden",
+            }}
+          >
+            <div
+              style={{
+                position: "absolute",
+                top: 0,
+                right: 0,
+                width: 160,
+                height: 160,
+                background: "radial-gradient(circle,rgba(217,119,6,.15) 0%,transparent 70%)",
+                pointerEvents: "none",
+              }}
+            />
+            <div style={{ fontFamily: S.mono, fontSize: 12, color: "rgba(217,119,6,.85)", letterSpacing: "0.1em", marginBottom: 10, fontWeight: 600 }}>
+              YOUR AI LANDSCAPE
+            </div>
+            <p style={{ color: "#ffffff", fontSize: 16, lineHeight: 1.75, margin: 0, fontStyle: "italic" }}>{landscapeText}</p>
+          </div>
+
+          <Card style={{ marginBottom: 28, textAlign: "center" }}>
+            <div
+              style={{
+                fontFamily: S.mono,
+                fontSize: 12,
+                color: S.dim,
+                letterSpacing: "0.08em",
+                marginBottom: 12,
+                fontWeight: 600,
+              }}
+            >
+              YOUR DEFENSIBLE ZONE SCORE
+            </div>
+            <div style={{ fontFamily: S.mono, fontSize: 72, fontWeight: 700, color: overallColor, lineHeight: 1, marginBottom: 12 }}>
+              {totalDZ}
+            </div>
+            <p style={{ fontSize: 15, color: S.dim, lineHeight: 1.6, margin: 0, maxWidth: 480, marginLeft: "auto", marginRight: "auto" }}>
+              {getOverallSubLabel(totalDZ)}
+            </p>
+          </Card>
+
+          <div
+            style={{
+              fontFamily: S.mono,
+              fontSize: 12,
+              color: S.dim,
+              letterSpacing: "0.08em",
+              marginBottom: 14,
+              fontWeight: 600,
+            }}
+          >
+            SKILL-BY-SKILL BREAKDOWN
+          </div>
+
+          {scoredSkills.map(function (sk) {
+            var dz = typeof sk.dz === "number" ? sk.dz : 0;
+            var aiR = typeof sk.ai_replaceability === "number" ? sk.ai_replaceability : 5;
+            var mkt = typeof sk.market_demand === "number" ? sk.market_demand : 7;
+            var aff = typeof sk.affinity === "number" ? sk.affinity : 5;
+            var col = dzScoreColor(dz);
+            var skillName = sk.text || sk.name || "—";
+            return (
+              <div
+                key={sk.id || skillName}
+                style={{
+                  background: S.card,
+                  border: "1px solid " + S.border,
+                  borderRadius: 12,
+                  padding: "18px 20px",
+                  marginBottom: 10,
+                }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14, gap: 12 }}>
+                  <div style={{ fontSize: 16, fontWeight: 600, color: S.text, lineHeight: 1.35, flex: 1 }}>{skillName}</div>
+                  <div style={{ fontFamily: S.mono, fontSize: 28, fontWeight: 700, color: col, flexShrink: 0, lineHeight: 1 }}>{dz}</div>
+                </div>
+
+                <div style={{ marginBottom: 10 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                    <span style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.06em", fontWeight: 600 }}>AI EXPOSURE</span>
+                    <span style={{ fontFamily: S.mono, fontSize: 11, color: S.red, fontWeight: 700 }}>{aiR}/10</span>
+                  </div>
+                  <div style={{ height: 6, background: S.card2, borderRadius: 3, overflow: "hidden" }}>
+                    <div style={{ width: (aiR / 10) * 100 + "%", height: "100%", background: S.red, borderRadius: 3 }} />
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: 10 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                    <span style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.06em", fontWeight: 600 }}>MARKET VALUE</span>
+                    <span style={{ fontFamily: S.mono, fontSize: 11, color: S.green, fontWeight: 700 }}>{mkt}/10</span>
+                  </div>
+                  <div style={{ height: 6, background: S.card2, borderRadius: 3, overflow: "hidden" }}>
+                    <div style={{ width: (mkt / 10) * 100 + "%", height: "100%", background: S.green, borderRadius: 3 }} />
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: 10 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                    <span style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.06em", fontWeight: 600 }}>YOUR AFFINITY</span>
+                    <span style={{ fontFamily: S.mono, fontSize: 11, color: S.purple, fontWeight: 700 }}>{aff}/10</span>
+                  </div>
+                </div>
+
+                <p style={{ fontSize: 14, color: S.dim, lineHeight: 1.55, margin: 0, fontStyle: "italic" }}>
+                  {getSkillInterpretation(aiR, mkt, aff)}
+                </p>
+              </div>
+            );
+          })}
+
+          <div style={{ marginTop: 32, marginBottom: 28 }}>
+            <h2 style={{ fontFamily: S.serif, fontSize: 26, color: S.text, margin: "0 0 20px", lineHeight: 1.2, fontWeight: 600 }}>
+              Your 90-Day Plan
+            </h2>
+
+            <div
+              style={{
+                background: S.card,
+                border: "1px solid " + S.border,
+                borderRadius: 12,
+                padding: "20px 22px",
+                marginBottom: 16,
+              }}
+            >
+              <div
+                style={{
+                  fontFamily: S.mono,
+                  fontSize: 11,
+                  color: S.gold,
+                  letterSpacing: "0.08em",
+                  marginBottom: 10,
+                  fontWeight: 700,
+                }}
+              >
+                PREVIEW — PHASE 1, ACTION 1
+              </div>
+              <p style={{ fontSize: 15, color: S.text, lineHeight: 1.65, margin: 0 }}>{teaserText}</p>
+            </div>
+
+            <div style={{ position: "relative" }}>
+              <div style={{ filter: "blur(4px)", userSelect: "none", pointerEvents: "none" }}>
+                {blurredPhases.map(function (phase, pi) {
+                  return (
+                    <div key={pi} style={{ marginBottom: pi < blurredPhases.length - 1 ? 20 : 0 }}>
+                      <div
+                        style={{
+                          fontFamily: S.mono,
+                          fontSize: 11,
+                          color: S.muted,
+                          letterSpacing: "0.06em",
+                          fontWeight: 700,
+                          marginBottom: 10,
+                        }}
+                      >
+                        {phase.title}
+                      </div>
+                      {phase.items.map(function (item, ii) {
+                        return (
+                          <div
+                            key={ii}
+                            style={{
+                              background: S.card,
+                              border: "1px solid " + S.border,
+                              borderRadius: 10,
+                              padding: "14px 16px",
+                              marginBottom: 8,
+                              fontSize: 14,
+                              color: S.text,
+                              lineHeight: 1.5,
+                            }}
+                          >
+                            {item}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div
+                style={{
+                  position: "absolute",
+                  top: "50%",
+                  left: "50%",
+                  transform: "translate(-50%, -50%)",
+                  width: "calc(100% - 16px)",
+                  maxWidth: 400,
+                  background: "linear-gradient(135deg, #1a1d2e 0%, #2d1f5e 100%)",
+                  borderRadius: 16,
+                  padding: 28,
+                  boxShadow: "0 8px 40px rgba(0,0,0,0.18)",
+                  boxSizing: "border-box",
+                }}
+              >
+                <h3 style={{ fontFamily: S.serif, fontSize: 22, fontWeight: 600, color: "#ffffff", margin: "0 0 12px", lineHeight: 1.25 }}>
+                  Your full 90-day plan is ready.
+                </h3>
+                <p style={{ fontSize: 15, color: "rgba(196, 181, 253, 0.9)", lineHeight: 1.65, margin: "0 0 20px" }}>
+                  You have {planActionCount} personalised actions across 3 phases. Unlock them now — and we&apos;ll email the complete plan to{" "}
+                  {gateEmail || "your email"}.
+                </p>
+                <div style={{ fontFamily: S.mono, fontSize: 28, fontWeight: 700, color: "#ffffff", marginBottom: 16 }}>$79</div>
+                <PrimaryBtn
+                  onClick={function () {
+                    setStep(5);
+                  }}
+                  style={{ marginBottom: 16 }}
+                >
+                  UNLOCK MY PLAN → $79
+                </PrimaryBtn>
+                <div style={{ fontFamily: S.mono, fontSize: 12, color: "rgba(255,255,255,0.75)", letterSpacing: "0.08em", marginBottom: 10, fontWeight: 600 }}>
+                  HAVE A PROMO CODE?
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "stretch" }}>
+                  <input
+                    type="text"
+                    value={promoCode}
+                    onChange={function (e) {
+                      setPromoCode(e.target.value);
+                      if (promoError) setPromoError("");
+                    }}
+                    placeholder="Enter code"
+                    style={{
+                      flex: "1 1 160px",
+                      minWidth: 0,
+                      padding: "12px 14px",
+                      fontSize: 15,
+                      fontFamily: S.mono,
+                      border: "1px solid rgba(255,255,255,0.25)",
+                      borderRadius: 10,
+                      background: "rgba(255,255,255,0.95)",
+                      color: S.text,
+                      boxSizing: "border-box",
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={applyPromoCode}
+                    style={{
+                      padding: "12px 20px",
+                      fontSize: 15,
+                      fontFamily: S.font,
+                      fontWeight: 600,
+                      background: "rgba(255,255,255,0.15)",
+                      color: "#ffffff",
+                      border: "1px solid rgba(255,255,255,0.35)",
+                      borderRadius: 10,
+                      cursor: "pointer",
+                    }}
+                  >
+                    Apply
+                  </button>
+                </div>
+                {promoError ? <div style={{ color: "#fca5a5", fontSize: 14, marginTop: 8 }}>{promoError}</div> : null}
+                {discountApplied ? (
+                  <div style={{ color: "#6ee7b7", fontSize: 14, marginTop: 8 }}>50% discount applied at checkout.</div>
+                ) : null}
+              </div>
+            </div>
+          </div>
+
+          <div
+            style={{
+              background: S.card2,
+              border: "1px solid " + S.border,
+              borderRadius: 12,
+              padding: "14px 18px",
+              marginBottom: 28,
+              textAlign: "center",
+            }}
+          >
+            <p style={{ fontFamily: S.mono, fontSize: 12, color: S.dim, margin: 0, lineHeight: 1.6 }}>
+              A copy of these results has been sent to {gateEmail || "your email"}
+            </p>
+          </div>
+
+          <div style={{ marginTop: 40, paddingTop: 24, borderTop: "1px solid " + S.border, textAlign: "center" }}>
+            <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, lineHeight: 1.7, marginBottom: 8 }}>
+              DEFENSIBLE ZONE™ is a product of Recursion Lab
+            </div>
+            <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, lineHeight: 1.7 }}>
+              <a href="https://defensiblezone.ai" style={{ color: S.blue, textDecoration: "none" }}>
+                defensiblezone.ai
+              </a>
+              {" · "}
+              <a href="mailto:support@recursiolab.com" style={{ color: S.blue, textDecoration: "none" }}>
+                Questions or feedback → support@recursiolab.com
+              </a>
+            </div>
+          </div>
         </div>
       </div>
     );
