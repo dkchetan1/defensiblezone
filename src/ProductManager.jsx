@@ -211,6 +211,24 @@ function Chip(props) {
     </button>
   );
 }
+function PMFooter() {
+  return (
+    <div style={{ marginTop: 40, paddingTop: 24, borderTop: "1px solid " + S.border, textAlign: "center" }}>
+      <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, lineHeight: 1.7, marginBottom: 8 }}>
+        DEFENSIBLE ZONE™ is a product of Recursion Lab
+      </div>
+      <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, lineHeight: 1.7 }}>
+        <a href="https://defensiblezone.ai" style={{ color: S.blue, textDecoration: "none" }}>
+          defensiblezone.ai
+        </a>
+        {" · "}
+        <a href="mailto:support@recursiolab.com" style={{ color: S.blue, textDecoration: "none" }}>
+          Questions or feedback → support@recursiolab.com
+        </a>
+      </div>
+    </div>
+  );
+}
 
 // ── MAIN APP ────────────────────────────────────────────────────────
 export default function ProductManager() {
@@ -814,8 +832,7 @@ export default function ProductManager() {
           minHeight: "100vh",
           fontFamily: S.font,
           display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
+          flexDirection: "column",
           padding: "32px 20px",
           boxSizing: "border-box",
         }}
@@ -825,16 +842,21 @@ export default function ProductManager() {
             __html: "@keyframes dzPMGateDots{0%,100%{opacity:0.25}50%{opacity:1}}",
           }}
         />
-        <div style={{ textAlign: "center", maxWidth: 420 }}>
-          <div style={{ fontFamily: S.mono, fontSize: 12, color: S.gold, letterSpacing: "0.12em", marginBottom: 24, fontWeight: 600 }}>
-            DEFENSIBLE ZONE™ · PRODUCT MANAGER EDITION
+        <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ textAlign: "center", maxWidth: 420 }}>
+            <div style={{ fontFamily: S.mono, fontSize: 12, color: S.gold, letterSpacing: "0.12em", marginBottom: 24, fontWeight: 600 }}>
+              DEFENSIBLE ZONE™ · PRODUCT MANAGER EDITION
+            </div>
+            <div style={{ fontFamily: S.serif, fontSize: 24, fontStyle: "italic", color: S.text, lineHeight: 1.45 }}>Verifying your link…</div>
+            <div style={{ display: "flex", justifyContent: "center", gap: 6, marginTop: 18, fontFamily: S.mono, fontSize: 22, color: S.dim, lineHeight: 1 }}>
+              <span style={{ animation: "dzPMGateDots 1s ease-in-out infinite" }}>.</span>
+              <span style={{ animation: "dzPMGateDots 1s ease-in-out 0.2s infinite" }}>.</span>
+              <span style={{ animation: "dzPMGateDots 1s ease-in-out 0.4s infinite" }}>.</span>
+            </div>
           </div>
-          <div style={{ fontFamily: S.serif, fontSize: 24, fontStyle: "italic", color: S.text, lineHeight: 1.45 }}>Verifying your link…</div>
-          <div style={{ display: "flex", justifyContent: "center", gap: 6, marginTop: 18, fontFamily: S.mono, fontSize: 22, color: S.dim, lineHeight: 1 }}>
-            <span style={{ animation: "dzPMGateDots 1s ease-in-out infinite" }}>.</span>
-            <span style={{ animation: "dzPMGateDots 1s ease-in-out 0.2s infinite" }}>.</span>
-            <span style={{ animation: "dzPMGateDots 1s ease-in-out 0.4s infinite" }}>.</span>
-          </div>
+        </div>
+        <div style={{ maxWidth: 680, margin: "0 auto", width: "100%" }}>
+          <PMFooter />
         </div>
       </div>
     );
@@ -910,6 +932,7 @@ export default function ProductManager() {
               </div>
             </div>
           </div>
+          <PMFooter />
         </div>
       </div>
     );
@@ -969,6 +992,7 @@ export default function ProductManager() {
           >
             START OVER
           </button>
+          <PMFooter />
         </div>
       </div>
     );
@@ -1074,20 +1098,7 @@ export default function ProductManager() {
             ANALYSE MY PROFILE →
           </PrimaryBtn>
 
-          <div style={{ marginTop: 40, paddingTop: 24, borderTop: "1px solid " + S.border, textAlign: "center" }}>
-            <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, lineHeight: 1.7, marginBottom: 8 }}>
-              DEFENSIBLE ZONE™ is a product of Recursion Lab
-            </div>
-            <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, lineHeight: 1.7 }}>
-              <a href="https://defensiblezone.ai" style={{ color: S.blue, textDecoration: "none" }}>
-                defensiblezone.ai
-              </a>
-              {" · "}
-              <a href="mailto:support@recursiolab.com" style={{ color: S.blue, textDecoration: "none" }}>
-                Questions or feedback → support@recursiolab.com
-              </a>
-            </div>
-          </div>
+          <PMFooter />
         </div>
       </div>
     );
@@ -1320,6 +1331,8 @@ export default function ProductManager() {
           >
             ← BACK
           </button>
+
+          <PMFooter />
         </div>
       </div>
     );
@@ -1675,6 +1688,8 @@ export default function ProductManager() {
           <PrimaryBtn onClick={fetchScores} disabled={skills.length === 0}>
             CALCULATE MY DEFENSIBLE ZONE →
           </PrimaryBtn>
+
+          <PMFooter />
         </div>
       </div>
     );
@@ -2102,20 +2117,7 @@ export default function ProductManager() {
             </p>
           </div>
 
-          <div style={{ marginTop: 40, paddingTop: 24, borderTop: "1px solid " + S.border, textAlign: "center" }}>
-            <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, lineHeight: 1.7, marginBottom: 8 }}>
-              DEFENSIBLE ZONE™ is a product of Recursion Lab
-            </div>
-            <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, lineHeight: 1.7 }}>
-              <a href="https://defensiblezone.ai" style={{ color: S.blue, textDecoration: "none" }}>
-                defensiblezone.ai
-              </a>
-              {" · "}
-              <a href="mailto:support@recursiolab.com" style={{ color: S.blue, textDecoration: "none" }}>
-                Questions or feedback → support@recursiolab.com
-              </a>
-            </div>
-          </div>
+          <PMFooter />
         </div>
       </div>
     );
@@ -2154,6 +2156,7 @@ export default function ProductManager() {
           </button>
         )}
         <p style={{ fontFamily: S.mono, fontSize: 14, color: S.dim }}>Step {step + 1} — coming in a later prompt.</p>
+        <PMFooter />
       </div>
     </div>
   );
