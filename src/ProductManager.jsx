@@ -247,6 +247,8 @@ export default function ProductManager() {
   var [customSkill, setCustomSkill]         = useState("");
   var [adjustedSkills, setAdjustedSkills]   = useState(function() { return new Set(); });
   var adjustedSkillsRef                     = useRef(new Set());
+  var freeEmailSentRef                      = useRef(false);
+  var paidEmailSentRef                      = useRef(false);
   var [results, setResults]                 = useState(null);
   var [benchmark, setBenchmark]             = useState(null);
   var [recommendations, setRecommendations] = useState(null);
@@ -613,7 +615,72 @@ export default function ProductManager() {
     setGateEmail(""); setGateSent(false); setGateVerified(false); setGateError("");
     setGateLoading(false); setShowResend(false); setGateOnDifferentDevice(false); setGateInputFocused(false);
     setCheckoutLoading(false); setCheckoutError(null); setPaymentCanceled(false);
+    freeEmailSentRef.current = false;
+    paidEmailSentRef.current = false;
   }
+
+  function computeOverallScore(skills) {
+    if (!Array.isArray(skills) || skills.length === 0) return 0;
+    return Math.round(
+      skills.reduce(function (sum, s) {
+        return sum + (typeof s.dz === "number" ? s.dz : 0);
+      }, 0) / skills.length
+    );
+  }
+
+  useEffect(
+    function () {
+      if (step !== 4 || !results) return;
+      if (freeEmailSentRef.current) return;
+      if (!gateEmail.trim()) return;
+      freeEmailSentRef.current = true;
+      var skillsList = Array.isArray(results.skills) ? results.skills : [];
+      fetch("/api/send-results-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: gateEmail,
+          product: "pm",
+          type: "free",
+          results: {
+            profile: results.profile,
+            landscape: results.landscape,
+            skills: skillsList,
+            overallScore: computeOverallScore(skillsList),
+          },
+        }),
+      }).catch(function () {});
+    },
+    [step, results]
+  );
+
+  useEffect(
+    function () {
+      if (!recommendations || tier < 2) return;
+      if (!results) return;
+      if (paidEmailSentRef.current) return;
+      if (!gateEmail.trim()) return;
+      paidEmailSentRef.current = true;
+      var skillsList = Array.isArray(results.skills) ? results.skills : [];
+      fetch("/api/send-results-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: gateEmail,
+          product: "pm",
+          type: "paid",
+          results: {
+            profile: results.profile,
+            landscape: results.landscape,
+            skills: skillsList,
+            overallScore: computeOverallScore(skillsList),
+            recommendations: recommendations,
+          },
+        }),
+      }).catch(function () {});
+    },
+    [recommendations, tier]
+  );
 
   function applyPromoCode() {
     var v = (promoCode || "").trim();
