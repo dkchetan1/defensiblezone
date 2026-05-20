@@ -269,6 +269,9 @@ export default function ProductManager() {
   var [showResend, setShowResend]           = useState(false);
   var [gateOnDifferentDevice, setGateOnDifferentDevice] = useState(false);
   var [gateInputFocused, setGateInputFocused] = useState(false);
+  var [checkoutLoading, setCheckoutLoading] = useState(false);
+  var [checkoutError, setCheckoutError] = useState(null);
+  var [paymentCanceled, setPaymentCanceled] = useState(false);
 
   function markAdjusted(skillId) {
     adjustedSkillsRef.current.add(skillId);
@@ -319,10 +322,17 @@ export default function ProductManager() {
     "Almost there…",
   ];
 
+  var PM_RECS_MSGS = [
+    "Mapping your 90-day plan…",
+    "Sequencing your actions…",
+    "Personalising to your PM profile…",
+    "Almost ready…",
+  ];
+
   useEffect(
     function () {
-      if (!loading) return;
-      var msgs = step === 3 ? PM_SCORING_MSGS : PM_LOADING_MSGS;
+      if (!loading && !recsLoading) return;
+      var msgs = recsLoading ? PM_RECS_MSGS : step === 3 ? PM_SCORING_MSGS : PM_LOADING_MSGS;
       var i = 0;
       setLoadingMsg(msgs[0]);
       var t = setInterval(function () {
@@ -333,7 +343,7 @@ export default function ProductManager() {
         clearInterval(t);
       };
     },
-    [loading, step]
+    [loading, recsLoading, step]
   );
 
   useEffect(
@@ -343,6 +353,99 @@ export default function ProductManager() {
       fetchLandscapeAndSkills();
     },
     [gateVerified]
+  );
+
+  function restoreSavedReport() {
+    try {
+      var savedRaw = localStorage.getItem("dz_saved_report_pm");
+      if (!savedRaw) return false;
+      var s = JSON.parse(savedRaw);
+      if (s.pmType) setPmType(s.pmType);
+      if (s.seniority) setSeniority(s.seniority);
+      if (s.companyType) setCompanyType(s.companyType);
+      if (s.workContexts) setWorkContexts(s.workContexts);
+      if (s.conscience !== undefined) setConscience(s.conscience);
+      if (s.pull !== undefined) setPull(s.pull);
+      if (s.gateEmail) setGateEmail(s.gateEmail);
+      if (s.landscape) setLandscape(s.landscape);
+      if (s.skills) setSkills(s.skills);
+      if (s.fluencies) setFluencies(s.fluencies);
+      if (s.skillConscience) setSkillConscience(s.skillConscience);
+      if (s.skillPull) setSkillPull(s.skillPull);
+      if (s.results) setResults(s.results);
+      if (s.tier !== undefined) setTier(s.tier);
+      if (s.promoUsed) setPromoUsed(s.promoUsed);
+      if (s.discountApplied) setDiscountApplied(s.discountApplied);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function saveStateForReturn() {
+    try {
+      localStorage.setItem(
+        "dz_saved_report_pm",
+        JSON.stringify({
+          pmType: pmType,
+          seniority: seniority,
+          companyType: companyType,
+          workContexts: workContexts,
+          conscience: conscience,
+          pull: pull,
+          gateEmail: gateEmail,
+          landscape: landscape,
+          skills: skills,
+          fluencies: fluencies,
+          skillConscience: skillConscience,
+          skillPull: skillPull,
+          results: results,
+          tier: tier,
+          promoUsed: promoUsed,
+          discountApplied: discountApplied,
+        })
+      );
+    } catch (_e) {}
+  }
+
+  useEffect(function () {
+    var params = new URLSearchParams(window.location.search);
+    if (params.get("success") === "true") {
+      window.history.replaceState({}, "", window.location.pathname);
+      restoreSavedReport();
+      setTier(2);
+      setPaymentCanceled(false);
+      setCheckoutError(null);
+      setStep(6);
+      return;
+    }
+    if (params.get("canceled") === "true") {
+      window.history.replaceState({}, "", window.location.pathname);
+      restoreSavedReport();
+      setStep(5);
+      setPaymentCanceled(true);
+      return;
+    }
+  }, []);
+
+  useEffect(
+    function () {
+      if (step === 5 && (tier >= 2 || promoUsed)) {
+        setStep(6);
+      }
+    },
+    [step, tier, promoUsed]
+  );
+
+  useEffect(
+    function () {
+      if (step !== 6) return;
+      if (!(tier >= 2 || promoUsed)) return;
+      if (!results || !results.skills || results.skills.length === 0) return;
+      if (recommendations || recsLoading) return;
+      fetchRecommendations();
+    },
+    [step, tier, promoUsed, results]
   );
 
   useEffect(function () {
@@ -509,6 +612,58 @@ export default function ProductManager() {
     setTier(0); setPromoCode(""); setPromoError(""); setPromoUsed(false); setDiscountApplied(false);
     setGateEmail(""); setGateSent(false); setGateVerified(false); setGateError("");
     setGateLoading(false); setShowResend(false); setGateOnDifferentDevice(false); setGateInputFocused(false);
+    setCheckoutLoading(false); setCheckoutError(null); setPaymentCanceled(false);
+  }
+
+  function applyPromoCode() {
+    var v = (promoCode || "").trim();
+    var isFree = PROMO_CODES.some(function (c) {
+      return c.toLowerCase() === v.toLowerCase();
+    });
+    var isDiscount = DISCOUNT_CODES.some(function (c) {
+      return c.toLowerCase() === v.toLowerCase();
+    });
+    if (isFree) {
+      setTier(2);
+      setPromoUsed(true);
+      setPromoError("");
+      setPaymentCanceled(false);
+      setStep(6);
+    } else if (isDiscount) {
+      setDiscountApplied(true);
+      setPromoError("");
+    } else {
+      setPromoError("That code isn't valid.");
+    }
+  }
+
+  async function handleUnlockCheckout() {
+    if (!gateEmail.trim()) {
+      setCheckoutError("Please verify your email before checkout.");
+      return;
+    }
+    setCheckoutLoading(true);
+    setCheckoutError(null);
+    setPaymentCanceled(false);
+    saveStateForReturn();
+    var priceCents = discountApplied ? 3950 : 7900;
+    try {
+      var res = await fetch("/api/create-checkout-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          product: "pm",
+          email: gateEmail.trim(),
+          price: priceCents,
+        }),
+      });
+      var data = await res.json();
+      if (!res.ok || !data.url) throw new Error(data.error || "Could not start checkout");
+      window.location.href = data.url;
+    } catch (e) {
+      setCheckoutError(e.message || "Could not start checkout. Please try again.");
+      setCheckoutLoading(false);
+    }
   }
 
   function startEditing(id) { setSkills(function(p) { return p.map(function(s) { return s.id===id ? Object.assign({},s,{editing:true}) : s; }); }); }
@@ -551,6 +706,7 @@ export default function ProductManager() {
   var skillStepBarPct = (3 / 6) * 100;
   var scoreStepBarPct = (4 / 6) * 100;
   var resultsStepBarPct = (5 / 6) * 100;
+  var unlockStepBarPct = 100;
 
   async function fetchLandscapeAndSkills() {
     if (!canProceed) return;
@@ -822,6 +978,61 @@ export default function ProductManager() {
     }
   }
 
+  async function fetchRecommendations() {
+    if (!results || !Array.isArray(results.skills) || results.skills.length === 0) return;
+    setRecsLoading(true);
+    setRecsError(null);
+    var profile = results.profile || buildProfile(pmType, seniority, workContexts, companyType);
+    var wcStr = profile.workContextLabels.join(", ");
+    var scoredSkills = results.skills;
+    var skillSummary = scoredSkills
+      .map(function (sk, i) {
+        var aiR = typeof sk.ai_replaceability === "number" ? sk.ai_replaceability : 5;
+        var mkt = typeof sk.market_demand === "number" ? sk.market_demand : 7;
+        var name = sk.text || sk.name || "Skill " + (i + 1);
+        return i + 1 + ". " + name + " (AI Risk: " + aiR + "/10, Market: " + mkt + "/10)";
+      })
+      .join("\n");
+    var prompt =
+      "You are a senior product management career strategist. A " +
+      profile.seniorityLabel +
+      " " +
+      profile.pmLabel +
+      " at " +
+      (profile.companyLabel || "not specified") +
+      " focused on " +
+      wcStr +
+      " just completed a Defensible Zone assessment.\n\nFor each skill below, write a short personalised recommendation. Be specific to their PM type, seniority, and work context. Use plain English. Do not use the word 'threat'. Be direct and practical.\n\nAssign a phase (1, 2, or 3) based on feasibility of starting — not score:\n- Phase 1 (Weeks 1–4): actions the PM can begin immediately in their current role — no org setup needed, just personal execution\n- Phase 2 (Weeks 5–8): actions requiring some coordination, stakeholder buy-in, or setup\n- Phase 3 (Weeks 9–12): structural moves that only land after Phase 1 and 2 have created conditions\n\nDistribute across phases: aim for roughly 3 in Phase 1, 3 in Phase 2, 2 in Phase 3. No more than 4 in any single phase.\n\nSkills with scores:\n" +
+      skillSummary +
+      '\n\nReturn ONLY valid JSON:\n{"recommendations":[{"id":"s0","headline":"5-7 word action headline","action":"One specific thing to do in the next 90 days.","why":"One sentence on why this matters for their exact PM situation.","phase":1},{...}]}';
+    try {
+      var res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-6",
+          max_tokens: 2000,
+          messages: [{ role: "user", content: prompt }],
+        }),
+      });
+      var data = await res.json();
+      if (!data.content) throw new Error(data.error || "API error");
+      var raw = data.content
+        .map(function (b) {
+          return b.text || "";
+        })
+        .join("");
+      var m = raw.match(/\{[\s\S]*\}/);
+      if (!m) throw new Error("No JSON in response");
+      setRecommendations(JSON.parse(m[0]));
+      setStep(6);
+      setRecsLoading(false);
+    } catch (e) {
+      setRecsError("Could not load recommendations. Please try again.");
+      setRecsLoading(false);
+    }
+  }
+
   var canProceed = pmType !== "" && seniority !== "" && workContexts.length > 0;
 
   if (gateLoading) {
@@ -865,6 +1076,50 @@ export default function ProductManager() {
   var visibleCtx = getVisibleContexts();
   var hiddenCount = WORK_CONTEXTS.length - visibleCtx.length;
   var progressPct = ((step + 1) / 6) * 100;
+
+  if (recsLoading) {
+    return (
+      <div
+        style={{
+          background: S.bg,
+          minHeight: "100vh",
+          fontFamily: S.font,
+          padding: "40px 20px",
+          boxSizing: "border-box",
+        }}
+      >
+        <style
+          dangerouslySetInnerHTML={{
+            __html: "@keyframes dzPMLoadDots{0%,100%{opacity:0.25}50%{opacity:1}}",
+          }}
+        />
+        <div style={{ maxWidth: 680, margin: "0 auto" }}>
+          <div style={{ marginBottom: 28 }}>
+            <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.1em", marginBottom: 10, fontWeight: 600 }}>
+              STEP 6 OF 6 — BUILDING YOUR PLAN
+            </div>
+            <div style={{ height: 4, background: S.border, borderRadius: 2, overflow: "hidden" }}>
+              <div style={{ height: "100%", width: unlockStepBarPct + "%", background: S.accent, borderRadius: 2 }} />
+            </div>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "50vh" }}>
+            <div style={{ textAlign: "center", maxWidth: 420 }}>
+              <div style={{ fontFamily: S.mono, fontSize: 12, color: S.gold, letterSpacing: "0.12em", marginBottom: 24, fontWeight: 600 }}>
+                DEFENSIBLE ZONE™ · PRODUCT MANAGER EDITION
+              </div>
+              <div style={{ fontFamily: S.serif, fontSize: 24, fontStyle: "italic", color: S.text, lineHeight: 1.45 }}>{loadingMsg}</div>
+              <div style={{ display: "flex", justifyContent: "center", gap: 6, marginTop: 18, fontFamily: S.mono, fontSize: 22, color: S.dim, lineHeight: 1 }}>
+                <span style={{ animation: "dzPMLoadDots 1s ease-in-out infinite" }}>.</span>
+                <span style={{ animation: "dzPMLoadDots 1s ease-in-out 0.2s infinite" }}>.</span>
+                <span style={{ animation: "dzPMLoadDots 1s ease-in-out 0.4s infinite" }}>.</span>
+              </div>
+            </div>
+          </div>
+          <PMFooter />
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     var loadingStepLabel = step === 3 ? "STEP 4 OF 6 — CALCULATING YOUR ZONE" : "STEP 3 OF 6 — READING YOUR LANDSCAPE";
@@ -1732,27 +1987,6 @@ export default function ProductManager() {
       topSkillName +
       "), your first move is to make it unmistakably visible — inside your org and in the market.";
 
-    function applyPromoCode() {
-      var v = (promoCode || "").trim();
-      var isFree = PROMO_CODES.some(function (c) {
-        return c.toLowerCase() === v.toLowerCase();
-      });
-      var isDiscount = DISCOUNT_CODES.some(function (c) {
-        return c.toLowerCase() === v.toLowerCase();
-      });
-      if (isFree) {
-        setTier(2);
-        setPromoUsed(true);
-        setPromoError("");
-        setStep(5);
-      } else if (isDiscount) {
-        setDiscountApplied(true);
-        setPromoError("");
-      } else {
-        setPromoError("That code isn't valid.");
-      }
-    }
-
     var blurredPhases = [
       {
         title: "Phase 1 — Weeks 1–4 — Establish your position",
@@ -2045,6 +2279,7 @@ export default function ProductManager() {
                 <div style={{ fontFamily: S.mono, fontSize: 28, fontWeight: 700, color: "#ffffff", marginBottom: 16 }}>$79</div>
                 <PrimaryBtn
                   onClick={function () {
+                    saveStateForReturn();
                     setStep(5);
                   }}
                   style={{ marginBottom: 16 }}
@@ -2096,7 +2331,7 @@ export default function ProductManager() {
                 </div>
                 {promoError ? <div style={{ color: "#fca5a5", fontSize: 14, marginTop: 8 }}>{promoError}</div> : null}
                 {discountApplied ? (
-                  <div style={{ color: "#6ee7b7", fontSize: 14, marginTop: 8 }}>50% discount applied at checkout.</div>
+                  <div style={{ color: "#6ee7b7", fontSize: 14, marginTop: 8 }}>50% discount applied — your price is $39.50</div>
                 ) : null}
               </div>
             </div>
@@ -2123,18 +2358,26 @@ export default function ProductManager() {
     );
   }
 
-  return (
-    <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font, padding: "40px 20px", boxSizing: "border-box" }}>
-      <div style={{ maxWidth: 680, margin: "0 auto" }}>
-        <div style={{ marginBottom: 28 }}>
-          <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.1em", marginBottom: 10, fontWeight: 600 }}>
-            STEP {step + 1} OF 6
+  // ── STEP 5: Payment ──────────────────────────────────────────────────
+  if (step === 5 && tier < 2 && !promoUsed) {
+    var unlockPriceLabel = discountApplied ? "$39.50" : "$79";
+    return (
+      <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font, padding: "40px 20px", boxSizing: "border-box" }}>
+        <style
+          dangerouslySetInnerHTML={{
+            __html: "@keyframes dzPMCheckoutSpin{to{transform:rotate(360deg)}}",
+          }}
+        />
+        <div style={{ maxWidth: 680, margin: "0 auto" }}>
+          <div style={{ marginBottom: 28 }}>
+            <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.1em", marginBottom: 10, fontWeight: 600 }}>
+              STEP 6 OF 6 — UNLOCK YOUR PLAN
+            </div>
+            <div style={{ height: 4, background: S.border, borderRadius: 2, overflow: "hidden" }}>
+              <div style={{ height: "100%", width: unlockStepBarPct + "%", background: S.accent, borderRadius: 2 }} />
+            </div>
           </div>
-          <div style={{ height: 4, background: S.border, borderRadius: 2, overflow: "hidden" }}>
-            <div style={{ height: "100%", width: progressPct + "%", background: S.accent, borderRadius: 2 }} />
-          </div>
-        </div>
-        {step > 0 && (
+
           <button
             type="button"
             onClick={resetAll}
@@ -2154,10 +2397,278 @@ export default function ProductManager() {
           >
             START OVER
           </button>
-        )}
-        <p style={{ fontFamily: S.mono, fontSize: 14, color: S.dim }}>Step {step + 1} — coming in a later prompt.</p>
-        <PMFooter />
+
+          <Card style={{ marginBottom: 20 }}>
+            <Label>UNLOCK YOUR 90-DAY PLAN</Label>
+            <h2 style={{ fontFamily: S.serif, fontSize: 28, color: S.text, margin: "0 0 12px", lineHeight: 1.2, fontWeight: 600 }}>
+              Your full plan is ready.
+            </h2>
+            <p style={{ color: S.dim, fontSize: 16, lineHeight: 1.7, margin: "0 0 24px" }}>
+              Unlock personalised actions for every skill — sequenced across three phases. We&apos;ll email the complete plan to{" "}
+              <span style={{ fontFamily: S.mono, fontSize: 14, color: S.muted, fontWeight: 600 }}>{gateEmail || "your email"}</span>.
+            </p>
+
+            {paymentCanceled ? (
+              <div style={{ color: S.red, fontSize: 14, marginBottom: 16, lineHeight: 1.5 }}>
+                Payment was cancelled — try again when you&apos;re ready.
+              </div>
+            ) : null}
+
+            {checkoutError ? (
+              <div style={{ color: S.red, fontSize: 14, marginBottom: 16, lineHeight: 1.5 }}>{checkoutError}</div>
+            ) : null}
+
+            <PrimaryBtn onClick={handleUnlockCheckout} disabled={checkoutLoading} style={{ marginBottom: 16 }}>
+              {checkoutLoading ? (
+                <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
+                  <span
+                    style={{
+                      width: 18,
+                      height: 18,
+                      border: "2px solid rgba(255,255,255,0.35)",
+                      borderTop: "2px solid #ffffff",
+                      borderRadius: "50%",
+                      animation: "dzPMCheckoutSpin 0.85s linear infinite",
+                      flexShrink: 0,
+                    }}
+                  />
+                  Starting checkout…
+                </span>
+              ) : checkoutError ? (
+                "TRY AGAIN"
+              ) : (
+                "UNLOCK MY PLAN → " + unlockPriceLabel
+              )}
+            </PrimaryBtn>
+
+            <div style={{ fontFamily: S.mono, fontSize: 12, color: S.dim, letterSpacing: "0.08em", marginBottom: 10, fontWeight: 600 }}>
+              HAVE A PROMO CODE?
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "stretch" }}>
+              <input
+                type="text"
+                value={promoCode}
+                onChange={function (e) {
+                  setPromoCode(e.target.value);
+                  if (promoError) setPromoError("");
+                }}
+                placeholder="Enter code"
+                style={Object.assign({}, inputStyle, { flex: "1 1 160px", minWidth: 0, marginBottom: 0 })}
+              />
+              <button
+                type="button"
+                onClick={applyPromoCode}
+                style={{
+                  padding: "12px 20px",
+                  fontSize: 15,
+                  fontFamily: S.font,
+                  fontWeight: 600,
+                  background: S.card2,
+                  color: S.text,
+                  border: "1px solid " + S.border,
+                  borderRadius: 10,
+                  cursor: "pointer",
+                }}
+              >
+                Apply
+              </button>
+            </div>
+            {promoError ? <div style={{ color: S.red, fontSize: 14, marginTop: 8 }}>{promoError}</div> : null}
+            {discountApplied ? (
+              <div style={{ color: S.green, fontSize: 14, marginTop: 8 }}>50% discount applied — your price is $39.50</div>
+            ) : null}
+          </Card>
+
+          <button
+            type="button"
+            onClick={function () {
+              setStep(4);
+              setPaymentCanceled(false);
+              setCheckoutError(null);
+            }}
+            style={{
+              background: "transparent",
+              border: "none",
+              padding: 0,
+              cursor: "pointer",
+              fontFamily: S.mono,
+              fontSize: 12,
+              color: S.dim,
+              letterSpacing: "0.06em",
+            }}
+          >
+            ← BACK TO RESULTS
+          </button>
+
+          <PMFooter />
+        </div>
       </div>
-    </div>
-  );
+    );
+  }
+
+  // ── STEP 6: Unlocked 90-day Plan ─────────────────────────────────────
+  if (step === 6 && (tier >= 2 || promoUsed)) {
+    if (recsError) {
+      return (
+        <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font, padding: "40px 20px", boxSizing: "border-box" }}>
+          <div style={{ maxWidth: 680, margin: "0 auto" }}>
+            <div style={{ marginBottom: 28 }}>
+              <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.1em", marginBottom: 10, fontWeight: 600 }}>
+                STEP 6 OF 6 — BUILDING YOUR PLAN
+              </div>
+              <div style={{ height: 4, background: S.border, borderRadius: 2, overflow: "hidden" }}>
+                <div style={{ height: "100%", width: unlockStepBarPct + "%", background: S.accent, borderRadius: 2 }} />
+              </div>
+            </div>
+            <Card style={{ textAlign: "center" }}>
+              <p style={{ color: S.red, fontSize: 15, margin: "0 0 20px", lineHeight: 1.5 }}>{recsError}</p>
+              <PrimaryBtn onClick={fetchRecommendations}>TRY AGAIN</PrimaryBtn>
+            </Card>
+            <button type="button" onClick={resetAll} style={{ marginTop: 20, background: "transparent", border: "1px solid " + S.border, color: S.dim, borderRadius: 10, padding: "10px 16px", fontFamily: S.mono, fontSize: 12, fontWeight: 600, cursor: "pointer", letterSpacing: "0.06em", width: "100%" }}>
+              START OVER
+            </button>
+            <PMFooter />
+          </div>
+        </div>
+      );
+    }
+
+    if (!recommendations || !recommendations.recommendations) {
+      return null;
+    }
+
+    var rawRecs = recommendations.recommendations.slice();
+    var PHASE_HEADERS = [
+      { phase: 1, label: "WEEKS 1–4 — START NOW" },
+      { phase: 2, label: "WEEKS 5–8 — BUILD ON IT" },
+      { phase: 3, label: "WEEKS 9–12 — STRUCTURAL MOVES" },
+    ];
+
+    return (
+      <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font, padding: "40px 20px", boxSizing: "border-box" }}>
+        <div style={{ maxWidth: 680, margin: "0 auto" }}>
+          <div style={{ marginBottom: 28 }}>
+            <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.1em", marginBottom: 10, fontWeight: 600 }}>
+              COMPLETE — YOUR 90-DAY PLAN
+            </div>
+            <div style={{ height: 4, background: S.border, borderRadius: 2, overflow: "hidden" }}>
+              <div style={{ height: "100%", width: unlockStepBarPct + "%", background: S.green, borderRadius: 2 }} />
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={resetAll}
+            style={{
+              background: "transparent",
+              border: "1px solid " + S.border,
+              color: S.dim,
+              borderRadius: 10,
+              padding: "10px 16px",
+              fontFamily: S.mono,
+              fontSize: 12,
+              fontWeight: 600,
+              cursor: "pointer",
+              letterSpacing: "0.06em",
+              marginBottom: 24,
+            }}
+          >
+            START OVER
+          </button>
+
+          <div style={{ fontFamily: S.mono, fontSize: 11, color: S.gold, letterSpacing: "0.12em", marginBottom: 12, fontWeight: 600 }}>
+            YOUR DEFENSIBLE ZONE PLAN
+          </div>
+          <h1 style={{ fontFamily: S.serif, fontSize: 32, color: S.text, margin: "0 0 10px", lineHeight: 1.2, fontWeight: 600 }}>
+            90 days to a stronger position.
+          </h1>
+          <p style={{ color: S.dim, fontSize: 16, lineHeight: 1.7, margin: "0 0 32px" }}>
+            Here is exactly what to do — sequenced by what you can start now.
+          </p>
+
+          {PHASE_HEADERS.map(function (ph) {
+            var phaseRecs = rawRecs.filter(function (r) {
+              return r.phase === ph.phase;
+            });
+            if (phaseRecs.length === 0) return null;
+            return (
+              <div key={ph.phase} style={{ marginBottom: 32 }}>
+                <div
+                  style={{
+                    fontFamily: S.mono,
+                    fontSize: 11,
+                    color: S.muted,
+                    letterSpacing: "0.1em",
+                    fontWeight: 700,
+                    marginBottom: 14,
+                  }}
+                >
+                  {ph.label}
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  {phaseRecs.map(function (rec, idx) {
+                    return (
+                      <div
+                        key={(rec.id || "rec") + "-" + idx}
+                        style={{
+                          background: S.card,
+                          border: "1px solid " + S.border,
+                          borderRadius: 12,
+                          padding: "20px 22px",
+                          position: "relative",
+                        }}
+                      >
+                        <div
+                          style={{
+                            position: "absolute",
+                            top: 14,
+                            right: 14,
+                            fontFamily: S.mono,
+                            fontSize: 10,
+                            fontWeight: 700,
+                            letterSpacing: "0.06em",
+                            color: S.gold,
+                            background: S.card2,
+                            border: "1px solid " + S.border,
+                            borderRadius: 6,
+                            padding: "4px 8px",
+                          }}
+                        >
+                          PHASE {rec.phase}
+                        </div>
+                        <div style={{ fontSize: 17, fontWeight: 700, color: S.text, lineHeight: 1.35, marginBottom: 10, paddingRight: 72 }}>
+                          {rec.headline || "—"}
+                        </div>
+                        <div style={{ fontSize: 15, color: S.dim, lineHeight: 1.65, marginBottom: 10 }}>{rec.action || ""}</div>
+                        <div style={{ fontSize: 13, color: S.muted, fontStyle: "italic", lineHeight: 1.55 }}>{rec.why || ""}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+
+          <div
+            style={{
+              background: S.card2,
+              border: "1px solid " + S.border,
+              borderRadius: 12,
+              padding: "14px 18px",
+              marginBottom: 28,
+              textAlign: "center",
+            }}
+          >
+            <p style={{ fontFamily: S.mono, fontSize: 12, color: S.dim, margin: 0, lineHeight: 1.6 }}>
+              A copy of this plan has been sent to {gateEmail || "your email"}
+            </p>
+          </div>
+
+          <PMFooter />
+        </div>
+      </div>
+    );
+  }
+
+  return null;
 }

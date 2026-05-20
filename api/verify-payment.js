@@ -50,7 +50,7 @@ export default async function handler(req, res) {
   }
 
   // Validate product is one of the known tools
-  const knownProducts = ["engineer", "doctor", "designer", "finance"];
+  const knownProducts = ["engineer", "doctor", "designer", "finance", "pm"];
   const safeProduct = knownProducts.includes(product) ? product : "engineer";
 
   if (!process.env.STRIPE_SECRET_KEY) {
