@@ -275,20 +275,28 @@ export default function ProductManager() {
     "Almost ready…",
   ];
 
+  var PM_SCORING_MSGS = [
+    "Scoring your skills…",
+    "Calculating AI exposure…",
+    "Building your defensible zone…",
+    "Almost there…",
+  ];
+
   useEffect(
     function () {
       if (!loading) return;
+      var msgs = step === 3 ? PM_SCORING_MSGS : PM_LOADING_MSGS;
       var i = 0;
-      setLoadingMsg(PM_LOADING_MSGS[0]);
+      setLoadingMsg(msgs[0]);
       var t = setInterval(function () {
-        i = (i + 1) % PM_LOADING_MSGS.length;
-        setLoadingMsg(PM_LOADING_MSGS[i]);
+        i = (i + 1) % msgs.length;
+        setLoadingMsg(msgs[i]);
       }, 2000);
       return function () {
         clearInterval(t);
       };
     },
-    [loading]
+    [loading, step]
   );
 
   useEffect(
@@ -504,6 +512,7 @@ export default function ProductManager() {
   var STUB_AI_RISK = 5;
   var STUB_MARKET_DEMAND = 7;
   var skillStepBarPct = (3 / 6) * 100;
+  var scoreStepBarPct = (4 / 6) * 100;
 
   async function fetchLandscapeAndSkills() {
     if (!canProceed) return;
@@ -616,6 +625,165 @@ export default function ProductManager() {
     }
   }
 
+  async function fetchScores() {
+    if (skills.length === 0) return;
+    setLoading(true);
+    setLoadingMsg(PM_SCORING_MSGS[0]);
+    setError(null);
+    var profile = buildProfile(pmType, seniority, workContexts, companyType);
+    var wcStr = profile.workContextLabels.join(", ");
+    var skillSummary = skills
+      .map(function (s, i) {
+        var fluencyVal = fluencies[s.id] !== undefined ? fluencies[s.id] : getSeed(conscience, pull);
+        var cVal = skillConscience[s.id] !== undefined ? skillConscience[s.id] : conscience;
+        var pVal = skillPull[s.id] !== undefined ? skillPull[s.id] : pull;
+        var aff = compAff(cVal, pVal, fluencyVal);
+        return i + 1 + ". " + s.text + " (fluency: " + fluencyVal + "/10, affinity: " + aff + "/10)";
+      })
+      .join("\n");
+    var prompt =
+      "You are a senior product management career strategist with deep knowledge of the 2026 AI labor market.\n\nPM PROFILE:\n- PM Type: " +
+      profile.pmLabel +
+      "\n- Seniority: " +
+      profile.seniorityLabel +
+      "\n- Work contexts: " +
+      wcStr +
+      "\n- Company: " +
+      (profile.companyLabel || "not specified") +
+      "\n\nSkills to score:\n" +
+      skillSummary +
+      "\n\nFor each skill, return:\n- ai_replaceability: 1-10 (10 = AI is already doing this or will within 12 months; 1 = deeply human, irreplaceable)\n- market_demand: 1-10 (10 = extremely high market value right now for this PM type and seniority)\n\nBe honest and precise. A " +
+      profile.seniorityLabel +
+      " " +
+      profile.pmLabel +
+      "'s skills have different exposure profiles than a junior generalist. Score accordingly — do not default to middle values.\n\nReturn ONLY valid JSON:\n{\"scores\":[{\"id\":\"s0\",\"name\":\"skill name\",\"ai_replaceability\":N,\"market_demand\":N},{...}]}";
+    try {
+      var res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-6",
+          max_tokens: 800,
+          messages: [{ role: "user", content: prompt }],
+        }),
+      });
+      var data = await res.json();
+      if (!data.content) throw new Error(data.error || data.error_description || "API error: " + JSON.stringify(data));
+      var raw = data.content
+        .map(function (b) {
+          return b.text || "";
+        })
+        .join("");
+      var m = raw.match(/\{[\s\S]*\}/);
+      if (!m) throw new Error("No JSON in response");
+      var parsed = JSON.parse(m[0]);
+      if (!parsed.scores || !Array.isArray(parsed.scores)) throw new Error("No scores in response");
+      var enriched = parsed.scores.map(function (scored, i) {
+        var found =
+          skills.find(function (s) {
+            return s.id === scored.id;
+          }) ||
+          skills.find(function (s) {
+            return scored.name === s.text;
+          }) ||
+          skills.find(function (s) {
+            return scored.name && scored.name.indexOf(s.text.slice(0, 20)) !== -1;
+          });
+        var id = found ? found.id : scored.id || "s" + i;
+        var fluencyVal = fluencies[id] !== undefined ? fluencies[id] : getSeed(conscience, pull);
+        var cVal = skillConscience[id] !== undefined ? skillConscience[id] : conscience;
+        var pVal = skillPull[id] !== undefined ? skillPull[id] : pull;
+        var aff = compAff(cVal, pVal, fluencyVal);
+        var aiR = typeof scored.ai_replaceability === "number" ? scored.ai_replaceability : 5;
+        var mkt = typeof scored.market_demand === "number" ? scored.market_demand : 7;
+        var dz = calcDZ(aff, aiR, mkt);
+        return {
+          id: id,
+          text: found ? found.text : scored.name,
+          name: found ? found.text : scored.name,
+          conscience: cVal,
+          pull: pVal,
+          fluency: fluencyVal,
+          affinity: aff,
+          ai_replaceability: aiR,
+          market_demand: mkt,
+          dz: dz,
+        };
+      });
+      setResults({ skills: enriched, profile: profile, landscape: landscape });
+      setStep(4);
+    } catch (e) {
+      if (e.message && e.message.indexOf("overloaded") !== -1) {
+        await new Promise(function (r) {
+          setTimeout(r, 2000);
+        });
+        try {
+          var res2 = await fetch("/api/generate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              model: "claude-sonnet-4-6",
+              max_tokens: 800,
+              messages: [{ role: "user", content: prompt }],
+            }),
+          });
+          var data2 = await res2.json();
+          if (!data2.content)
+            throw new Error(typeof data2.error === "object" ? JSON.stringify(data2) : data2.error || JSON.stringify(data2));
+          var raw2 = data2.content
+            .map(function (b) {
+              return b.text || "";
+            })
+            .join("");
+          var m2 = raw2.match(/\{[\s\S]*\}/);
+          if (!m2) throw new Error("No JSON in response");
+          var parsed2 = JSON.parse(m2[0]);
+          if (!parsed2.scores || !Array.isArray(parsed2.scores)) throw new Error("No scores in response");
+          var enriched2 = parsed2.scores.map(function (scored, i) {
+            var found2 =
+              skills.find(function (s) {
+                return s.id === scored.id;
+              }) ||
+              skills.find(function (s) {
+                return scored.name === s.text;
+              }) ||
+              skills.find(function (s) {
+                return scored.name && scored.name.indexOf(s.text.slice(0, 20)) !== -1;
+              });
+            var id2 = found2 ? found2.id : scored.id || "s" + i;
+            var fluencyVal2 = fluencies[id2] !== undefined ? fluencies[id2] : getSeed(conscience, pull);
+            var cVal2 = skillConscience[id2] !== undefined ? skillConscience[id2] : conscience;
+            var pVal2 = skillPull[id2] !== undefined ? skillPull[id2] : pull;
+            var aff2 = compAff(cVal2, pVal2, fluencyVal2);
+            var aiR2 = typeof scored.ai_replaceability === "number" ? scored.ai_replaceability : 5;
+            var mkt2 = typeof scored.market_demand === "number" ? scored.market_demand : 7;
+            var dz2 = calcDZ(aff2, aiR2, mkt2);
+            return {
+              id: id2,
+              text: found2 ? found2.text : scored.name,
+              name: found2 ? found2.text : scored.name,
+              conscience: cVal2,
+              pull: pVal2,
+              fluency: fluencyVal2,
+              affinity: aff2,
+              ai_replaceability: aiR2,
+              market_demand: mkt2,
+              dz: dz2,
+            };
+          });
+          setResults({ skills: enriched2, profile: profile, landscape: landscape });
+          setStep(4);
+        } catch (e2) {
+          setError("Something went wrong — please try again in a moment.");
+        }
+      } else {
+        setError("Something went wrong — please try again in a moment.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
   var canProceed = pmType !== "" && seniority !== "" && workContexts.length > 0;
 
   if (gateLoading) {
@@ -657,6 +825,8 @@ export default function ProductManager() {
   var progressPct = ((step + 1) / 6) * 100;
 
   if (loading) {
+    var loadingStepLabel = step === 3 ? "STEP 4 OF 6 — CALCULATING YOUR ZONE" : "STEP 3 OF 6 — READING YOUR LANDSCAPE";
+    var loadingBarPct = step === 3 ? scoreStepBarPct : skillStepBarPct;
     return (
       <div
         style={{
@@ -675,13 +845,13 @@ export default function ProductManager() {
         <div style={{ maxWidth: 680, margin: "0 auto" }}>
           <div style={{ marginBottom: 28 }}>
             <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.1em", marginBottom: 10, fontWeight: 600 }}>
-              STEP 3 OF 6 — READING YOUR LANDSCAPE
+              {loadingStepLabel}
             </div>
             <div style={{ height: 4, background: S.border, borderRadius: 2, overflow: "hidden" }}>
               <div
                 style={{
                   height: "100%",
-                  width: skillStepBarPct + "%",
+                  width: loadingBarPct + "%",
                   background: S.accent,
                   borderRadius: 2,
                   transition: "width 0.25s ease",
@@ -725,7 +895,9 @@ export default function ProductManager() {
     );
   }
 
-  if (error && step === 2) {
+  if (error && (step === 2 || step === 3)) {
+    var errStepLabel = step === 3 ? "STEP 4 OF 6 — CALCULATING YOUR ZONE" : "STEP 3 OF 6 — READING YOUR LANDSCAPE";
+    var errBarPct = step === 3 ? scoreStepBarPct : skillStepBarPct;
     return (
       <div
         style={{
@@ -739,10 +911,10 @@ export default function ProductManager() {
         <div style={{ maxWidth: 680, margin: "0 auto" }}>
           <div style={{ marginBottom: 28 }}>
             <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.1em", marginBottom: 10, fontWeight: 600 }}>
-              STEP 3 OF 6 — READING YOUR LANDSCAPE
+              {errStepLabel}
             </div>
             <div style={{ height: 4, background: S.border, borderRadius: 2, overflow: "hidden" }}>
-              <div style={{ height: "100%", width: skillStepBarPct + "%", background: S.accent, borderRadius: 2 }} />
+              <div style={{ height: "100%", width: errBarPct + "%", background: S.accent, borderRadius: 2 }} />
             </div>
           </div>
           <Card style={{ textAlign: "center" }}>
@@ -750,7 +922,8 @@ export default function ProductManager() {
             <PrimaryBtn
               onClick={function () {
                 setError(null);
-                fetchLandscapeAndSkills();
+                if (step === 3) fetchScores();
+                else fetchLandscapeAndSkills();
               }}
             >
               TRY AGAIN
@@ -1479,7 +1652,7 @@ export default function ProductManager() {
             </div>
           </Card>
 
-          <PrimaryBtn onClick={function () { setStep(4); }} disabled={skills.length === 0}>
+          <PrimaryBtn onClick={fetchScores} disabled={skills.length === 0}>
             CALCULATE MY DEFENSIBLE ZONE →
           </PrimaryBtn>
         </div>
