@@ -205,6 +205,9 @@ export default function ProductManager() {
   var [conscience, setConscience]           = useState(5);
   var [pull, setPull]                       = useState(5);
   var [fluencies, setFluencies]             = useState({});
+  var [skillConscience, setSkillConscience] = useState({});
+  var [skillPull, setSkillPull]             = useState({});
+  var [customSkill, setCustomSkill]         = useState("");
   var [adjustedSkills, setAdjustedSkills]   = useState(function() { return new Set(); });
   var adjustedSkillsRef                     = useRef(new Set());
   var [results, setResults]                 = useState(null);
@@ -245,7 +248,57 @@ export default function ProductManager() {
       });
       return next;
     });
+    setSkillConscience(function(prev) {
+      var next = Object.assign({}, prev);
+      skills.forEach(function(s) {
+        if (!adjustedSkillsRef.current.has(s.id)) {
+          next[s.id] = conscience;
+        }
+      });
+      return next;
+    });
+    setSkillPull(function(prev) {
+      var next = Object.assign({}, prev);
+      skills.forEach(function(s) {
+        if (!adjustedSkillsRef.current.has(s.id)) {
+          next[s.id] = pull;
+        }
+      });
+      return next;
+    });
   }, [conscience, pull, skills]);
+
+  var PM_LOADING_MSGS = [
+    "Mapping your PM landscape…",
+    "Identifying your exposure points…",
+    "Calibrating skill defensibility…",
+    "Almost ready…",
+  ];
+
+  useEffect(
+    function () {
+      if (!loading) return;
+      var i = 0;
+      setLoadingMsg(PM_LOADING_MSGS[0]);
+      var t = setInterval(function () {
+        i = (i + 1) % PM_LOADING_MSGS.length;
+        setLoadingMsg(PM_LOADING_MSGS[i]);
+      }, 2000);
+      return function () {
+        clearInterval(t);
+      };
+    },
+    [loading]
+  );
+
+  useEffect(
+    function () {
+      if (!gateVerified) return;
+      if (skills.length > 0 || loading) return;
+      fetchLandscapeAndSkills();
+    },
+    [gateVerified]
+  );
 
   useEffect(function () {
     var params = new URLSearchParams(window.location.search);
@@ -402,6 +455,7 @@ export default function ProductManager() {
     setWorkContexts([]); setShowAllCtx(false);
     setLandscape(""); setSkills([]);
     setConscience(5); setPull(5); setFluencies({});
+    setSkillConscience({}); setSkillPull({}); setCustomSkill("");
     setAdjustedSkills(new Set());
     adjustedSkillsRef.current = new Set();
     setResults(null); setBenchmark(null);
@@ -418,8 +472,148 @@ export default function ProductManager() {
   function removeSkill(id) {
     setSkills(function(p) { return p.filter(function(s) { return s.id!==id; }); });
     setFluencies(function(p) { var n=Object.assign({},p); delete n[id]; return n; });
+    setSkillConscience(function(p) { var n=Object.assign({},p); delete n[id]; return n; });
+    setSkillPull(function(p) { var n=Object.assign({},p); delete n[id]; return n; });
     adjustedSkillsRef.current.delete(id);
     setAdjustedSkills(new Set(adjustedSkillsRef.current));
+  }
+
+  function addSkill() {
+    var t = customSkill.trim();
+    if (!t) return;
+    var id = "s" + Date.now();
+    setSkills(function(p) {
+      return p.concat([{ id: id, text: t, editing: false }]);
+    });
+    setCustomSkill("");
+  }
+
+  var inputStyle = {
+    width: "100%",
+    padding: "12px 14px",
+    fontSize: 16,
+    fontFamily: S.font,
+    border: "1px solid " + S.border,
+    borderRadius: 10,
+    outline: "none",
+    boxSizing: "border-box",
+    background: "#ffffff",
+    color: S.text,
+  };
+
+  var STUB_AI_RISK = 5;
+  var STUB_MARKET_DEMAND = 7;
+  var skillStepBarPct = (3 / 6) * 100;
+
+  async function fetchLandscapeAndSkills() {
+    if (!canProceed) return;
+    setLoading(true);
+    setLoadingMsg(PM_LOADING_MSGS[0]);
+    setError(null);
+    var profile = buildProfile(pmType, seniority, workContexts, companyType);
+    var wcStr = profile.workContextLabels.join(", ");
+    var sl = SENIORITY_LEVELS.find(function (s) {
+      return s.id === seniority;
+    });
+    var prompt =
+      "You are a senior product management career strategist specializing in AI labor market analysis for product managers.\n\nPM PROFILE:\n- PM Type: " +
+      profile.pmLabel +
+      "\n- Seniority: " +
+      profile.seniorityLabel +
+      " — " +
+      profile.seniorityNote +
+      "\n- Work contexts: " +
+      wcStr +
+      "\n- Company: " +
+      (profile.companyLabel || "not specified") +
+      "\n\nTask 1 — LANDSCAPE SNAPSHOT: Write 2-3 precise sentences about the AI threat to this exact PM profile RIGHT NOW (May 2026). Name specific tools (ChatPRD, Notion AI, Dovetail, Jira AI, Cursor, v0, Lovable), specific tasks being automated, and where the real exposure is at this seniority level doing this work. Do not write generic AI commentary — be specific to this combination of PM type, seniority, and work context.\n\nTask 2 — SKILL SUGGESTIONS: Generate exactly 8 skills that are the most strategically important for a " +
+      profile.seniorityLabel +
+      " " +
+      profile.pmLabel +
+      " working on " +
+      wcStr +
+      " to assess for AI defensibility right now. Be precise and PM-specific — not 'stakeholder management' but 'building executive alignment across competing product bets without formal authority at " +
+      profile.seniorityLabel +
+      " level'. Include a realistic mix: some that are defensible and some genuinely at risk from AI. Weight toward skills that actually differentiate at the " +
+      profile.seniorityLabel +
+      " level. Do not suggest generic skills.\n\nReturn ONLY valid JSON:\n{\"landscape\":\"...\",\"skills\":[\"skill1\",\"skill2\",\"skill3\",\"skill4\",\"skill5\",\"skill6\",\"skill7\",\"skill8\"]}";
+    try {
+      var res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-6",
+          max_tokens: 1000,
+          messages: [{ role: "user", content: prompt }],
+        }),
+      });
+      var data = await res.json();
+      if (!data.content) throw new Error(data.error || data.error_description || "API error: " + JSON.stringify(data));
+      var raw = data.content
+        .map(function (b) {
+          return b.text || "";
+        })
+        .join("");
+      var m = raw.match(/\{[\s\S]*\}/);
+      if (!m) throw new Error("No JSON in response");
+      var parsed = JSON.parse(m[0]);
+      var loaded = parsed.skills.map(function (text, i) {
+        return { id: "s" + i, text: text, editing: false };
+      });
+      setLandscape(parsed.landscape);
+      setSkills(loaded);
+      setFluencies({});
+      setSkillConscience({});
+      setSkillPull({});
+      setAdjustedSkills(new Set());
+      adjustedSkillsRef.current = new Set();
+      setStep(3);
+    } catch (e) {
+      if (e.message && e.message.indexOf("overloaded") !== -1) {
+        await new Promise(function (r) {
+          setTimeout(r, 2000);
+        });
+        try {
+          var res2 = await fetch("/api/generate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              model: "claude-sonnet-4-6",
+              max_tokens: 1000,
+              messages: [{ role: "user", content: prompt }],
+            }),
+          });
+          var data2 = await res2.json();
+          if (!data2.content)
+            throw new Error(typeof data2.error === "object" ? JSON.stringify(data2) : data2.error || JSON.stringify(data2));
+          var raw2 = data2.content
+            .map(function (b) {
+              return b.text || "";
+            })
+            .join("");
+          var m2 = raw2.match(/\{[\s\S]*\}/);
+          if (!m2) throw new Error("No JSON in response");
+          var parsed2 = JSON.parse(m2[0]);
+          var loaded2 = parsed2.skills.map(function (text, i) {
+            return { id: "s" + i, text: text, editing: false };
+          });
+          setLandscape(parsed2.landscape);
+          setSkills(loaded2);
+          setFluencies({});
+          setSkillConscience({});
+          setSkillPull({});
+          setAdjustedSkills(new Set());
+          adjustedSkillsRef.current = new Set();
+          setStep(3);
+        } catch (e2) {
+          setError("Something went wrong — please try again in a moment.");
+        }
+      } else {
+        setError("Something went wrong — please try again in a moment.");
+      }
+    } finally {
+      setLoading(false);
+    }
   }
 
   var canProceed = pmType !== "" && seniority !== "" && workContexts.length > 0;
@@ -461,6 +655,131 @@ export default function ProductManager() {
   var visibleCtx = getVisibleContexts();
   var hiddenCount = WORK_CONTEXTS.length - visibleCtx.length;
   var progressPct = ((step + 1) / 6) * 100;
+
+  if (loading) {
+    return (
+      <div
+        style={{
+          background: S.bg,
+          minHeight: "100vh",
+          fontFamily: S.font,
+          padding: "40px 20px",
+          boxSizing: "border-box",
+        }}
+      >
+        <style
+          dangerouslySetInnerHTML={{
+            __html: "@keyframes dzPMLoadDots{0%,100%{opacity:0.25}50%{opacity:1}}",
+          }}
+        />
+        <div style={{ maxWidth: 680, margin: "0 auto" }}>
+          <div style={{ marginBottom: 28 }}>
+            <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.1em", marginBottom: 10, fontWeight: 600 }}>
+              STEP 3 OF 6 — READING YOUR LANDSCAPE
+            </div>
+            <div style={{ height: 4, background: S.border, borderRadius: 2, overflow: "hidden" }}>
+              <div
+                style={{
+                  height: "100%",
+                  width: skillStepBarPct + "%",
+                  background: S.accent,
+                  borderRadius: 2,
+                  transition: "width 0.25s ease",
+                }}
+              />
+            </div>
+          </div>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              minHeight: "50vh",
+            }}
+          >
+            <div style={{ textAlign: "center", maxWidth: 420 }}>
+              <div style={{ fontFamily: S.mono, fontSize: 12, color: S.gold, letterSpacing: "0.12em", marginBottom: 24, fontWeight: 600 }}>
+                DEFENSIBLE ZONE™ · PRODUCT MANAGER EDITION
+              </div>
+              <div style={{ fontFamily: S.serif, fontSize: 24, fontStyle: "italic", color: S.text, lineHeight: 1.45 }}>{loadingMsg}</div>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "center",
+                  gap: 6,
+                  marginTop: 18,
+                  fontFamily: S.mono,
+                  fontSize: 22,
+                  color: S.dim,
+                  lineHeight: 1,
+                }}
+              >
+                <span style={{ animation: "dzPMLoadDots 1s ease-in-out infinite" }}>.</span>
+                <span style={{ animation: "dzPMLoadDots 1s ease-in-out 0.2s infinite" }}>.</span>
+                <span style={{ animation: "dzPMLoadDots 1s ease-in-out 0.4s infinite" }}>.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error && step === 2) {
+    return (
+      <div
+        style={{
+          background: S.bg,
+          minHeight: "100vh",
+          fontFamily: S.font,
+          padding: "40px 20px",
+          boxSizing: "border-box",
+        }}
+      >
+        <div style={{ maxWidth: 680, margin: "0 auto" }}>
+          <div style={{ marginBottom: 28 }}>
+            <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.1em", marginBottom: 10, fontWeight: 600 }}>
+              STEP 3 OF 6 — READING YOUR LANDSCAPE
+            </div>
+            <div style={{ height: 4, background: S.border, borderRadius: 2, overflow: "hidden" }}>
+              <div style={{ height: "100%", width: skillStepBarPct + "%", background: S.accent, borderRadius: 2 }} />
+            </div>
+          </div>
+          <Card style={{ textAlign: "center" }}>
+            <p style={{ color: S.red, fontSize: 15, margin: "0 0 20px", lineHeight: 1.5 }}>{error}</p>
+            <PrimaryBtn
+              onClick={function () {
+                setError(null);
+                fetchLandscapeAndSkills();
+              }}
+            >
+              TRY AGAIN
+            </PrimaryBtn>
+          </Card>
+          <button
+            type="button"
+            onClick={resetAll}
+            style={{
+              marginTop: 20,
+              background: "transparent",
+              border: "1px solid " + S.border,
+              color: S.dim,
+              borderRadius: 10,
+              padding: "10px 16px",
+              fontFamily: S.mono,
+              fontSize: 12,
+              fontWeight: 600,
+              cursor: "pointer",
+              letterSpacing: "0.06em",
+              width: "100%",
+            }}
+          >
+            START OVER
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (step === 0) {
     return (
@@ -813,23 +1132,356 @@ export default function ProductManager() {
     );
   }
 
-  if (step === 2) {
+  if (step === 3) {
+    var profile3 = buildProfile(pmType, seniority, workContexts, companyType);
+    var dzSliderCSS =
+      "input[type=range].dz-slider{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:3px;outline:none;cursor:pointer;border:none} input[type=range].dz-slider::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;border-radius:50%;border:3px solid white;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.18)} input[type=range].dz-slider::-moz-range-thumb{width:24px;height:24px;border-radius:50%;border:3px solid white;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.18)} input[type=range].conscience-sl::-webkit-slider-thumb{background:#7c3aed} input[type=range].conscience-sl::-moz-range-thumb{background:#7c3aed} input[type=range].pull-sl::-webkit-slider-thumb{background:#0891b2} input[type=range].pull-sl::-moz-range-thumb{background:#0891b2} input[type=range].fluency-sl::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:#d97706;border:2px solid white;cursor:pointer} input[type=range].fluency-sl::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:#d97706;border:2px solid white;cursor:pointer}";
+    var landscapeSummary = profile3.seniorityLabel + " " + profile3.pmLabel;
     return (
       <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font, padding: "40px 20px", boxSizing: "border-box" }}>
+        <style dangerouslySetInnerHTML={{ __html: dzSliderCSS }} />
         <div style={{ maxWidth: 680, margin: "0 auto" }}>
           <div style={{ marginBottom: 28 }}>
             <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.1em", marginBottom: 10, fontWeight: 600 }}>
-              STEP 3 OF 6 — ASSESSMENT
+              STEP 3 OF 6 — YOUR SKILLS
             </div>
             <div style={{ height: 4, background: S.border, borderRadius: 2, overflow: "hidden" }}>
-              <div style={{ height: "100%", width: progressPct + "%", background: S.accent, borderRadius: 2, transition: "width 0.25s ease" }} />
+              <div
+                style={{
+                  height: "100%",
+                  width: skillStepBarPct + "%",
+                  background: S.accent,
+                  borderRadius: 2,
+                  transition: "width 0.25s ease",
+                }}
+              />
             </div>
           </div>
-          <Card>
-            <p style={{ fontFamily: S.mono, fontSize: 14, color: S.dim, margin: 0 }}>
-              {gateVerified ? "Email verified. " : ""}Assessment — coming in a later prompt.
+
+          <button
+            type="button"
+            onClick={resetAll}
+            style={{
+              background: "transparent",
+              border: "1px solid " + S.border,
+              color: S.dim,
+              borderRadius: 10,
+              padding: "10px 16px",
+              fontFamily: S.mono,
+              fontSize: 12,
+              fontWeight: 600,
+              cursor: "pointer",
+              letterSpacing: "0.06em",
+              marginBottom: 24,
+            }}
+          >
+            START OVER
+          </button>
+
+          <div
+            style={{
+              background: S.accent,
+              borderRadius: 14,
+              padding: 22,
+              marginBottom: 24,
+              position: "relative",
+              overflow: "hidden",
+            }}
+          >
+            <div
+              style={{
+                position: "absolute",
+                top: 0,
+                right: 0,
+                width: 160,
+                height: 160,
+                background: "radial-gradient(circle,rgba(217,119,6,.15) 0%,transparent 70%)",
+                pointerEvents: "none",
+              }}
+            />
+            <div style={{ fontFamily: S.mono, fontSize: 12, color: "rgba(217,119,6,.85)", letterSpacing: "0.1em", marginBottom: 10, fontWeight: 600 }}>
+              YOUR AI LANDSCAPE — {landscapeSummary.toUpperCase()}
+            </div>
+            <p style={{ color: "#ffffff", fontSize: 16, lineHeight: 1.75, margin: 0, fontStyle: "italic" }}>{landscape}</p>
+          </div>
+
+          <Card style={{ marginBottom: 16 }}>
+            <Label>AFFINITY CALIBRATION</Label>
+            <p style={{ color: S.dim, fontSize: 15, lineHeight: 1.65, margin: "0 0 20px" }}>
+              Answer these once. They seed defaults for each skill below.
             </p>
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ fontFamily: S.mono, fontSize: 12, color: S.purple, fontWeight: 700, letterSpacing: "0.06em", marginBottom: 10 }}>
+                How much does this work energize you?
+              </div>
+              <input
+                className="dz-slider conscience-sl"
+                type="range"
+                min={0}
+                max={10}
+                step={1}
+                value={conscience}
+                onChange={function (e) {
+                  setConscience(snapToStop(Number(e.target.value)));
+                }}
+                style={{
+                  background: "linear-gradient(to right, #7c3aed " + (conscience / 10) * 100 + "%, #d0d7e8 " + (conscience / 10) * 100 + "%)",
+                }}
+              />
+            </div>
+            <div>
+              <div style={{ fontFamily: S.mono, fontSize: 12, color: "#0891b2", fontWeight: 700, letterSpacing: "0.06em", marginBottom: 10 }}>
+                How strongly does this work pull you forward?
+              </div>
+              <input
+                className="dz-slider pull-sl"
+                type="range"
+                min={0}
+                max={10}
+                step={1}
+                value={pull}
+                onChange={function (e) {
+                  setPull(snapToStop(Number(e.target.value)));
+                }}
+                style={{
+                  background: "linear-gradient(to right, #0891b2 " + (pull / 10) * 100 + "%, #d0d7e8 " + (pull / 10) * 100 + "%)",
+                }}
+              />
+            </div>
           </Card>
+
+          <div style={{ fontFamily: S.mono, fontSize: 12, color: S.dim, letterSpacing: "0.08em", marginBottom: 12, fontWeight: 600 }}>
+            RATE EACH SKILL
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 16 }}>
+            {skills.map(function (s) {
+              var fluencyVal = fluencies[s.id] !== undefined ? fluencies[s.id] : getSeed(conscience, pull);
+              var cVal = skillConscience[s.id] !== undefined ? skillConscience[s.id] : conscience;
+              var pVal = skillPull[s.id] !== undefined ? skillPull[s.id] : pull;
+              var affinityScore = compAff(cVal, pVal, fluencyVal);
+              var dzScore = calcDZ(affinityScore, STUB_AI_RISK, STUB_MARKET_DEMAND);
+              var dzColor = dzScore >= 70 ? S.green : dzScore >= 45 ? S.gold : S.red;
+              return (
+                <div
+                  key={s.id}
+                  style={{
+                    background: S.card,
+                    border: "1px solid " + S.border,
+                    borderRadius: 12,
+                    padding: "18px 22px",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 14 }}>
+                    <div style={{ flex: 1 }}>
+                      {s.editing ? (
+                        <div style={{ display: "flex", gap: 8 }}>
+                          <input
+                            autoFocus
+                            value={s.text}
+                            onChange={function (e) {
+                              updateText(s.id, e.target.value);
+                            }}
+                            onKeyDown={function (e) {
+                              if (e.key === "Enter" || e.key === "Escape") commitEdit(s.id);
+                            }}
+                            style={Object.assign({}, inputStyle, { flex: 1 })}
+                          />
+                          <button
+                            type="button"
+                            onClick={function () {
+                              commitEdit(s.id);
+                            }}
+                            style={{
+                              background: S.accent,
+                              border: "none",
+                              color: "white",
+                              padding: "12px 16px",
+                              borderRadius: 8,
+                              cursor: "pointer",
+                              fontFamily: S.mono,
+                              fontSize: 14,
+                              fontWeight: 700,
+                            }}
+                          >
+                            ✓
+                          </button>
+                        </div>
+                      ) : (
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <span style={{ color: S.text, fontSize: 16, fontWeight: 600, flex: 1, lineHeight: 1.4 }}>{s.text}</span>
+                          <button
+                            type="button"
+                            onClick={function () {
+                              startEditing(s.id);
+                            }}
+                            style={{
+                              background: "none",
+                              border: "1px solid " + S.border,
+                              color: S.muted,
+                              cursor: "pointer",
+                              fontSize: 12,
+                              padding: "4px 9px",
+                              borderRadius: 6,
+                              fontFamily: S.mono,
+                            }}
+                          >
+                            EDIT
+                          </button>
+                          <button
+                            type="button"
+                            onClick={function () {
+                              removeSkill(s.id);
+                            }}
+                            style={{
+                              background: "none",
+                              border: "none",
+                              color: S.dim,
+                              cursor: "pointer",
+                              fontSize: 20,
+                              lineHeight: 1,
+                              padding: 0,
+                            }}
+                          >
+                            ×
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div style={{ marginBottom: 12 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                      <span style={{ fontFamily: S.mono, fontSize: 11, color: S.purple }}>ENERGY (AFFINITY)</span>
+                      <span style={{ fontFamily: S.mono, fontSize: 11, fontWeight: 700, color: S.purple }}>{cVal}/10</span>
+                    </div>
+                    <input
+                      className="dz-slider conscience-sl"
+                      type="range"
+                      min={0}
+                      max={10}
+                      step={1}
+                      value={cVal}
+                      onChange={function (e) {
+                        var val = Number(e.target.value);
+                        setSkillConscience(function (prev) {
+                          return Object.assign({}, prev, { [s.id]: val });
+                        });
+                        markAdjusted(s.id);
+                      }}
+                      style={{
+                        background: "linear-gradient(to right, #7c3aed " + (cVal / 10) * 100 + "%, #d0d7e8 " + (cVal / 10) * 100 + "%)",
+                      }}
+                    />
+                  </div>
+
+                  <div style={{ marginBottom: 12 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                      <span style={{ fontFamily: S.mono, fontSize: 11, color: "#0891b2" }}>MOMENTUM (PULL)</span>
+                      <span style={{ fontFamily: S.mono, fontSize: 11, fontWeight: 700, color: "#0891b2" }}>{pVal}/10</span>
+                    </div>
+                    <input
+                      className="dz-slider pull-sl"
+                      type="range"
+                      min={0}
+                      max={10}
+                      step={1}
+                      value={pVal}
+                      onChange={function (e) {
+                        var val = Number(e.target.value);
+                        setSkillPull(function (prev) {
+                          return Object.assign({}, prev, { [s.id]: val });
+                        });
+                        markAdjusted(s.id);
+                      }}
+                      style={{
+                        background: "linear-gradient(to right, #0891b2 " + (pVal / 10) * 100 + "%, #d0d7e8 " + (pVal / 10) * 100 + "%)",
+                      }}
+                    />
+                  </div>
+
+                  <div style={{ marginBottom: 12 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                      <span style={{ fontFamily: S.mono, fontSize: 11, color: S.gold }}>FLUENCY</span>
+                      <span style={{ fontFamily: S.mono, fontSize: 11, fontWeight: 700, color: S.gold }}>{fluencyVal}/10</span>
+                    </div>
+                    <input
+                      className="dz-slider fluency-sl"
+                      type="range"
+                      min={0}
+                      max={10}
+                      step={1}
+                      value={fluencyVal}
+                      onChange={function (e) {
+                        var val = Number(e.target.value);
+                        setFluencies(function (prev) {
+                          return Object.assign({}, prev, { [s.id]: val });
+                        });
+                        markAdjusted(s.id);
+                      }}
+                      style={{
+                        background: "linear-gradient(to right, #d97706 " + (fluencyVal / 10) * 100 + "%, #d0d7e8 " + (fluencyVal / 10) * 100 + "%)",
+                      }}
+                    />
+                  </div>
+
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      paddingTop: 12,
+                      borderTop: "1px solid " + S.border,
+                    }}
+                  >
+                    <span style={{ fontFamily: S.mono, fontSize: 12, color: S.dim, letterSpacing: "0.06em" }}>DZ SCORE (EST.)</span>
+                    <span style={{ fontSize: 24, fontWeight: 700, color: dzColor }}>{dzScore}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <Card style={{ marginBottom: 20 }}>
+            <Label>ADD A SKILL</Label>
+            <div style={{ display: "flex", gap: 10 }}>
+              <input
+                type="text"
+                placeholder="Describe a skill to assess…"
+                value={customSkill}
+                onChange={function (e) {
+                  setCustomSkill(e.target.value);
+                }}
+                onKeyDown={function (e) {
+                  if (e.key === "Enter") addSkill();
+                }}
+                style={Object.assign({}, inputStyle, { flex: 1, marginBottom: 0 })}
+              />
+              <button
+                type="button"
+                onClick={addSkill}
+                disabled={!customSkill.trim()}
+                style={{
+                  background: customSkill.trim() ? S.accent : S.card2,
+                  color: customSkill.trim() ? "white" : S.dim,
+                  border: "1px solid " + S.border,
+                  borderRadius: 10,
+                  padding: "12px 18px",
+                  fontFamily: S.mono,
+                  fontSize: 13,
+                  fontWeight: 700,
+                  cursor: customSkill.trim() ? "pointer" : "not-allowed",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                ADD
+              </button>
+            </div>
+          </Card>
+
+          <PrimaryBtn onClick={function () { setStep(4); }} disabled={skills.length === 0}>
+            CALCULATE MY DEFENSIBLE ZONE →
+          </PrimaryBtn>
         </div>
       </div>
     );
