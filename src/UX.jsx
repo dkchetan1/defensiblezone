@@ -489,4 +489,177 @@ var S = {
 
 var PROMO_CODES = ["DZFRIEND", "DZPREVIEW", "DZTEST"];
 
+// ── MATH HELPERS ──────────────────────────────────────────────────────
+var AFFINITY_STOPS = [0, 3, 5, 7, 10];
+
+function snapToStop(val) {
+  return AFFINITY_STOPS.reduce(function (prev, curr) {
+    return Math.abs(curr - val) < Math.abs(prev - val) ? curr : prev;
+  });
+}
+
+function getSeed(c, p) {
+  var raw = (c + p) / 2;
+  return snapToStop(raw);
+}
+
+function compAff(conscience, pull, fluency) {
+  return Math.round((conscience * 0.35 + pull * 0.35 + fluency * 0.3) * 10) / 10;
+}
+
+function calcDZ(aff, aiR, mkt) {
+  var v = 100 * Math.pow(aff / 10, 0.35) * Math.pow((10 - aiR) / 10, 0.40) * Math.pow(mkt / 10, 0.25);
+  return Math.min(100, Math.round(v));
+}
+
+function dzScoreColor(score) {
+  if (score < 40) return S.red;
+  if (score <= 65) return S.gold;
+  return S.green;
+}
+
+function getOverallLabel(score) {
+  if (score <= 39) return "Needs Attention";
+  if (score <= 59) return "Moderate Exposure";
+  if (score <= 74) return "Solid Foundation";
+  if (score <= 89) return "Well Positioned";
+  return "Exceptional";
+}
+
+function getOverallSublabel(score) {
+  if (score <= 39) return "High exposure. Significant repositioning needed.";
+  if (score <= 59) return "Moderate exposure. Some strong anchors, gaps to address.";
+  if (score <= 74) return "Solid foundation. Targeted moves will strengthen your position.";
+  if (score <= 89) return "Well positioned. Protect your anchors and extend your lead.";
+  return "Exceptional. You're operating in rare territory.";
+}
+
+function getSkillInterpretation(aiRisk, mkt, aff) {
+  if (aiRisk >= 7) return "High AI exposure — your affinity is what keeps this defensible.";
+  if (aiRisk <= 3 && mkt >= 7) return "Low AI risk, high market value — a strong anchor.";
+  if (aff >= 7 && aiRisk >= 6) return "Your affinity is your edge here — lean into it.";
+  if (aff <= 3 && aiRisk >= 6) return "Vulnerable. Consider whether this is worth defending.";
+  return "Moderate position — context and execution matter here.";
+}
+
+function buildProfile(roleType, seniority, isManager, companyTypeId, workFocus) {
+  var rt = UX_ROLE_TYPES.find(function (r) { return r.id === roleType; });
+  var ct = COMPANY_TYPES.find(function (c) { return c.id === companyTypeId; });
+  var workFocusLabels = workFocus || [];
+  var roleLabel = rt ? rt.title : roleType;
+  var companyLabel = ct ? ct.label : (companyTypeId || "");
+  var companySub = ct ? ct.sub : "";
+  return {
+    roleLabel: roleLabel,
+    seniorityLabel: seniority,
+    isManager: isManager,
+    companyLabel: companyLabel,
+    companySub: companySub,
+    workFocusLabels: workFocusLabels,
+    summary: seniority + " " + roleLabel + (companyLabel ? " · " + companyLabel : ""),
+  };
+}
+
+// ── SHARED UI COMPONENTS ──────────────────────────────────────────────
+function Card(props) {
+  return (
+    <div style={Object.assign({ background: S.card, border: "1px solid " + S.border, borderRadius: 16, padding: 28 }, props.style)}>
+      {props.children}
+    </div>
+  );
+}
+
+function Label(props) {
+  return (
+    <div style={Object.assign({ fontFamily: S.mono, fontSize: 12, color: S.muted, letterSpacing: "0.06em", fontWeight: 600, marginBottom: 8 }, props.style)}>
+      {props.children}
+    </div>
+  );
+}
+
+function PrimaryBtn(props) {
+  var dis = props.disabled;
+  return (
+    <button onClick={props.onClick} disabled={dis} style={Object.assign({
+      width: "100%", background: dis ? S.card : S.accent, color: dis ? S.dim : "white",
+      border: "1px solid " + (dis ? S.border : S.accent), borderRadius: 12, padding: "18px 0",
+      fontSize: 16, fontFamily: S.mono, fontWeight: 700, cursor: dis ? "not-allowed" : "pointer",
+      letterSpacing: "0.08em", transition: "all 0.2s",
+    }, props.style)}>
+      {props.children}
+    </button>
+  );
+}
+
+function Chip(props) {
+  var active = props.active;
+  return (
+    <button onClick={props.onClick} style={{
+      background: active ? S.gold : S.card,
+      color: active ? "white" : S.muted,
+      border: "1px solid " + (active ? S.gold : S.border),
+      borderRadius: 20, padding: "6px 14px", cursor: "pointer",
+      fontFamily: S.mono, fontSize: 12, fontWeight: active ? 700 : 500,
+      transition: "all 0.15s", whiteSpace: "nowrap",
+    }}>
+      {props.label}
+    </button>
+  );
+}
+
+function UXDisclaimer() {
+  return (
+    <div
+      style={{
+        background: "#fef9ec",
+        border: "1px solid #f0c060",
+        borderRadius: 12,
+        padding: "16px 20px",
+        marginBottom: 28,
+        textAlign: "center",
+      }}
+    >
+      <div style={{ fontFamily: S.mono, fontSize: 12, color: "#92400e", fontWeight: 700, marginBottom: 4, letterSpacing: "0.06em" }}>
+        IMPORTANT — PLEASE READ
+      </div>
+      <div style={{ fontFamily: S.mono, fontSize: 12, color: "#78350f", lineHeight: 1.7 }}>
+        This tool is for professional reflection and educational purposes only. It does not constitute career advice or any professional assessment. Scores are estimates based on AI labor market research and model calibration — not a definitive evaluation of your skills or employability.
+      </div>
+    </div>
+  );
+}
+
+function UXFooter() {
+  return (
+    <div style={{ marginTop: 32, background: S.card2, borderTop: "1px solid " + S.border, padding: "20px 24px" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
+        <div>
+          <div style={{ fontFamily: S.mono, fontSize: 10, color: S.muted, marginBottom: 4 }}>DEFENSIBLE ZONE™</div>
+          <a
+            href="https://defensiblezone.ai"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ fontFamily: S.mono, fontSize: 14, fontWeight: "bold", color: S.accent, textDecoration: "none" }}
+            onMouseEnter={function (e) { e.currentTarget.style.opacity = "0.75"; }}
+            onMouseLeave={function (e) { e.currentTarget.style.opacity = "1"; }}
+          >
+            defensiblezone.ai →
+          </a>
+        </div>
+        <div>
+          <div style={{ fontFamily: S.mono, fontSize: 10, color: S.muted, marginBottom: 4 }}>QUESTIONS &amp; FEEDBACK</div>
+          <a
+            href="mailto:support@recursiolab.com"
+            style={{ fontFamily: S.mono, fontSize: 14, fontWeight: "bold", color: S.purple, textDecoration: "none" }}
+            onMouseEnter={function (e) { e.currentTarget.style.opacity = "0.75"; }}
+            onMouseLeave={function (e) { e.currentTarget.style.opacity = "1"; }}
+          >
+            support@recursiolab.com →
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function UX() { return null; }
