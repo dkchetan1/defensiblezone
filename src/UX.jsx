@@ -662,4 +662,721 @@ function UXFooter() {
   );
 }
 
-export default function UX() { return null; }
+export default function UX() {
+  var [roleType, setRoleType] = useState("");
+  var [seniority, setSeniority] = useState("");
+  var [isManager, setIsManager] = useState(false);
+  var [companyTypeId, setCompanyTypeId] = useState("");
+  var [workFocus, setWorkFocus] = useState([]);
+  var [landscape, setLandscape] = useState("");
+  var [skills, setSkills] = useState([]);
+  var [loading, setLoading] = useState(false);
+  var [loadingMsg, setLoadingMsg] = useState("");
+  var [error, setError] = useState(null);
+  var [conscience, setConscience] = useState(5);
+  var [pull, setPull] = useState(5);
+  var [fluencies, setFluencies] = useState({});
+  var [skillConscience, setSkillConscience] = useState({});
+  var [skillPull, setSkillPull] = useState({});
+  var [adjustedSkills, setAdjustedSkills] = useState(function () { return new Set(); });
+  var [results, setResults] = useState(null);
+  var [benchmark, setBenchmark] = useState(null);
+  var [recommendations, setRecommendations] = useState(null);
+  var [recsLoading, setRecsLoading] = useState(false);
+  var [recsError, setRecsError] = useState(null);
+  var [step, setStep] = useState(0);
+  var [tier, setTier] = useState(0);
+  var [promoCode, setPromoCode] = useState("");
+  var [promoError, setPromoError] = useState("");
+  var [promoUsed, setPromoUsed] = useState(false);
+  var [discountApplied, setDiscountApplied] = useState(false);
+  var [gateEmail, setGateEmail] = useState("");
+  var [gateSent, setGateSent] = useState(false);
+  var [gateVerified, setGateVerified] = useState(false);
+  var [gateError, setGateError] = useState("");
+  var [gateLoading, setGateLoading] = useState(false);
+  var [showResend, setShowResend] = useState(false);
+  var [gateOnDifferentDevice, setGateOnDifferentDevice] = useState(false);
+  var [gateInputFocused, setGateInputFocused] = useState(false);
+  var [checkoutLoading, setCheckoutLoading] = useState(false);
+  var [checkoutError, setCheckoutError] = useState(null);
+  var [paymentCanceled, setPaymentCanceled] = useState(false);
+  var [resultsLoading, setResultsLoading] = useState(false);
+  var [resultsError, setResultsError] = useState(null);
+  var freeEmailSentRef = useRef(false);
+  var paidEmailSentRef = useRef(false);
+  var [hoveredCard, setHoveredCard] = useState(null);
+  var [customSkill, setCustomSkill] = useState("");
+  var [showAllFocus, setShowAllFocus] = useState(false);
+
+  var adjustedSkillsRef = useRef(new Set());
+
+  var UX_LOADING_MSGS = [
+    "Mapping your UX landscape…",
+    "Identifying your exposure points…",
+    "Calibrating skill defensibility…",
+    "Almost ready…",
+  ];
+  var UX_SCORING_MSGS = [
+    "Scoring your skills…",
+    "Calculating AI exposure…",
+    "Building your defensible zone…",
+    "Almost there…",
+  ];
+  var UX_RECS_MSGS = [
+    "Mapping your 90-day plan…",
+    "Sequencing your actions…",
+    "Personalising to your profile…",
+    "Almost ready…",
+  ];
+
+  function markAdjusted(skillId) {
+    adjustedSkillsRef.current.add(skillId);
+    setAdjustedSkills(new Set(adjustedSkillsRef.current));
+  }
+
+  useEffect(function () {
+    var link = document.createElement("link");
+    link.href =
+      "https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;600;700&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=DM+Serif+Display:ital@0,400;0,600&display=swap";
+    link.rel = "stylesheet";
+    document.head.appendChild(link);
+    document.body.style.background = S.bg;
+    return function () {
+      document.body.style.background = "";
+    };
+  }, []);
+
+  useEffect(function () {
+    window.scrollTo(0, 0);
+  }, [step]);
+
+  useEffect(function () {
+    if (window.gtag) {
+      window.gtag("event", "assessment_step", {
+        product: "ux",
+        step_number: step,
+      });
+    }
+  }, [step]);
+
+  useEffect(function () {
+    setFluencies(function (prev) {
+      var next = Object.assign({}, prev);
+      skills.forEach(function (s) {
+        if (!adjustedSkillsRef.current.has(s.id)) {
+          next[s.id] = getSeed(conscience, pull);
+        }
+      });
+      return next;
+    });
+    setSkillConscience(function (prev) {
+      var next = Object.assign({}, prev);
+      skills.forEach(function (s) {
+        if (!adjustedSkillsRef.current.has(s.id)) {
+          next[s.id] = conscience;
+        }
+      });
+      return next;
+    });
+    setSkillPull(function (prev) {
+      var next = Object.assign({}, prev);
+      skills.forEach(function (s) {
+        if (!adjustedSkillsRef.current.has(s.id)) {
+          next[s.id] = pull;
+        }
+      });
+      return next;
+    });
+  }, [conscience, pull, skills]);
+
+  useEffect(
+    function () {
+      if (!loading && !recsLoading) return;
+      var msgs = recsLoading ? UX_RECS_MSGS : step === 3 ? UX_SCORING_MSGS : UX_LOADING_MSGS;
+      var i = 0;
+      setLoadingMsg(msgs[0]);
+      var t = setInterval(function () {
+        i = (i + 1) % msgs.length;
+        setLoadingMsg(msgs[i]);
+      }, 2000);
+      return function () {
+        clearInterval(t);
+      };
+    },
+    [loading, recsLoading, step]
+  );
+
+  useEffect(function () {
+    var params = new URLSearchParams(window.location.search);
+    var gateToken = params.get("gate_token");
+    if (!gateToken) return;
+    window.history.replaceState({}, "", window.location.pathname);
+    setGateLoading(true);
+    (async function () {
+      try {
+        var res = await fetch("/api/verify-gate-token", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token: gateToken, product: "ux" }),
+        });
+        var data = await res.json();
+        if (data && data.valid === true) {
+          if (data.email) setGateEmail(data.email);
+          var restored = restoreSavedReport();
+          setGateVerified(true);
+          setGateLoading(false);
+          if (!restored) {
+            setGateOnDifferentDevice(true);
+          }
+          return;
+        }
+        if (data && data.valid === false && data.reason === "expired") {
+          setGateError("expired");
+        } else {
+          setGateError("invalid");
+        }
+        setGateLoading(false);
+      } catch (e) {
+        setGateError("invalid");
+        setGateLoading(false);
+      }
+    })();
+  }, []);
+
+  useEffect(function () {
+    var params = new URLSearchParams(window.location.search);
+    if (params.get("success") === "true") {
+      window.history.replaceState({}, "", window.location.pathname);
+      restoreSavedReport();
+      setTier(2);
+      setPaymentCanceled(false);
+      setStep(6);
+      return;
+    }
+    if (params.get("canceled") === "true") {
+      window.history.replaceState({}, "", window.location.pathname);
+      restoreSavedReport();
+      setStep(5);
+      setPaymentCanceled(true);
+    }
+  }, []);
+
+  useEffect(
+    function () {
+      if (step === 5 && (tier >= 2 || promoUsed)) {
+        setStep(6);
+      }
+    },
+    [step, tier, promoUsed]
+  );
+
+  useEffect(
+    function () {
+      if (step !== 6) return;
+      if (!(tier >= 2 || promoUsed)) return;
+      if (!results) return;
+      if (recommendations || recsLoading) return;
+      fetchRecommendations();
+    },
+    [step, tier, promoUsed, results]
+  );
+
+  useEffect(function () {
+    if (step !== 4) return;
+    if (!results || !results.skills || results.skills.length === 0) return;
+    if (recommendations || recsLoading) return;
+    fetchRecommendations();
+  }, [step, results]);
+
+  useEffect(
+    function () {
+      if (!gateVerified) return;
+      if (gateOnDifferentDevice) return;
+      if (skills.length > 0 || loading) return;
+      if (!roleType || !seniority) return;
+      fetchLandscapeAndSkills();
+    },
+    [gateVerified, gateOnDifferentDevice, roleType, seniority]
+  );
+
+  function restoreSavedReport() {
+    try {
+      var savedRaw = localStorage.getItem("dz_saved_report_ux");
+      if (!savedRaw) return false;
+      var s = JSON.parse(savedRaw);
+      if (s.roleType) setRoleType(s.roleType);
+      if (s.seniority) setSeniority(s.seniority);
+      if (s.isManager !== undefined) setIsManager(s.isManager);
+      if (s.companyTypeId) setCompanyTypeId(s.companyTypeId);
+      if (s.workFocus) setWorkFocus(s.workFocus);
+      if (s.conscience !== undefined) setConscience(s.conscience);
+      if (s.pull !== undefined) setPull(s.pull);
+      if (s.gateEmail) setGateEmail(s.gateEmail);
+      if (s.landscape) setLandscape(s.landscape);
+      if (s.skills) setSkills(s.skills);
+      if (s.fluencies) setFluencies(s.fluencies);
+      if (s.skillConscience) setSkillConscience(s.skillConscience);
+      if (s.skillPull) setSkillPull(s.skillPull);
+      if (s.results) setResults(s.results);
+      if (s.tier !== undefined) setTier(s.tier);
+      if (s.promoUsed) setPromoUsed(s.promoUsed);
+      if (s.discountApplied) setDiscountApplied(s.discountApplied);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function saveStateForReturn(overrides) {
+    overrides = overrides || {};
+    try {
+      localStorage.setItem(
+        "dz_saved_report_ux",
+        JSON.stringify({
+          roleType: roleType,
+          seniority: seniority,
+          isManager: isManager,
+          companyTypeId: companyTypeId,
+          workFocus: workFocus,
+          conscience: conscience,
+          pull: pull,
+          gateEmail: gateEmail,
+          landscape: landscape,
+          skills: skills,
+          fluencies: fluencies,
+          skillConscience: skillConscience,
+          skillPull: skillPull,
+          results: overrides.results !== undefined ? overrides.results : results,
+          tier: tier,
+          promoUsed: promoUsed,
+          discountApplied: discountApplied,
+        })
+      );
+    } catch (_e) {}
+  }
+
+  async function fetchLandscapeAndSkills() {
+    setLoading(true);
+    setError(null);
+    var profile = buildProfile(roleType, seniority, isManager, companyTypeId, workFocus);
+    var wfStr = profile.workFocusLabels.join(", ");
+    var prompt =
+      "You are a senior UX and design career strategist specializing in AI labor market analysis for UX professionals.\n\nUX PROFILE:\n- Role: " +
+      profile.roleLabel +
+      "\n- Seniority: " +
+      profile.seniorityLabel +
+      "\n- People manager: " +
+      (isManager ? "yes" : "no") +
+      "\n- Company type: " +
+      (profile.companyLabel || "not specified") +
+      (profile.companySub ? " — " + profile.companySub : "") +
+      "\n- Work focus: " +
+      wfStr +
+      "\n\nTask 1 — LANDSCAPE SNAPSHOT: Write 2-3 precise sentences about the AI threat to this exact UX profile in 2026. Name specific tools (Figma AI, Adobe Firefly, Galileo AI, Midjourney, Claude, v0, Cursor), specific tasks being automated, and where the real exposure is at this seniority level doing this work. Do not write generic AI commentary — be specific to this combination of role, seniority, manager status, company type, and work focus.\n\nTask 2 — SKILL SUGGESTIONS: Generate exactly 8 skills that are the most strategically important for a " +
+      profile.seniorityLabel +
+      " " +
+      profile.roleLabel +
+      (isManager ? " (people manager)" : "") +
+      " working on " +
+      wfStr +
+      " to assess for AI defensibility right now. Be precise and UX-specific — not generic. Include a realistic mix: some defensible, some genuinely at risk. Weight toward skills that differentiate at the " +
+      profile.seniorityLabel +
+      " level.\n\nReturn ONLY valid JSON:\n{\"landscape\":\"...\",\"skills\":[\"skill1\",\"skill2\",\"skill3\",\"skill4\",\"skill5\",\"skill6\",\"skill7\",\"skill8\"]}";
+
+    try {
+      var res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-6",
+          max_tokens: 1000,
+          messages: [{ role: "user", content: prompt }],
+        }),
+      });
+      var data = await res.json();
+      if (!data.content) throw new Error(data.error || data.error_description || "API error");
+      var raw = data.content
+        .map(function (b) {
+          return b.text || "";
+        })
+        .join("");
+      var m = raw.match(/\{[\s\S]*\}/);
+      if (!m) throw new Error("No JSON in response");
+      var parsed = JSON.parse(m[0]);
+      var loaded = parsed.skills.map(function (text, i) {
+        return { id: "s" + i, text: text, editing: false };
+      });
+      setLandscape(parsed.landscape);
+      setSkills(loaded);
+      setFluencies({});
+      setSkillConscience({});
+      setSkillPull({});
+      setAdjustedSkills(new Set());
+      adjustedSkillsRef.current = new Set();
+      setStep(3);
+    } catch (e) {
+      if (e.message && e.message.indexOf("overloaded") !== -1) {
+        await new Promise(function (r) {
+          setTimeout(r, 2000);
+        });
+        try {
+          var res2 = await fetch("/api/generate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              model: "claude-sonnet-4-6",
+              max_tokens: 1000,
+              messages: [{ role: "user", content: prompt }],
+            }),
+          });
+          var data2 = await res2.json();
+          if (!data2.content) throw new Error(data2.error || "API error");
+          var raw2 = data2.content
+            .map(function (b) {
+              return b.text || "";
+            })
+            .join("");
+          var m2 = raw2.match(/\{[\s\S]*\}/);
+          if (!m2) throw new Error("No JSON in response");
+          var parsed2 = JSON.parse(m2[0]);
+          var loaded2 = parsed2.skills.map(function (text, i) {
+            return { id: "s" + i, text: text, editing: false };
+          });
+          setLandscape(parsed2.landscape);
+          setSkills(loaded2);
+          setFluencies({});
+          setSkillConscience({});
+          setSkillPull({});
+          setAdjustedSkills(new Set());
+          adjustedSkillsRef.current = new Set();
+          setStep(3);
+        } catch (e2) {
+          setError("Something went wrong — please try again in a moment.");
+        }
+      } else {
+        setError("Something went wrong — please try again in a moment.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function fetchScores() {
+    if (skills.length === 0) return;
+    setLoading(true);
+    setError(null);
+    var profile = buildProfile(roleType, seniority, isManager, companyTypeId, workFocus);
+    var wfStr = profile.workFocusLabels.join(", ");
+    var skillSummary = skills
+      .map(function (s, i) {
+        var fluencyVal = fluencies[s.id] !== undefined ? fluencies[s.id] : getSeed(conscience, pull);
+        var sc = skillConscience[s.id] !== undefined ? skillConscience[s.id] : conscience;
+        var sp = skillPull[s.id] !== undefined ? skillPull[s.id] : pull;
+        var aff = compAff(sc, sp, fluencyVal);
+        return (
+          i +
+          1 +
+          ". " +
+          s.text +
+          " (conscience: " +
+          sc +
+          "/10, pull: " +
+          sp +
+          "/10, fluency: " +
+          fluencyVal +
+          "/10, affinity: " +
+          aff +
+          "/10)"
+        );
+      })
+      .join("\n");
+    var prompt =
+      "You are a senior UX and design career strategist with deep knowledge of the 2026 AI labor market.\n\nUX PROFILE:\n- Role: " +
+      profile.roleLabel +
+      "\n- Seniority: " +
+      profile.seniorityLabel +
+      "\n- People manager: " +
+      (isManager ? "yes" : "no") +
+      "\n- Company type: " +
+      (profile.companyLabel || "not specified") +
+      "\n- Work focus: " +
+      wfStr +
+      "\n\nSkills to score:\n" +
+      skillSummary +
+      "\n\nFor each skill, return:\n- ai_replaceability: 1-10 (10 = AI is already doing this or will within 12 months; 1 = deeply human, irreplaceable)\n- market_demand: 1-10 (10 = extremely high market value right now for this UX role and seniority)\n\nBe honest and precise. Score for this exact profile — do not default to middle values.\n\nReturn ONLY valid JSON:\n{\"scores\":[{\"id\":\"s0\",\"name\":\"skill name\",\"ai_replaceability\":N,\"market_demand\":N},{...}]}";
+
+    try {
+      var res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-6",
+          max_tokens: 800,
+          messages: [{ role: "user", content: prompt }],
+        }),
+      });
+      var data = await res.json();
+      if (!data.content) throw new Error(data.error || "API error");
+      var raw = data.content
+        .map(function (b) {
+          return b.text || "";
+        })
+        .join("");
+      var m = raw.match(/\{[\s\S]*\}/);
+      if (!m) throw new Error("No JSON in response");
+      var parsed = JSON.parse(m[0]);
+      if (!parsed.scores || !Array.isArray(parsed.scores)) throw new Error("No scores in response");
+      var enriched = parsed.scores.map(function (scored, i) {
+        var found =
+          skills.find(function (s) {
+            return s.id === scored.id;
+          }) ||
+          skills.find(function (s) {
+            return scored.name === s.text;
+          }) ||
+          skills.find(function (s) {
+            return scored.name && scored.name.indexOf(s.text.slice(0, 20)) !== -1;
+          });
+        var id = found ? found.id : scored.id || "s" + i;
+        var fluencyVal = fluencies[id] !== undefined ? fluencies[id] : getSeed(conscience, pull);
+        var sc = skillConscience[id] !== undefined ? skillConscience[id] : conscience;
+        var sp = skillPull[id] !== undefined ? skillPull[id] : pull;
+        var aff = compAff(sc, sp, fluencyVal);
+        var aiR = typeof scored.ai_replaceability === "number" ? scored.ai_replaceability : 5;
+        var mkt = typeof scored.market_demand === "number" ? scored.market_demand : 7;
+        var dz = calcDZ(aff, aiR, mkt);
+        return {
+          id: id,
+          text: found ? found.text : scored.name,
+          conscience: sc,
+          pull: sp,
+          fluency: fluencyVal,
+          affinity: aff,
+          ai_replaceability: aiR,
+          market_demand: mkt,
+          dz: dz,
+        };
+      });
+      var resultsPayload = { skills: enriched, profile: profile, landscape: landscape };
+      setResults(resultsPayload);
+      saveStateForReturn({ results: resultsPayload });
+      sendFreeResultsEmail();
+      setStep(4);
+    } catch (e) {
+      if (e.message && e.message.indexOf("overloaded") !== -1) {
+        await new Promise(function (r) {
+          setTimeout(r, 2000);
+        });
+        try {
+          var res2 = await fetch("/api/generate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              model: "claude-sonnet-4-6",
+              max_tokens: 800,
+              messages: [{ role: "user", content: prompt }],
+            }),
+          });
+          var data2 = await res2.json();
+          if (!data2.content) throw new Error(data2.error || "API error");
+          var raw2 = data2.content
+            .map(function (b) {
+              return b.text || "";
+            })
+            .join("");
+          var m2 = raw2.match(/\{[\s\S]*\}/);
+          if (!m2) throw new Error("No JSON in response");
+          var parsed2 = JSON.parse(m2[0]);
+          if (!parsed2.scores || !Array.isArray(parsed2.scores)) throw new Error("No scores in response");
+          var enriched2 = parsed2.scores.map(function (scored, i) {
+            var found2 =
+              skills.find(function (s) {
+                return s.id === scored.id;
+              }) ||
+              skills.find(function (s) {
+                return scored.name === s.text;
+              }) ||
+              skills.find(function (s) {
+                return scored.name && scored.name.indexOf(s.text.slice(0, 20)) !== -1;
+              });
+            var id2 = found2 ? found2.id : scored.id || "s" + i;
+            var fluencyVal2 = fluencies[id2] !== undefined ? fluencies[id2] : getSeed(conscience, pull);
+            var sc2 = skillConscience[id2] !== undefined ? skillConscience[id2] : conscience;
+            var sp2 = skillPull[id2] !== undefined ? skillPull[id2] : pull;
+            var aff2 = compAff(sc2, sp2, fluencyVal2);
+            var aiR2 = typeof scored.ai_replaceability === "number" ? scored.ai_replaceability : 5;
+            var mkt2 = typeof scored.market_demand === "number" ? scored.market_demand : 7;
+            var dz2 = calcDZ(aff2, aiR2, mkt2);
+            return {
+              id: id2,
+              text: found2 ? found2.text : scored.name,
+              conscience: sc2,
+              pull: sp2,
+              fluency: fluencyVal2,
+              affinity: aff2,
+              ai_replaceability: aiR2,
+              market_demand: mkt2,
+              dz: dz2,
+            };
+          });
+          var resultsPayload2 = { skills: enriched2, profile: profile, landscape: landscape };
+          setResults(resultsPayload2);
+          saveStateForReturn({ results: resultsPayload2 });
+          sendFreeResultsEmail();
+          setStep(4);
+        } catch (e2) {
+          setError("Something went wrong — please try again in a moment.");
+        }
+      } else {
+        setError("Something went wrong — please try again in a moment.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function fetchRecommendations() {
+    if (!results || !results.skills || results.skills.length === 0) return;
+    setRecsLoading(true);
+    setRecsError(null);
+    var profile = results.profile || buildProfile(roleType, seniority, isManager, companyTypeId, workFocus);
+    var wfStr = profile.workFocusLabels.join(", ");
+    var skillSummary = results.skills
+      .map(function (sk, i) {
+        var aiR = typeof sk.ai_replaceability === "number" ? sk.ai_replaceability : 5;
+        var mkt = typeof sk.market_demand === "number" ? sk.market_demand : 7;
+        var dz = typeof sk.dz === "number" ? sk.dz : 0;
+        return (
+          i +
+          1 +
+          ". [" +
+          sk.id +
+          "] " +
+          sk.text +
+          " (DZ: " +
+          dz +
+          ", AI replaceability: " +
+          aiR +
+          "/10, market demand: " +
+          mkt +
+          "/10)"
+        );
+      })
+      .join("\n");
+    var prompt =
+      "You are a senior UX and design career strategist. A " +
+      profile.seniorityLabel +
+      " " +
+      profile.roleLabel +
+      (isManager ? " (people manager)" : "") +
+      " at " +
+      (profile.companyLabel || "not specified") +
+      " focused on " +
+      wfStr +
+      " just completed a Defensible Zone assessment.\n\nWrite exactly 8 recommendations — one per skill — grouped into exactly 3 phases:\n\nPhase 1 — Anchor (protect your most defensible skills): skills with high DZ and low AI replaceability\nPhase 2 — Reposition (address your highest-exposure skills): skills with high AI replaceability or low DZ\nPhase 3 — Extend (build new capabilities to widen your zone): skills where building fluency or new adjacent capabilities would widen their defensible zone\n\nEach recommendation must have:\n- id: matching the skill id (s0–s7)\n- phase: 1, 2, or 3\n- phaseLabel: \"Anchor\", \"Reposition\", or \"Extend\"\n- headline: 5-7 words\n- action: one specific thing to do in the next 90 days\n- why: one sentence on why this matters for their exact situation\n\nSkills with scores:\n" +
+      skillSummary +
+      '\n\nReturn ONLY valid JSON:\n{"recommendations":[{"id":"s0","phase":1,"phaseLabel":"Anchor","headline":"...","action":"...","why":"..."},{...}]}';
+
+    try {
+      var res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-6",
+          max_tokens: 2000,
+          messages: [{ role: "user", content: prompt }],
+        }),
+      });
+      var data = await res.json();
+      if (!data.content) throw new Error(data.error || "API error");
+      var raw = data.content
+        .map(function (b) {
+          return b.text || "";
+        })
+        .join("");
+      var m = raw.match(/\{[\s\S]*\}/);
+      if (!m) throw new Error("No JSON in response");
+      var parsed = JSON.parse(m[0]);
+      setRecommendations(parsed);
+    } catch (e) {
+      if (e.message && e.message.indexOf("overloaded") !== -1) {
+        await new Promise(function (r) {
+          setTimeout(r, 2000);
+        });
+        try {
+          var res2 = await fetch("/api/generate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              model: "claude-sonnet-4-6",
+              max_tokens: 2000,
+              messages: [{ role: "user", content: prompt }],
+            }),
+          });
+          var data2 = await res2.json();
+          if (!data2.content) throw new Error(data2.error || "API error");
+          var raw2 = data2.content
+            .map(function (b) {
+              return b.text || "";
+            })
+            .join("");
+          var m2 = raw2.match(/\{[\s\S]*\}/);
+          if (!m2) throw new Error("No JSON in response");
+          var parsed2 = JSON.parse(m2[0]);
+          setRecommendations(parsed2);
+        } catch (e2) {
+          setRecsError("Something went wrong — please try again in a moment.");
+        }
+      } else {
+        setRecsError("Something went wrong — please try again in a moment.");
+      }
+    } finally {
+      setRecsLoading(false);
+    }
+  }
+
+  function sendFreeResultsEmail() {
+    if (freeEmailSentRef.current) return;
+    if (!gateEmail.trim() || !results) return;
+    freeEmailSentRef.current = true;
+    try {
+      fetch("/api/send-report-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: gateEmail,
+          product: "ux",
+          type: "free_results",
+          profile: buildProfile(roleType, seniority, isManager, companyTypeId, workFocus),
+          skills: results.skills,
+          landscape: landscape,
+        }),
+      }).catch(function () {});
+    } catch (_e) {}
+  }
+
+  function sendPaidReportEmail() {
+    if (paidEmailSentRef.current) return;
+    if (!gateEmail.trim() || !results) return;
+    paidEmailSentRef.current = true;
+    try {
+      fetch("/api/send-report-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: gateEmail,
+          product: "ux",
+          type: "paid_report",
+          profile: buildProfile(roleType, seniority, isManager, companyTypeId, workFocus),
+          skills: results.skills,
+          landscape: landscape,
+          recommendations: recommendations,
+        }),
+      }).catch(function () {});
+    } catch (_e) {}
+  }
+
+  // ── RENDER — added in next step ──
+  return null;
+}
