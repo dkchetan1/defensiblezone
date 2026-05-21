@@ -21,6 +21,7 @@ const PRODUCT_PATHS = {
   doctor: "/doctor",
   designer: "/designer",
   finance: "/finance",
+  ux: "/ux",
 };
 
 function getOrigin(req) {
@@ -91,6 +92,7 @@ export default async function handler(req, res) {
     doctor: "Defensible Zone Physician Edition",
     designer: "Defensible Zone UX Professional Edition",
     finance: "Defensible Zone Finance Edition",
+    ux: "Defensible Zone UX Professional Edition — 90-Day Plan",
   };
 
   try {
