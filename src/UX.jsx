@@ -706,6 +706,7 @@ export default function UX() {
   var freeEmailSentRef = useRef(false);
   var [freeEmailSentDisplay, setFreeEmailSentDisplay] = useState(false);
   var paidEmailSentRef = useRef(false);
+  var [paidEmailSentDisplay, setPaidEmailSentDisplay] = useState(false);
   var [hoveredCard, setHoveredCard] = useState(null);
   var [customSkill, setCustomSkill] = useState("");
   var [showAllFocus, setShowAllFocus] = useState(false);
@@ -877,6 +878,13 @@ export default function UX() {
     },
     [step, tier, promoUsed, results]
   );
+
+  useEffect(function() {
+    if (step !== 6) return;
+    if (!recommendations) return;
+    if (!(tier >= 2 || promoUsed)) return;
+    sendPaidReportEmail();
+  }, [step, recommendations, tier, promoUsed]);
 
   useEffect(function () {
     if (step !== 4) return;
@@ -1357,6 +1365,7 @@ export default function UX() {
     if (paidEmailSentRef.current) return;
     if (!gateEmail.trim() || !results) return;
     paidEmailSentRef.current = true;
+    setPaidEmailSentDisplay(true);
     try {
       fetch("/api/send-report-email", {
         method: "POST",
@@ -2740,6 +2749,272 @@ export default function UX() {
                 );
               })()}
             </div>
+          ) : null}
+
+          {gateVerified && step === 6 && (tier >= 2 || promoUsed) && results ? (
+            (function () {
+              if (!recommendations && recsLoading) {
+                return (
+                  <div
+                    style={{
+                      minHeight: "100vh",
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      padding: "40px 20px",
+                      boxSizing: "border-box",
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: 56,
+                        height: 56,
+                        borderRadius: 12,
+                        background: S.purple,
+                        color: "#fff",
+                        fontFamily: S.mono,
+                        fontWeight: 700,
+                        fontSize: 20,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        animation: "uxDZPulse 1.4s ease-in-out infinite",
+                        marginBottom: 24,
+                      }}
+                    >
+                      DZ
+                    </div>
+                    <div style={{ fontFamily: S.mono, fontSize: 14, color: S.muted, letterSpacing: "0.06em", marginBottom: 16 }}>
+                      {loadingMsg}
+                    </div>
+                    <div style={{ display: "flex", gap: 6, fontFamily: S.mono, fontSize: 22, color: S.dim, lineHeight: 1 }}>
+                      <span style={{ animation: "uxDots 1s ease-in-out infinite" }}>.</span>
+                      <span style={{ animation: "uxDots 1s ease-in-out 0.2s infinite" }}>.</span>
+                      <span style={{ animation: "uxDots 1s ease-in-out 0.4s infinite" }}>.</span>
+                    </div>
+                  </div>
+                );
+              }
+
+              if (recsError && !recommendations) {
+                return (
+                  <div
+                    style={{
+                      minHeight: "60vh",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      padding: "60px 20px",
+                      boxSizing: "border-box",
+                    }}
+                  >
+                    <Card style={{ maxWidth: 480, width: "100%", border: "1px solid " + S.red, textAlign: "center" }}>
+                      <p style={{ color: S.red, fontSize: 16, lineHeight: 1.6, margin: "0 0 20px" }}>{recsError}</p>
+                      <PrimaryBtn onClick={fetchRecommendations} style={{ maxWidth: 280, margin: "0 auto" }}>
+                        Try Again
+                      </PrimaryBtn>
+                    </Card>
+                  </div>
+                );
+              }
+
+              if (!recommendations) return null;
+
+              var scoredSkills6 = results.skills || [];
+              var overallDZ6 =
+                scoredSkills6.length > 0
+                  ? Math.round(
+                      scoredSkills6.reduce(function (sum, sk) {
+                        return sum + (typeof sk.dz === "number" ? sk.dz : 0);
+                      }, 0) / scoredSkills6.length
+                    )
+                  : 0;
+              var overallCol6 = dzScoreColor(overallDZ6);
+              var recsList6 = Array.isArray(recommendations)
+                ? recommendations
+                : recommendations.recommendations || [];
+              var skillById6 = {};
+              scoredSkills6.forEach(function (sk) {
+                if (sk.id != null) skillById6[sk.id] = sk;
+              });
+              var phaseMeta6 = [
+                {
+                  phase: 1,
+                  pill: "Phase 1 — Anchor",
+                  color: S.green,
+                  desc: "Protect what's already working. These are your most defensible skills.",
+                },
+                {
+                  phase: 2,
+                  pill: "Phase 2 — Reposition",
+                  color: S.gold,
+                  desc: "Address your highest-exposure areas before AI commoditises them.",
+                },
+                {
+                  phase: 3,
+                  pill: "Phase 3 — Extend",
+                  color: S.purple,
+                  desc: "Build new capabilities to widen your zone over the next 90 days.",
+                },
+              ];
+
+              return (
+                <div style={{ maxWidth: 720, margin: "0 auto", padding: "0 20px 48px", boxSizing: "border-box" }}>
+                  <div style={{ marginBottom: 28 }}>
+                    <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.1em", marginBottom: 10, fontWeight: 600 }}>
+                      YOUR 90-DAY DEFENSIBLE ZONE PLAN
+                    </div>
+                    <h1 style={{ fontFamily: S.serif, fontSize: 32, color: S.text, margin: "0 0 12px", fontWeight: 600, lineHeight: 1.2 }}>
+                      {results.profile && results.profile.summary ? results.profile.summary : buildProfile(roleType, seniority, isManager, companyTypeId, workFocus).summary}
+                    </h1>
+                    <p style={{ fontSize: 16, color: S.dim, lineHeight: 1.7, margin: 0 }}>
+                      Here is your personalised action plan. A copy has been emailed to {gateEmail}.
+                    </p>
+                  </div>
+
+                  <div style={{ marginBottom: 28 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap", marginBottom: 12 }}>
+                      <div style={{ fontFamily: S.mono, fontSize: 40, fontWeight: 700, color: overallCol6, lineHeight: 1 }}>{overallDZ6}</div>
+                      <div>
+                        <div style={{ fontFamily: S.serif, fontSize: 20, fontWeight: 600, color: overallCol6, marginBottom: 4 }}>{getOverallLabel(overallDZ6)}</div>
+                        <p style={{ fontSize: 14, color: S.dim, lineHeight: 1.5, margin: 0 }}>{getOverallSublabel(overallDZ6)}</p>
+                      </div>
+                    </div>
+                    <div style={{ height: 2, background: S.gold, borderRadius: 1, marginBottom: 12 }} />
+                    {results.landscape ? (
+                      <p style={{ fontFamily: S.mono, fontSize: 12, color: S.dim, fontStyle: "italic", lineHeight: 1.6, margin: 0 }}>{results.landscape}</p>
+                    ) : null}
+                  </div>
+
+                  {phaseMeta6.map(function (pm6) {
+                    var phaseRecs6 = recsList6.filter(function (r) {
+                      return (r.phase || 1) === pm6.phase;
+                    });
+                    if (phaseRecs6.length === 0) return null;
+                    return (
+                      <div key={pm6.phase} style={{ marginBottom: 32 }}>
+                        <div
+                          style={{
+                            display: "inline-block",
+                            fontFamily: S.mono,
+                            fontSize: 12,
+                            fontWeight: 700,
+                            color: "#fff",
+                            background: pm6.color,
+                            padding: "8px 14px",
+                            borderRadius: 20,
+                            letterSpacing: "0.04em",
+                            marginBottom: 10,
+                          }}
+                        >
+                          {pm6.pill}
+                        </div>
+                        <p style={{ fontSize: 15, color: S.dim, lineHeight: 1.6, margin: "0 0 18px" }}>{pm6.desc}</p>
+                        {phaseRecs6.map(function (rec6, idx6) {
+                          var linkedSkill6 = rec6.id != null ? skillById6[rec6.id] : null;
+                          return (
+                            <div
+                              key={rec6.id || "rec6-" + pm6.phase + "-" + idx6}
+                              style={{
+                                background: S.card,
+                                border: "1px solid " + S.border,
+                                borderLeft: "3px solid " + S.gold,
+                                borderRadius: 12,
+                                padding: "22px 24px",
+                                marginBottom: 12,
+                              }}
+                            >
+                              <div
+                                style={{
+                                  display: "inline-block",
+                                  fontFamily: S.mono,
+                                  fontSize: 10,
+                                  fontWeight: 700,
+                                  color: pm6.color,
+                                  letterSpacing: "0.06em",
+                                  marginBottom: 12,
+                                }}
+                              >
+                                {pm6.pill}
+                              </div>
+                              <div style={{ fontFamily: S.serif, fontSize: 22, color: S.text, marginBottom: 16, lineHeight: 1.3, fontWeight: 600 }}>
+                                {rec6.headline || "—"}
+                              </div>
+                              <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.06em", fontWeight: 600, marginBottom: 6 }}>ACTION</div>
+                              <p style={{ fontSize: 15, color: S.text, lineHeight: 1.6, margin: "0 0 16px" }}>{rec6.action || ""}</p>
+                              <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.06em", fontWeight: 600, marginBottom: 6 }}>WHY THIS MATTERS</div>
+                              <p style={{ fontSize: 15, color: S.dim, lineHeight: 1.6, margin: "0 0 16px" }}>{rec6.why || ""}</p>
+                              {linkedSkill6 ? (
+                                <div
+                                  style={{
+                                    display: "inline-block",
+                                    fontFamily: S.mono,
+                                    fontSize: 11,
+                                    color: S.muted,
+                                    background: S.card2,
+                                    border: "1px solid " + S.border,
+                                    borderRadius: 6,
+                                    padding: "4px 10px",
+                                  }}
+                                >
+                                  {linkedSkill6.text}
+                                </div>
+                              ) : null}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })}
+
+                  {paidEmailSentDisplay ? (
+                    <div
+                      style={{
+                        background: "rgba(5,150,105,0.08)",
+                        border: "1px solid rgba(5,150,105,0.35)",
+                        borderRadius: 10,
+                        padding: "12px 16px",
+                        marginBottom: 28,
+                        fontSize: 14,
+                        color: S.green,
+                        lineHeight: 1.5,
+                      }}
+                    >
+                      ✓ Your full plan has been emailed to {gateEmail}
+                    </div>
+                  ) : null}
+
+                  <div style={{ borderTop: "1px solid " + S.border, marginTop: 16, paddingTop: 32, textAlign: "center", marginBottom: 8 }}>
+                    <p style={{ fontSize: 15, color: S.dim, margin: "0 0 14px", lineHeight: 1.6 }}>Want to reassess a different role or level?</p>
+                    <button
+                      type="button"
+                      onClick={function () {
+                        try {
+                          localStorage.removeItem("dz_saved_report_ux");
+                        } catch (_e) {}
+                        window.location.href = "/ux";
+                      }}
+                      style={{
+                        background: "transparent",
+                        border: "none",
+                        color: S.accent,
+                        fontFamily: S.mono,
+                        fontSize: 14,
+                        fontWeight: 700,
+                        cursor: "pointer",
+                        textDecoration: "underline",
+                        padding: 0,
+                      }}
+                    >
+                      Start a New Assessment
+                    </button>
+                  </div>
+
+                  <UXDisclaimer />
+                </div>
+              );
+            })()
           ) : null}
         </>
       )}
