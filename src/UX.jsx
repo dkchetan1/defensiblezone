@@ -684,7 +684,7 @@ export default function UX() {
   var [recommendations, setRecommendations] = useState(null);
   var [recsLoading, setRecsLoading] = useState(false);
   var [recsError, setRecsError] = useState(null);
-  var [step, setStep] = useState(0);
+  var [step, setStep] = useState(1);
   var [tier, setTier] = useState(0);
   var [promoCode, setPromoCode] = useState("");
   var [promoError, setPromoError] = useState("");
@@ -790,7 +790,7 @@ export default function UX() {
   useEffect(
     function () {
       if (!loading && !recsLoading) return;
-      var msgs = recsLoading ? UX_RECS_MSGS : step === 3 ? UX_SCORING_MSGS : UX_LOADING_MSGS;
+      var msgs = recsLoading ? UX_RECS_MSGS : (step === 4 || step === 5) ? UX_SCORING_MSGS : UX_LOADING_MSGS;
       var i = 0;
       setLoadingMsg(msgs[0]);
       var t = setInterval(function () {
@@ -846,6 +846,7 @@ export default function UX() {
     if (params.get("success") === "true") {
       window.history.replaceState({}, "", window.location.pathname);
       restoreSavedReport();
+      setGateVerified(true);
       setTier(2);
       setPaymentCanceled(false);
       setStep(6);
@@ -854,6 +855,7 @@ export default function UX() {
     if (params.get("canceled") === "true") {
       window.history.replaceState({}, "", window.location.pathname);
       restoreSavedReport();
+      setGateVerified(true);
       setStep(5);
       setPaymentCanceled(true);
     }
@@ -897,9 +899,9 @@ export default function UX() {
     function () {
       if (!gateVerified) return;
       if (gateOnDifferentDevice) return;
-      if (skills.length > 0 || loading) return;
+      if (results || loading) return;
       if (!roleType || !seniority) return;
-      fetchLandscapeAndSkills();
+      fetchScores();
     },
     [gateVerified, gateOnDifferentDevice, roleType, seniority]
   );
@@ -1494,7 +1496,7 @@ export default function UX() {
               onClick={function () {
                 setError(null);
                 if (step < 3) fetchLandscapeAndSkills();
-                else if (step === 3) fetchScores();
+                else if (step >= 3) fetchScores();
               }}
               style={{ maxWidth: 280, margin: "0 auto" }}
             >
@@ -1533,7 +1535,7 @@ export default function UX() {
             </div>
           ) : null}
 
-          {step === 0 ? (
+          {step === 4 && !gateVerified ? (
             <div style={{ maxWidth: 480, margin: "0 auto", padding: "80px 20px 40px", boxSizing: "border-box" }}>
               {gateLoading ? (
                 <div style={{ textAlign: "center", padding: "48px 0" }}>
@@ -1558,7 +1560,7 @@ export default function UX() {
                   <p style={{ fontSize: 16, color: S.dim, lineHeight: 1.7, margin: "0 0 24px" }}>
                     Your previous session wasn&apos;t found here. Re-enter your email to get a fresh link and start again.
                   </p>
-                  <Label>YOUR WORK EMAIL</Label>
+                  <Label>YOUR EMAIL</Label>
                   <input
                     type="email"
                     value={gateEmail}
@@ -1732,8 +1734,8 @@ export default function UX() {
                   </div>
 
                   <ul style={{ margin: "0 0 24px", paddingLeft: 20, color: S.muted, fontSize: 14, lineHeight: 1.7 }}>
-                    <li>Free: personalised skill scores, AI exposure map, and defensibility ratings</li>
-                    <li>Paid: 90-day action plan, benchmark comparison, and full PDF report</li>
+                    <li>Free: personalised skill scores and AI exposure map</li>
+                    <li>Paid: full 90-day action plan across 3 phases — $79 one-time</li>
                     <li>Takes about 8 minutes — no account required</li>
                   </ul>
 
@@ -1748,7 +1750,7 @@ export default function UX() {
                     </p>
                   ) : null}
 
-                  <Label>YOUR WORK EMAIL</Label>
+                  <Label>YOUR EMAIL</Label>
                   <input
                     type="email"
                     value={gateEmail}
@@ -1825,7 +1827,7 @@ export default function UX() {
             </div>
           ) : null}
 
-          {gateVerified && step === 1 ? (
+          {step === 1 ? (
             <div style={{ maxWidth: 720, margin: "0 auto", padding: "0 20px 40px", boxSizing: "border-box" }}>
               <div style={{ marginBottom: 28 }}>
                 <Label style={{ color: S.gold, marginBottom: 10 }}>STEP 1 OF 5 — YOUR ROLE</Label>
@@ -1939,7 +1941,7 @@ export default function UX() {
             </div>
           ) : null}
 
-          {gateVerified && step === 2 ? (
+          {step === 2 ? (
             <div style={{ maxWidth: 720, margin: "0 auto", padding: "0 20px 40px", boxSizing: "border-box" }}>
               <div style={{ marginBottom: 28 }}>
                 <Label style={{ color: S.gold, marginBottom: 10 }}>STEP 2 OF 5 — YOUR PROFILE</Label>
@@ -2140,7 +2142,7 @@ export default function UX() {
             </div>
           ) : null}
 
-          {gateVerified && step === 3 && !loading ? (
+          {step === 3 && !loading ? (
             <div style={{ maxWidth: 720, margin: "0 auto", padding: "0 20px 40px", boxSizing: "border-box" }}>
               <div style={{ marginBottom: 28 }}>
                 <Label style={{ color: S.gold, marginBottom: 10 }}>STEP 3 OF 5 — YOUR AFFINITY</Label>
@@ -2378,7 +2380,13 @@ export default function UX() {
                 ← Back
               </button>
 
-              <PrimaryBtn disabled={skills.length === 0} onClick={fetchScores}>
+              <PrimaryBtn
+                disabled={skills.length === 0}
+                onClick={function() {
+                  saveStateForReturn();
+                  setStep(4);
+                }}
+              >
                 Score My Skills →
               </PrimaryBtn>
             </div>
