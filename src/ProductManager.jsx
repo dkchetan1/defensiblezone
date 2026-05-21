@@ -19,14 +19,14 @@ var PM_TYPES = [
 
 // ── SENIORITY ───────────────────────────────────────────────────────
 var SENIORITY_LEVELS = [
-  { id:"apm",      label:"APM / Associate PM",   sub:"0 – 2 yrs",    note:"Feature-level work, mentored" },
-  { id:"pm",       label:"Product Manager",      sub:"2 – 4 yrs",    note:"End-to-end feature ownership" },
-  { id:"senior",   label:"Senior PM",            sub:"4 – 7 yrs",    note:"Product area ownership, strategic input" },
-  { id:"staff",    label:"Staff / Principal PM", sub:"7 – 12 yrs",   note:"Cross-org influence, framework-setter" },
-  { id:"gpm",      label:"Group PM / Lead PM",   sub:"5 – 10 yrs",   note:"Multiple products, some people management" },
-  { id:"director", label:"Director of Product",  sub:"8 – 15 yrs",   note:"Full product org, strategy, hiring" },
-  { id:"vp",       label:"VP of Product",        sub:"12 – 20 yrs",  note:"Company-level vision, P&L" },
-  { id:"cpo",      label:"CPO",                  sub:"15+ yrs",      note:"C-suite, everything product" },
+  { id:"apm",      label:"APM / Associate PM",   note:"Feature-level work, mentored" },
+  { id:"pm",       label:"Product Manager",      note:"End-to-end feature ownership" },
+  { id:"senior",   label:"Senior PM",            note:"Product area ownership, strategic input" },
+  { id:"staff",    label:"Staff / Principal PM", note:"Cross-org influence, framework-setter" },
+  { id:"gpm",      label:"Group PM / Lead PM",   note:"Multiple products, some people management" },
+  { id:"director", label:"Director of Product",  note:"Full product org, strategy, hiring" },
+  { id:"vp",       label:"VP of Product",        note:"Company-level vision, P&L" },
+  { id:"cpo",      label:"CPO",                  note:"C-suite, everything product" },
 ];
 
 // ── COMPANY TYPES ───────────────────────────────────────────────────
@@ -1398,7 +1398,6 @@ export default function ProductManager() {
                 return (
                   <SelBtn key={sl.id} active={active} onClick={function () { setSeniority(sl.id); }}>
                     <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 2 }}>{sl.label}</div>
-                    <div style={{ fontSize: 13, color: active ? "rgba(255,255,255,0.75)" : S.dim }}>{sl.sub}</div>
                     <div style={{ fontSize: 12, color: active ? "rgba(255,255,255,0.6)" : S.dim, marginTop: 3, lineHeight: 1.35 }}>{sl.note}</div>
                   </SelBtn>
                 );
