@@ -1377,6 +1377,741 @@ export default function UX() {
     } catch (_e) {}
   }
 
-  // ── RENDER — added in next step ──
-  return null;
+  var progressPct = step >= 1 && step <= 4 ? (step / 5) * 100 : 0;
+  var showGateExpiredInvalid = gateError === "expired" || gateError === "invalid";
+  var gateEmailEmptyError = gateError === "empty";
+  var contextOptions = roleType ? CONTEXT_MAP[roleType] || [] : [];
+  var extraFocusOptions = showAllFocus
+    ? WORK_FOCUS_OPTIONS.filter(function (opt) {
+        return contextOptions.indexOf(opt) === -1;
+      })
+    : [];
+  var step2SeniorityErr = step === 2 && (resultsError === "seniority" || resultsError === "both");
+  var step2WorkFocusErr = step === 2 && (resultsError === "workFocus" || resultsError === "both");
+
+  return (
+    <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font }}>
+      <link rel="preconnect" href="https://fonts.googleapis.com" />
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+      <style
+        dangerouslySetInnerHTML={{
+          __html:
+            '@import url("https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;600;700&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=DM+Serif+Display:ital@0,400;0,600&display=swap");' +
+            "@keyframes uxDZPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.55;transform:scale(.94)}}" +
+            "@keyframes uxDots{0%,100%{opacity:.25}50%{opacity:1}}" +
+            "@keyframes uxSpin{to{transform:rotate(360deg)}}" +
+            ".ux-role-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}" +
+            "@media(min-width:768px){.ux-role-grid{grid-template-columns:repeat(3,1fr)}}" +
+            ".ux-company-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}",
+        }}
+      />
+
+      {loading ? (
+        <div
+          style={{
+            minHeight: "100vh",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "40px 20px",
+            boxSizing: "border-box",
+          }}
+        >
+          <div
+            style={{
+              width: 56,
+              height: 56,
+              borderRadius: 12,
+              background: S.purple,
+              color: "#fff",
+              fontFamily: S.mono,
+              fontWeight: 700,
+              fontSize: 20,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              animation: "uxDZPulse 1.4s ease-in-out infinite",
+              marginBottom: 24,
+            }}
+          >
+            DZ
+          </div>
+          <div style={{ fontFamily: S.mono, fontSize: 14, color: S.muted, letterSpacing: "0.06em", marginBottom: 16 }}>
+            {loadingMsg}
+          </div>
+          <div style={{ display: "flex", gap: 6, fontFamily: S.mono, fontSize: 22, color: S.dim, lineHeight: 1 }}>
+            <span style={{ animation: "uxDots 1s ease-in-out infinite" }}>.</span>
+            <span style={{ animation: "uxDots 1s ease-in-out 0.2s infinite" }}>.</span>
+            <span style={{ animation: "uxDots 1s ease-in-out 0.4s infinite" }}>.</span>
+          </div>
+        </div>
+      ) : error ? (
+        <div
+          style={{
+            minHeight: "60vh",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "60px 20px",
+            boxSizing: "border-box",
+          }}
+        >
+          <Card style={{ maxWidth: 480, width: "100%", border: "1px solid " + S.red, textAlign: "center" }}>
+            <p style={{ color: S.red, fontSize: 16, lineHeight: 1.6, margin: "0 0 20px" }}>{error}</p>
+            <PrimaryBtn
+              onClick={function () {
+                setError(null);
+                if (step < 3) fetchLandscapeAndSkills();
+                else if (step === 3) fetchScores();
+              }}
+              style={{ maxWidth: 280, margin: "0 auto" }}
+            >
+              Try Again
+            </PrimaryBtn>
+          </Card>
+        </div>
+      ) : (
+        <>
+          {step >= 1 && step <= 4 ? (
+            <div style={{ padding: "0 20px", maxWidth: 720, margin: "0 auto" }}>
+              <div style={{ height: 3, background: S.border, borderRadius: 2, overflow: "hidden", marginTop: 0 }}>
+                <div
+                  style={{
+                    height: "100%",
+                    width: progressPct + "%",
+                    background: S.gold,
+                    borderRadius: 2,
+                    transition: "width 0.25s ease",
+                  }}
+                />
+              </div>
+              <div
+                style={{
+                  fontFamily: S.mono,
+                  fontSize: 11,
+                  color: S.dim,
+                  letterSpacing: "0.08em",
+                  marginTop: 8,
+                  marginBottom: 24,
+                  fontWeight: 600,
+                }}
+              >
+                Step {step} of 5
+              </div>
+            </div>
+          ) : null}
+
+          {step === 0 ? (
+            <div style={{ maxWidth: 480, margin: "0 auto", padding: "80px 20px 40px", boxSizing: "border-box" }}>
+              {gateLoading ? (
+                <div style={{ textAlign: "center", padding: "48px 0" }}>
+                  <div
+                    style={{
+                      width: 32,
+                      height: 32,
+                      border: "3px solid " + S.border,
+                      borderTop: "3px solid " + S.gold,
+                      borderRadius: "50%",
+                      animation: "uxSpin 0.85s linear infinite",
+                      margin: "0 auto 16px",
+                    }}
+                  />
+                  <div style={{ fontFamily: S.mono, fontSize: 14, color: S.muted }}>Verifying…</div>
+                </div>
+              ) : gateOnDifferentDevice ? (
+                <Card style={{ textAlign: "center" }}>
+                  <h2 style={{ fontFamily: S.serif, fontSize: 26, color: S.text, margin: "0 0 12px", fontWeight: 600 }}>
+                    Looks like you opened this on a different device
+                  </h2>
+                  <p style={{ fontSize: 16, color: S.dim, lineHeight: 1.7, margin: "0 0 24px" }}>
+                    Your previous session wasn&apos;t found here. Re-enter your email to get a fresh link and start again.
+                  </p>
+                  <Label>YOUR WORK EMAIL</Label>
+                  <input
+                    type="email"
+                    value={gateEmail}
+                    onFocus={function () {
+                      setGateInputFocused(true);
+                    }}
+                    onBlur={function () {
+                      setGateInputFocused(false);
+                    }}
+                    onChange={function (e) {
+                      setGateEmail(e.target.value);
+                      if (gateEmailEmptyError) setGateError("");
+                    }}
+                    style={{
+                      width: "100%",
+                      padding: "14px 16px",
+                      fontSize: 16,
+                      fontFamily: S.font,
+                      border:
+                        "1px solid " +
+                        (gateEmailEmptyError ? S.red : gateInputFocused ? S.gold : S.border),
+                      borderRadius: 10,
+                      outline: "none",
+                      boxSizing: "border-box",
+                      marginBottom: 12,
+                    }}
+                  />
+                  <PrimaryBtn
+                    onClick={async function () {
+                      var trimmed = gateEmail.trim();
+                      if (!trimmed) {
+                        setGateError("empty");
+                        return;
+                      }
+                      var at = trimmed.indexOf("@");
+                      if (at === -1 || trimmed.indexOf(".", at + 1) === -1) {
+                        setGateError("Please enter a valid email address.");
+                        return;
+                      }
+                      setGateError("");
+                      setGateLoading(true);
+                      try {
+                        var res = await fetch("/api/send-gate-email", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ email: trimmed, product: "ux" }),
+                        });
+                        var data = await res.json();
+                        if (!res.ok) throw new Error(data.error || "Request failed");
+                        setGateEmail(trimmed);
+                        setGateSent(true);
+                        setGateOnDifferentDevice(false);
+                        setGateVerified(false);
+                        setShowResend(false);
+                        setTimeout(function () {
+                          setShowResend(true);
+                        }, 15000);
+                      } catch (e) {
+                        setGateError("Something went wrong. Please try again.");
+                      } finally {
+                        setGateLoading(false);
+                      }
+                    }}
+                  >
+                    Send My Free Assessment →
+                  </PrimaryBtn>
+                </Card>
+              ) : gateSent ? (
+                <Card style={{ textAlign: "center" }}>
+                  <h2 style={{ fontFamily: S.serif, fontSize: 28, color: S.text, margin: "0 0 12px", fontWeight: 600 }}>
+                    Check your email
+                  </h2>
+                  <p style={{ fontSize: 16, color: S.dim, lineHeight: 1.75, margin: "0 0 20px" }}>
+                    We sent a link to{" "}
+                    <span style={{ fontFamily: S.mono, fontWeight: 600, color: S.muted }}>{gateEmail}</span>. Click it to
+                    begin your assessment.
+                  </p>
+                  <p style={{ fontSize: 14, color: S.dim, margin: "0 0 8px" }}>
+                    Wrong email?{" "}
+                    <button
+                      type="button"
+                      onClick={function () {
+                        setGateSent(false);
+                        setShowResend(false);
+                        setGateError("");
+                      }}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        padding: 0,
+                        cursor: "pointer",
+                        fontFamily: S.mono,
+                        fontSize: 14,
+                        color: S.blue,
+                        textDecoration: "underline",
+                      }}
+                    >
+                      Edit
+                    </button>
+                  </p>
+                  {showResend ? (
+                    <button
+                      type="button"
+                      onClick={async function () {
+                        setShowResend(false);
+                        var trimmed = gateEmail.trim();
+                        if (!trimmed) return;
+                        setGateLoading(true);
+                        try {
+                          var res = await fetch("/api/send-gate-email", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ email: trimmed, product: "ux" }),
+                          });
+                          var data = await res.json();
+                          if (!res.ok) throw new Error(data.error || "Request failed");
+                          setTimeout(function () {
+                            setShowResend(true);
+                          }, 15000);
+                        } catch (e) {
+                          setGateError("Something went wrong. Please try again.");
+                        } finally {
+                          setGateLoading(false);
+                        }
+                      }}
+                      style={{
+                        marginTop: 16,
+                        background: "transparent",
+                        border: "1px solid " + S.border,
+                        borderRadius: 10,
+                        padding: "10px 20px",
+                        fontFamily: S.mono,
+                        fontSize: 12,
+                        color: S.muted,
+                        cursor: "pointer",
+                      }}
+                    >
+                      Resend link
+                    </button>
+                  ) : null}
+                </Card>
+              ) : (
+                <Card>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
+                    <div
+                      style={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: 8,
+                        background: S.purple,
+                        color: "#fff",
+                        fontFamily: S.mono,
+                        fontWeight: 700,
+                        fontSize: 14,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0,
+                      }}
+                    >
+                      DZ
+                    </div>
+                    <div>
+                      <h1 style={{ fontFamily: S.serif, fontSize: 26, color: S.text, margin: 0, lineHeight: 1.2, fontWeight: 600 }}>
+                        UX Professional AI Assessment
+                      </h1>
+                      <p style={{ fontSize: 15, color: S.dim, margin: "6px 0 0", lineHeight: 1.5 }}>
+                        Find out where you stand. Free skill-by-skill results, instantly.
+                      </p>
+                    </div>
+                  </div>
+
+                  <ul style={{ margin: "0 0 24px", paddingLeft: 20, color: S.muted, fontSize: 14, lineHeight: 1.7 }}>
+                    <li>Free: personalised skill scores, AI exposure map, and defensibility ratings</li>
+                    <li>Paid: 90-day action plan, benchmark comparison, and full PDF report</li>
+                    <li>Takes about 8 minutes — no account required</li>
+                  </ul>
+
+                  {gateError === "expired" ? (
+                    <p style={{ color: S.red, fontSize: 14, margin: "0 0 16px", lineHeight: 1.5 }}>
+                      That link has expired. Enter your email again to get a new one.
+                    </p>
+                  ) : null}
+                  {gateError === "invalid" ? (
+                    <p style={{ color: S.red, fontSize: 14, margin: "0 0 16px", lineHeight: 1.5 }}>
+                      Something went wrong with that link. Try again.
+                    </p>
+                  ) : null}
+
+                  <Label>YOUR WORK EMAIL</Label>
+                  <input
+                    type="email"
+                    value={gateEmail}
+                    onFocus={function () {
+                      setGateInputFocused(true);
+                    }}
+                    onBlur={function () {
+                      setGateInputFocused(false);
+                    }}
+                    onChange={function (e) {
+                      setGateEmail(e.target.value);
+                      if (gateEmailEmptyError || showGateExpiredInvalid) setGateError("");
+                    }}
+                    style={{
+                      width: "100%",
+                      padding: "14px 16px",
+                      fontSize: 16,
+                      fontFamily: S.font,
+                      border:
+                        "1px solid " +
+                        (gateEmailEmptyError ? S.red : gateInputFocused ? S.gold : S.border),
+                      borderRadius: 10,
+                      outline: "none",
+                      boxSizing: "border-box",
+                      marginBottom: 8,
+                    }}
+                  />
+                  {gateError && gateError !== "expired" && gateError !== "invalid" && gateError !== "empty" ? (
+                    <p style={{ color: S.red, fontSize: 13, margin: "0 0 12px" }}>{gateError}</p>
+                  ) : null}
+
+                  <PrimaryBtn
+                    onClick={async function () {
+                      var trimmed = gateEmail.trim();
+                      if (!trimmed) {
+                        setGateError("empty");
+                        return;
+                      }
+                      var at = trimmed.indexOf("@");
+                      if (at === -1 || trimmed.indexOf(".", at + 1) === -1) {
+                        setGateError("Please enter a valid email address.");
+                        return;
+                      }
+                      setGateError("");
+                      setGateLoading(true);
+                      try {
+                        var res = await fetch("/api/send-gate-email", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ email: trimmed, product: "ux" }),
+                        });
+                        var data = await res.json();
+                        if (!res.ok) throw new Error(data.error || "Request failed");
+                        setGateEmail(trimmed);
+                        setGateSent(true);
+                        setShowResend(false);
+                        setTimeout(function () {
+                          setShowResend(true);
+                        }, 15000);
+                      } catch (e) {
+                        setGateError("Something went wrong. Please try again.");
+                      } finally {
+                        setGateLoading(false);
+                      }
+                    }}
+                    style={{ marginTop: 8 }}
+                  >
+                    Send My Free Assessment →
+                  </PrimaryBtn>
+                </Card>
+              )}
+
+              <UXDisclaimer />
+            </div>
+          ) : null}
+
+          {gateVerified && step === 1 ? (
+            <div style={{ maxWidth: 720, margin: "0 auto", padding: "0 20px 40px", boxSizing: "border-box" }}>
+              <div style={{ marginBottom: 28 }}>
+                <Label style={{ color: S.gold, marginBottom: 10 }}>STEP 1 OF 5 — YOUR ROLE</Label>
+                <h1 style={{ fontFamily: S.serif, fontSize: 32, color: S.text, margin: "0 0 10px", fontWeight: 600 }}>
+                  What kind of UX professional are you?
+                </h1>
+                <p style={{ fontSize: 16, color: S.dim, margin: 0, lineHeight: 1.6 }}>
+                  Choose the role that best describes your primary work.
+                </p>
+              </div>
+
+              <div className="ux-role-grid" style={{ marginBottom: 28 }}>
+                {UX_ROLE_TYPES.map(function (rt) {
+                  var active = roleType === rt.id;
+                  return (
+                    <button
+                      key={rt.id}
+                      type="button"
+                      onClick={function () {
+                        setRoleType(rt.id);
+                        setSeniority("");
+                        setWorkFocus([]);
+                        setPromoError("");
+                      }}
+                      onMouseEnter={function () {
+                        setHoveredCard(rt.id);
+                      }}
+                      onMouseLeave={function () {
+                        setHoveredCard(null);
+                      }}
+                      style={{
+                        textAlign: "left",
+                        padding: 16,
+                        borderRadius: 12,
+                        cursor: "pointer",
+                        background: active ? "rgba(217,119,6,0.08)" : hoveredCard === rt.id ? S.card2 : S.card,
+                        border: "2px solid " + (active ? S.gold : S.border),
+                        transition: "all 0.15s",
+                      }}
+                    >
+                      <div style={{ fontWeight: 700, fontSize: 15, color: S.text, marginBottom: 4 }}>{rt.title}</div>
+                      <div style={{ fontSize: 13, color: S.dim, lineHeight: 1.4 }}>{rt.desc}</div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div style={{ marginBottom: 28 }}>
+                <Label>DO YOU MANAGE PEOPLE?</Label>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  <button
+                    type="button"
+                    onClick={function () {
+                      setIsManager(false);
+                    }}
+                    style={{
+                      flex: 1,
+                      minWidth: 140,
+                      padding: "12px 20px",
+                      borderRadius: 24,
+                      fontFamily: S.mono,
+                      fontSize: 13,
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      border: "1px solid " + (!isManager ? S.accent : S.border),
+                      background: !isManager ? S.accent : S.card,
+                      color: !isManager ? "#fff" : S.muted,
+                    }}
+                  >
+                    Individual Contributor
+                  </button>
+                  <button
+                    type="button"
+                    onClick={function () {
+                      setIsManager(true);
+                    }}
+                    style={{
+                      flex: 1,
+                      minWidth: 140,
+                      padding: "12px 20px",
+                      borderRadius: 24,
+                      fontFamily: S.mono,
+                      fontSize: 13,
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      border: "1px solid " + (isManager ? S.accent : S.border),
+                      background: isManager ? S.accent : S.card,
+                      color: isManager ? "#fff" : S.muted,
+                    }}
+                  >
+                    People Manager
+                  </button>
+                </div>
+              </div>
+
+              {promoError ? <p style={{ color: S.red, fontSize: 14, margin: "0 0 16px" }}>{promoError}</p> : null}
+
+              <PrimaryBtn
+                disabled={!roleType}
+                onClick={function () {
+                  if (!roleType) {
+                    setPromoError("Please select a role type to continue.");
+                    return;
+                  }
+                  setPromoError("");
+                  setStep(2);
+                }}
+              >
+                Continue →
+              </PrimaryBtn>
+            </div>
+          ) : null}
+
+          {gateVerified && step === 2 ? (
+            <div style={{ maxWidth: 720, margin: "0 auto", padding: "0 20px 40px", boxSizing: "border-box" }}>
+              <div style={{ marginBottom: 28 }}>
+                <Label style={{ color: S.gold, marginBottom: 10 }}>STEP 2 OF 5 — YOUR PROFILE</Label>
+                <h1 style={{ fontFamily: S.serif, fontSize: 32, color: S.text, margin: "0 0 10px", fontWeight: 600 }}>
+                  Tell us about your situation
+                </h1>
+              </div>
+
+              <Card style={{ marginBottom: 20 }}>
+                <Label>YOUR LEVEL</Label>
+                <select
+                  value={seniority}
+                  onChange={function (e) {
+                    setSeniority(e.target.value);
+                    setResultsError("");
+                  }}
+                  style={{
+                    width: "100%",
+                    padding: "14px 16px",
+                    fontSize: 16,
+                    fontFamily: S.font,
+                    border: "1px solid " + S.border,
+                    borderRadius: 10,
+                    background: "#fff",
+                    color: seniority ? S.text : S.dim,
+                    boxSizing: "border-box",
+                  }}
+                >
+                  <option value="">Select your level</option>
+                  {(SENIORITY_BY_TYPE[roleType] || []).map(function (lvl) {
+                    return (
+                      <option key={lvl} value={lvl}>
+                        {lvl}
+                      </option>
+                    );
+                  })}
+                </select>
+                {step2SeniorityErr ? (
+                  <p style={{ color: S.red, fontSize: 13, marginTop: 8, marginBottom: 0 }}>Please select your level.</p>
+                ) : null}
+              </Card>
+
+              <Card style={{ marginBottom: 20 }}>
+                <Label>WHERE YOU WORK</Label>
+                <div className="ux-company-grid">
+                  {COMPANY_TYPES.map(function (ct) {
+                    var active = companyTypeId === ct.id;
+                    return (
+                      <button
+                        key={ct.id}
+                        type="button"
+                        onClick={function () {
+                          setCompanyTypeId(ct.id);
+                        }}
+                        style={{
+                          textAlign: "left",
+                          padding: 14,
+                          borderRadius: 10,
+                          cursor: "pointer",
+                          background: active ? "rgba(217,119,6,0.08)" : S.card,
+                          border: "2px solid " + (active ? S.gold : S.border),
+                          transition: "all 0.15s",
+                        }}
+                      >
+                        <div style={{ fontWeight: 700, fontSize: 14, color: S.text }}>{ct.label}</div>
+                        <div style={{ fontSize: 12, color: S.dim, marginTop: 4, lineHeight: 1.35 }}>{ct.sub}</div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </Card>
+
+              <Card style={{ marginBottom: 24 }}>
+                <Label>WHAT YOU WORK ON</Label>
+                <p style={{ fontSize: 14, color: S.dim, margin: "0 0 16px", lineHeight: 1.5 }}>Choose up to 4 areas</p>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
+                  {contextOptions.map(function (opt) {
+                    var active = workFocus.indexOf(opt) !== -1;
+                    return (
+                      <Chip
+                        key={opt}
+                        label={opt}
+                        active={active}
+                        onClick={function () {
+                          setCheckoutError("");
+                          if (active) {
+                            setWorkFocus(
+                              workFocus.filter(function (x) {
+                                return x !== opt;
+                              })
+                            );
+                          } else if (workFocus.length >= 4) {
+                            setCheckoutError("Pick up to 4 areas");
+                          } else {
+                            setWorkFocus(workFocus.concat([opt]));
+                          }
+                        }}
+                      />
+                    );
+                  })}
+                </div>
+                <button
+                  type="button"
+                  onClick={function () {
+                    setShowAllFocus(!showAllFocus);
+                  }}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    padding: 0,
+                    cursor: "pointer",
+                    fontFamily: S.mono,
+                    fontSize: 12,
+                    color: S.blue,
+                    textDecoration: "underline",
+                    marginBottom: 12,
+                  }}
+                >
+                  {showAllFocus ? "Show fewer areas" : "Show all areas"}
+                </button>
+                {showAllFocus ? (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                    {extraFocusOptions.map(function (opt) {
+                      var active = workFocus.indexOf(opt) !== -1;
+                      return (
+                        <Chip
+                          key={opt}
+                          label={opt}
+                          active={active}
+                          onClick={function () {
+                            setCheckoutError("");
+                            if (active) {
+                              setWorkFocus(
+                                workFocus.filter(function (x) {
+                                  return x !== opt;
+                                })
+                              );
+                            } else if (workFocus.length >= 4) {
+                              setCheckoutError("Pick up to 4 areas");
+                            } else {
+                              setWorkFocus(workFocus.concat([opt]));
+                            }
+                          }}
+                        />
+                      );
+                    })}
+                  </div>
+                ) : null}
+                {checkoutError ? <p style={{ color: S.red, fontSize: 13, marginTop: 12, marginBottom: 0 }}>{checkoutError}</p> : null}
+                {step2WorkFocusErr ? (
+                  <p style={{ color: S.red, fontSize: 13, marginTop: 8, marginBottom: 0 }}>Select at least one area.</p>
+                ) : null}
+              </Card>
+
+              <button
+                type="button"
+                onClick={function () {
+                  setStep(1);
+                  setResultsError("");
+                  setCheckoutError("");
+                }}
+                style={{
+                  background: "none",
+                  border: "none",
+                  padding: 0,
+                  cursor: "pointer",
+                  fontFamily: S.mono,
+                  fontSize: 12,
+                  color: S.dim,
+                  marginBottom: 20,
+                  textDecoration: "underline",
+                }}
+              >
+                ← Back
+              </button>
+
+              <PrimaryBtn
+                disabled={!seniority || workFocus.length === 0}
+                onClick={function () {
+                  if (!seniority && workFocus.length === 0) {
+                    setResultsError("both");
+                    return;
+                  }
+                  if (!seniority) {
+                    setResultsError("seniority");
+                    return;
+                  }
+                  if (workFocus.length === 0) {
+                    setResultsError("workFocus");
+                    return;
+                  }
+                  setResultsError("");
+                  fetchLandscapeAndSkills();
+                }}
+              >
+                Analyse My Skills →
+              </PrimaryBtn>
+            </div>
+          ) : null}
+        </>
+      )}
+
+      <UXFooter />
+    </div>
+  );
 }
