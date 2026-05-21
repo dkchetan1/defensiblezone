@@ -236,20 +236,33 @@ function PMDisclaimer() {
 
 function PMFooter() {
   return (
-    <div style={{ marginTop: 40, paddingTop: 24, borderTop: "1px solid " + S.border, textAlign: "center" }}>
-      <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, lineHeight: 1.7, marginBottom: 8 }}>
-        DEFENSIBLE ZONE™ is a product of Recursion Lab
+    <div style={{ marginTop: 32, background: S.card2, borderTop: "1px solid " + S.border, padding: "20px 24px" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
+        <div>
+          <div style={{ fontFamily: S.mono, fontSize: 10, color: S.muted, marginBottom: 4 }}>DEFENSIBLE ZONE™</div>
+          <a
+            href="https://defensiblezone.ai"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ fontFamily: S.mono, fontSize: 14, fontWeight: "bold", color: S.accent, textDecoration: "none" }}
+            onMouseEnter={function(e) { e.currentTarget.style.opacity = "0.75"; }}
+            onMouseLeave={function(e) { e.currentTarget.style.opacity = "1"; }}
+          >
+            defensiblezone.ai →
+          </a>
+        </div>
+        <div>
+          <div style={{ fontFamily: S.mono, fontSize: 10, color: S.muted, marginBottom: 4 }}>QUESTIONS &amp; FEEDBACK</div>
+          <a
+            href="mailto:support@recursiolab.com"
+            style={{ fontFamily: S.mono, fontSize: 14, fontWeight: "bold", color: S.purple, textDecoration: "none" }}
+            onMouseEnter={function(e) { e.currentTarget.style.opacity = "0.75"; }}
+            onMouseLeave={function(e) { e.currentTarget.style.opacity = "1"; }}
+          >
+            support@recursiolab.com →
+          </a>
+        </div>
       </div>
-      <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, lineHeight: 1.7 }}>
-        <a href="https://defensiblezone.ai" style={{ color: S.blue, textDecoration: "none" }}>
-          defensiblezone.ai
-        </a>
-        {" · "}
-        <a href="mailto:support@recursiolab.com" style={{ color: S.blue, textDecoration: "none" }}>
-          Questions or feedback → support@recursiolab.com
-        </a>
-      </div>
-      <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, lineHeight: 1.7, marginTop: 8 }}>© 2026</div>
     </div>
   );
 }
