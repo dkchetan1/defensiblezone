@@ -960,6 +960,29 @@ export default function UX() {
     } catch (_e) {}
   }
 
+  async function handleUnlockCheckout() {
+    setCheckoutLoading(true);
+    setCheckoutError(null);
+    saveStateForReturn();
+    try {
+      var res = await fetch("/api/create-checkout-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          product: "ux",
+          email: gateEmail.trim(),
+          price: 7900,
+        }),
+      });
+      var data = await res.json();
+      if (!res.ok || !data.url) throw new Error(data.error || "Could not start checkout");
+      window.location.href = data.url;
+    } catch (e) {
+      setCheckoutError(e.message || "Could not start checkout. Please try again.");
+      setCheckoutLoading(false);
+    }
+  }
+
   async function fetchLandscapeAndSkills() {
     setLoading(true);
     setError(null);
@@ -2677,12 +2700,7 @@ export default function UX() {
                           ) : null}
                           <PrimaryBtn
                             disabled={checkoutLoading}
-                            onClick={function () {
-                              setCheckoutLoading(true);
-                              setCheckoutError(null);
-                              saveStateForReturn();
-                              window.location.href = "YOUR_STRIPE_PAYMENT_LINK";
-                            }}
+                            onClick={function () { handleUnlockCheckout(); }}
                           >
                             {checkoutLoading ? "Redirecting…" : "Unlock My Plan — $79"}
                           </PrimaryBtn>
