@@ -792,8 +792,6 @@ export default function ProductManager() {
     color: S.text,
   };
 
-  var STUB_AI_RISK = 5;
-  var STUB_MARKET_DEMAND = 7;
   var skillStepBarPct = (3 / 6) * 100;
   var scoreStepBarPct = (4 / 6) * 100;
   var resultsStepBarPct = (5 / 6) * 100;
@@ -920,9 +918,7 @@ export default function ProductManager() {
     var skillSummary = skills
       .map(function (s, i) {
         var fluencyVal = fluencies[s.id] !== undefined ? fluencies[s.id] : getSeed(conscience, pull);
-        var cVal = skillConscience[s.id] !== undefined ? skillConscience[s.id] : conscience;
-        var pVal = skillPull[s.id] !== undefined ? skillPull[s.id] : pull;
-        var aff = compAff(cVal, pVal, fluencyVal);
+        var aff = compAff(conscience, pull, fluencyVal);
         return i + 1 + ". " + s.text + " (fluency: " + fluencyVal + "/10, affinity: " + aff + "/10)";
       })
       .join("\n");
@@ -976,9 +972,7 @@ export default function ProductManager() {
           });
         var id = found ? found.id : scored.id || "s" + i;
         var fluencyVal = fluencies[id] !== undefined ? fluencies[id] : getSeed(conscience, pull);
-        var cVal = skillConscience[id] !== undefined ? skillConscience[id] : conscience;
-        var pVal = skillPull[id] !== undefined ? skillPull[id] : pull;
-        var aff = compAff(cVal, pVal, fluencyVal);
+        var aff = compAff(conscience, pull, fluencyVal);
         var aiR = typeof scored.ai_replaceability === "number" ? scored.ai_replaceability : 5;
         var mkt = typeof scored.market_demand === "number" ? scored.market_demand : 7;
         var dz = calcDZ(aff, aiR, mkt);
@@ -986,8 +980,8 @@ export default function ProductManager() {
           id: id,
           text: found ? found.text : scored.name,
           name: found ? found.text : scored.name,
-          conscience: cVal,
-          pull: pVal,
+          conscience: conscience,
+          pull: pull,
           fluency: fluencyVal,
           affinity: aff,
           ai_replaceability: aiR,
@@ -1037,9 +1031,7 @@ export default function ProductManager() {
               });
             var id2 = found2 ? found2.id : scored.id || "s" + i;
             var fluencyVal2 = fluencies[id2] !== undefined ? fluencies[id2] : getSeed(conscience, pull);
-            var cVal2 = skillConscience[id2] !== undefined ? skillConscience[id2] : conscience;
-            var pVal2 = skillPull[id2] !== undefined ? skillPull[id2] : pull;
-            var aff2 = compAff(cVal2, pVal2, fluencyVal2);
+            var aff2 = compAff(conscience, pull, fluencyVal2);
             var aiR2 = typeof scored.ai_replaceability === "number" ? scored.ai_replaceability : 5;
             var mkt2 = typeof scored.market_demand === "number" ? scored.market_demand : 7;
             var dz2 = calcDZ(aff2, aiR2, mkt2);
@@ -1047,8 +1039,8 @@ export default function ProductManager() {
               id: id2,
               text: found2 ? found2.text : scored.name,
               name: found2 ? found2.text : scored.name,
-              conscience: cVal2,
-              pull: pVal2,
+              conscience: conscience,
+              pull: pull,
               fluency: fluencyVal2,
               affinity: aff2,
               ai_replaceability: aiR2,
@@ -1707,6 +1699,9 @@ export default function ProductManager() {
 
   if (step === 3) {
     var profile3 = buildProfile(pmType, seniority, workContexts, companyType);
+    var affinityStops = [0, 3, 5, 7, 10];
+    var conscienceLabelTexts = ["Move on easily", "Mildly bothered", "Somewhat unsettled", "Want to fix it", "Can't let it go"];
+    var pullLabelTexts = ["Almost never", "Occasionally", "Sometimes", "Regularly", "Constantly"];
     var dzSliderCSS =
       "input[type=range].dz-slider{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:3px;outline:none;cursor:pointer;border:none} input[type=range].dz-slider::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;border-radius:50%;border:3px solid white;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.18)} input[type=range].dz-slider::-moz-range-thumb{width:24px;height:24px;border-radius:50%;border:3px solid white;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.18)} input[type=range].conscience-sl::-webkit-slider-thumb{background:#7c3aed} input[type=range].conscience-sl::-moz-range-thumb{background:#7c3aed} input[type=range].pull-sl::-webkit-slider-thumb{background:#0891b2} input[type=range].pull-sl::-moz-range-thumb{background:#0891b2} input[type=range].fluency-sl::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:#d97706;border:2px solid white;cursor:pointer} input[type=range].fluency-sl::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:#d97706;border:2px solid white;cursor:pointer}";
     var landscapeSummary = profile3.seniorityLabel + " " + profile3.pmLabel;
@@ -1778,75 +1773,125 @@ export default function ProductManager() {
             <p style={{ color: "#ffffff", fontSize: 16, lineHeight: 1.75, margin: 0, fontStyle: "italic" }}>{landscape}</p>
           </div>
 
-          <Card style={{ marginBottom: 16 }}>
-            <Label>AFFINITY CALIBRATION</Label>
-            <p style={{ color: S.dim, fontSize: 15, lineHeight: 1.65, margin: "0 0 20px" }}>
-              Answer these once. They seed defaults for each skill below.
+          <div style={{ fontFamily: S.mono, fontSize: 12, textTransform: "uppercase", color: "#7a88a8", marginBottom: 6 }}>
+            PART 1 — ABOUT YOU IN GENERAL
+          </div>
+          <div style={{ fontSize: 15, color: "#7a88a8", marginBottom: 24 }}>Answer these once. They apply across all your skills.</div>
+          <div style={{ background: S.card, border: "1px solid #d0d7e8", borderRadius: 14, padding: "24px 28px", marginBottom: 16 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+              <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#7c3aed", flexShrink: 0 }} />
+              <span style={{ fontFamily: S.mono, fontSize: 12, fontWeight: 700, color: "#7c3aed", letterSpacing: "0.08em" }}>CRAFT CONSCIENCE</span>
+            </div>
+            <p style={{ fontSize: 16, fontStyle: "italic", color: "#3d4a6b", lineHeight: 1.6, marginBottom: 6, marginTop: 0 }}>
+              When you ship a product decision you know isn&apos;t quite right — a shortcut, a compromise forced by stakeholders, a feature you knew wouldn&apos;t serve users — how does that sit with you?
             </p>
-            <div style={{ marginBottom: 20 }}>
-              <div style={{ fontFamily: S.mono, fontSize: 12, color: S.purple, fontWeight: 700, letterSpacing: "0.06em", marginBottom: 10 }}>
-                How much does this work energize you?
-              </div>
-              <input
-                className="dz-slider conscience-sl"
-                type="range"
-                min={0}
-                max={10}
-                step={1}
-                value={conscience}
-                onChange={function (e) {
-                  setConscience(snapToStop(Number(e.target.value)));
-                }}
-                style={{
-                  background: "linear-gradient(to right, #7c3aed " + (conscience / 10) * 100 + "%, #d0d7e8 " + (conscience / 10) * 100 + "%)",
-                }}
-              />
+            <p style={{ fontSize: 14, color: "#7a88a8", lineHeight: 1.5, marginBottom: 20, marginTop: 0 }}>
+              This tells us whether you genuinely care about product quality independent of whether anyone noticed or measured it.
+            </p>
+            <input
+              className="dz-slider conscience-sl"
+              type="range"
+              min={0}
+              max={10}
+              step={1}
+              value={conscience}
+              onChange={function (e) {
+                setConscience(snapToStop(Number(e.target.value)));
+              }}
+              style={{ background: "linear-gradient(to right, #7c3aed " + (conscience / 10) * 100 + "%, #d0d7e8 " + (conscience / 10) * 100 + "%)" }}
+            />
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10 }}>
+              {affinityStops.map(function (stopValue, idx) {
+                return (
+                  <div
+                    key={stopValue}
+                    style={{
+                      width: "20%",
+                      textAlign: "center",
+                      fontSize: 12,
+                      color: "#7c3aed",
+                      opacity: Math.abs(conscience - stopValue) <= 1 ? 1 : 0.25,
+                      fontWeight: Math.abs(conscience - stopValue) <= 1 ? 700 : 400,
+                    }}
+                  >
+                    {conscienceLabelTexts[idx]}
+                  </div>
+                );
+              })}
             </div>
-            <div>
-              <div style={{ fontFamily: S.mono, fontSize: 12, color: "#0891b2", fontWeight: 700, letterSpacing: "0.06em", marginBottom: 10 }}>
-                How strongly does this work pull you forward?
-              </div>
-              <input
-                className="dz-slider pull-sl"
-                type="range"
-                min={0}
-                max={10}
-                step={1}
-                value={pull}
-                onChange={function (e) {
-                  setPull(snapToStop(Number(e.target.value)));
-                }}
-                style={{
-                  background: "linear-gradient(to right, #0891b2 " + (pull / 10) * 100 + "%, #d0d7e8 " + (pull / 10) * 100 + "%)",
-                }}
-              />
+          </div>
+          <div style={{ background: S.card, border: "1px solid #d0d7e8", borderRadius: 14, padding: "24px 28px", marginBottom: 16 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+              <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#0891b2", flexShrink: 0 }} />
+              <span style={{ fontFamily: S.mono, fontSize: 12, fontWeight: 700, color: "#0891b2", letterSpacing: "0.08em" }}>PULL</span>
             </div>
-          </Card>
-
-          <div style={{ fontFamily: S.mono, fontSize: 12, color: S.dim, letterSpacing: "0.08em", marginBottom: 12, fontWeight: 600 }}>
-            RATE EACH SKILL
+            <p style={{ fontSize: 16, fontStyle: "italic", color: "#3d4a6b", lineHeight: 1.6, marginBottom: 6, marginTop: 0 }}>
+              Outside of work hours — do you find yourself thinking about product problems, user needs, or market dynamics?
+            </p>
+            <p style={{ fontSize: 14, color: "#7a88a8", lineHeight: 1.5, marginBottom: 20, marginTop: 0 }}>
+              This measures intrinsic drive. It separates PMs who are doing a job from those who can&apos;t stop thinking about the work.
+            </p>
+            <input
+              className="dz-slider pull-sl"
+              type="range"
+              min={0}
+              max={10}
+              step={1}
+              value={pull}
+              onChange={function (e) {
+                setPull(snapToStop(Number(e.target.value)));
+              }}
+              style={{ background: "linear-gradient(to right, #0891b2 " + (pull / 10) * 100 + "%, #d0d7e8 " + (pull / 10) * 100 + "%)" }}
+            />
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10 }}>
+              {affinityStops.map(function (stopValue, idx) {
+                return (
+                  <div
+                    key={stopValue}
+                    style={{
+                      width: "20%",
+                      textAlign: "center",
+                      fontSize: 12,
+                      color: "#0891b2",
+                      opacity: Math.abs(pull - stopValue) <= 1 ? 1 : 0.25,
+                      fontWeight: Math.abs(pull - stopValue) <= 1 ? 700 : 400,
+                    }}
+                  >
+                    {pullLabelTexts[idx]}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+          <hr style={{ border: "none", borderTop: "1px solid #d0d7e8", margin: "32px 0" }} />
+          <div style={{ fontFamily: S.mono, fontSize: 12, textTransform: "uppercase", color: "#7a88a8", marginBottom: 6 }}>
+            PART 2 — SKILL BY SKILL
+          </div>
+          <div style={{ fontSize: 15, color: "#7a88a8", lineHeight: 1.6, marginBottom: 8 }}>
+            For each skill — does doing this work feel natural and easy, or does it take real effort?
+          </div>
+          <div style={{ fontSize: 14, color: "#9ca3af", marginBottom: 24 }}>
+            Sliders are pre-set based on your answers above. Only move one if a skill feels noticeably different from your usual pattern.
           </div>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 16 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 16 }}>
             {skills.map(function (s) {
               var fluencyVal = fluencies[s.id] !== undefined ? fluencies[s.id] : getSeed(conscience, pull);
-              var cVal = skillConscience[s.id] !== undefined ? skillConscience[s.id] : conscience;
-              var pVal = skillPull[s.id] !== undefined ? skillPull[s.id] : pull;
-              var affinityScore = compAff(cVal, pVal, fluencyVal);
-              var dzScore = calcDZ(affinityScore, STUB_AI_RISK, STUB_MARKET_DEMAND);
-              var dzColor = dzScore >= 70 ? S.green : dzScore >= 45 ? S.gold : S.red;
+              var affinityScore = compAff(conscience, pull, fluencyVal);
+              var affinityColor = affinityScore >= 7 ? S.green : affinityScore >= 5 ? S.gold : S.red;
+              var fluencyForGrad = fluencies[s.id] !== undefined ? fluencies[s.id] : getSeed(conscience, pull);
               return (
                 <div
                   key={s.id}
                   style={{
                     background: S.card,
-                    border: "1px solid " + S.border,
+                    border: "1px solid #d0d7e8",
                     borderRadius: 12,
                     padding: "18px 22px",
                   }}
                 >
-                  <div style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 14 }}>
-                    <div style={{ flex: 1 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
+                    <div style={{ flex: 1, paddingRight: 12 }}>
                       {s.editing ? (
                         <div style={{ display: "flex", gap: 8 }}>
                           <input
@@ -1881,8 +1926,8 @@ export default function ProductManager() {
                           </button>
                         </div>
                       ) : (
-                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                          <span style={{ color: S.text, fontSize: 16, fontWeight: 600, flex: 1, lineHeight: 1.4 }}>{s.text}</span>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                          <span style={{ fontSize: 16, fontWeight: 600, color: S.text, flex: 1, lineHeight: 1.4 }}>{s.text}</span>
                           <button
                             type="button"
                             onClick={function () {
@@ -1921,94 +1966,56 @@ export default function ProductManager() {
                         </div>
                       )}
                     </div>
-                  </div>
-
-                  <div style={{ marginBottom: 12 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                      <span style={{ fontFamily: S.mono, fontSize: 11, color: S.purple }}>ENERGY (AFFINITY)</span>
-                      <span style={{ fontFamily: S.mono, fontSize: 11, fontWeight: 700, color: S.purple }}>{cVal}/10</span>
-                    </div>
-                    <input
-                      className="dz-slider conscience-sl"
-                      type="range"
-                      min={0}
-                      max={10}
-                      step={1}
-                      value={cVal}
-                      onChange={function (e) {
-                        var val = Number(e.target.value);
-                        setSkillConscience(function (prev) {
-                          return Object.assign({}, prev, { [s.id]: val });
-                        });
-                        markAdjusted(s.id);
-                      }}
+                    <span
                       style={{
-                        background: "linear-gradient(to right, #7c3aed " + (cVal / 10) * 100 + "%, #d0d7e8 " + (cVal / 10) * 100 + "%)",
+                        fontSize: 12,
+                        padding: "2px 8px",
+                        borderRadius: 10,
+                        fontFamily: S.mono,
+                        flexShrink: 0,
+                        background: adjustedSkills.has(s.id) ? "rgba(217,119,6,0.12)" : "rgba(5,150,105,0.10)",
+                        color: adjustedSkills.has(s.id) ? "#d97706" : "#059669",
                       }}
-                    />
+                    >
+                      {adjustedSkills.has(s.id) ? "adjusted" : "pre-seeded"}
+                    </span>
                   </div>
-
-                  <div style={{ marginBottom: 12 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                      <span style={{ fontFamily: S.mono, fontSize: 11, color: "#0891b2" }}>MOMENTUM (PULL)</span>
-                      <span style={{ fontFamily: S.mono, fontSize: 11, fontWeight: 700, color: "#0891b2" }}>{pVal}/10</span>
-                    </div>
-                    <input
-                      className="dz-slider pull-sl"
-                      type="range"
-                      min={0}
-                      max={10}
-                      step={1}
-                      value={pVal}
-                      onChange={function (e) {
-                        var val = Number(e.target.value);
-                        setSkillPull(function (prev) {
-                          return Object.assign({}, prev, { [s.id]: val });
-                        });
-                        markAdjusted(s.id);
-                      }}
-                      style={{
-                        background: "linear-gradient(to right, #0891b2 " + (pVal / 10) * 100 + "%, #d0d7e8 " + (pVal / 10) * 100 + "%)",
-                      }}
-                    />
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                    <span style={{ fontFamily: S.mono, fontSize: 12, color: "#7a88a8" }}>FELT FLUENCY</span>
+                    <span style={{ fontFamily: S.mono, fontSize: 12, fontWeight: 700, color: "#d97706" }}>{fluencyForGrad}/10</span>
                   </div>
-
-                  <div style={{ marginBottom: 12 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                      <span style={{ fontFamily: S.mono, fontSize: 11, color: S.gold }}>FLUENCY</span>
-                      <span style={{ fontFamily: S.mono, fontSize: 11, fontWeight: 700, color: S.gold }}>{fluencyVal}/10</span>
-                    </div>
-                    <input
-                      className="dz-slider fluency-sl"
-                      type="range"
-                      min={0}
-                      max={10}
-                      step={1}
-                      value={fluencyVal}
-                      onChange={function (e) {
-                        var val = Number(e.target.value);
-                        setFluencies(function (prev) {
-                          return Object.assign({}, prev, { [s.id]: val });
-                        });
-                        markAdjusted(s.id);
-                      }}
-                      style={{
-                        background: "linear-gradient(to right, #d97706 " + (fluencyVal / 10) * 100 + "%, #d0d7e8 " + (fluencyVal / 10) * 100 + "%)",
-                      }}
-                    />
+                  <input
+                    className="dz-slider fluency-sl"
+                    type="range"
+                    min={0}
+                    max={10}
+                    step={1}
+                    value={fluencyVal}
+                    onChange={function (e) {
+                      var val = Number(e.target.value);
+                      setFluencies(function (prev) {
+                        return Object.assign({}, prev, { [s.id]: val });
+                      });
+                      markAdjusted(s.id);
+                    }}
+                    style={{ background: "linear-gradient(to right, #d97706 " + (fluencyForGrad / 10) * 100 + "%, #d0d7e8 " + (fluencyForGrad / 10) * 100 + "%)" }}
+                  />
+                  <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}>
+                    <span style={{ fontSize: 12, color: "#9ca3af" }}>Effortful</span>
+                    <span style={{ fontSize: 12, color: "#9ca3af" }}>Frictionless</span>
                   </div>
-
                   <div
                     style={{
                       display: "flex",
                       justifyContent: "space-between",
                       alignItems: "center",
+                      marginTop: 14,
                       paddingTop: 12,
-                      borderTop: "1px solid " + S.border,
+                      borderTop: "1px solid #f0f0f0",
                     }}
                   >
-                    <span style={{ fontFamily: S.mono, fontSize: 12, color: S.dim, letterSpacing: "0.06em" }}>DZ SCORE (EST.)</span>
-                    <span style={{ fontSize: 24, fontWeight: 700, color: dzColor }}>{dzScore}</span>
+                    <span style={{ fontFamily: S.mono, fontSize: 12, color: "#7a88a8" }}>AFFINITY SCORE</span>
+                    <span style={{ fontSize: 22, fontWeight: 700, color: affinityColor }}>{affinityScore}</span>
                   </div>
                 </div>
               );
