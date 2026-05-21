@@ -36,7 +36,7 @@ export default async function handler(req, res) {
       return res.status(200).json({ valid: false, reason: "invalid" });
     }
 
-    const VALID_PRODUCTS = ["finance", "designer", "doctor", "engineer", "pm"];
+    const VALID_PRODUCTS = ["finance", "designer", "doctor", "engineer", "pm", "ux"];
     if (decoded.type !== "gate" || !VALID_PRODUCTS.includes(decoded.product)) {
       return res.status(200).json({ valid: false, reason: "invalid" });
     }
