@@ -704,6 +704,7 @@ export default function UX() {
   var [resultsLoading, setResultsLoading] = useState(false);
   var [resultsError, setResultsError] = useState(null);
   var freeEmailSentRef = useRef(false);
+  var [freeEmailSentDisplay, setFreeEmailSentDisplay] = useState(false);
   var paidEmailSentRef = useRef(false);
   var [hoveredCard, setHoveredCard] = useState(null);
   var [customSkill, setCustomSkill] = useState("");
@@ -1340,6 +1341,7 @@ export default function UX() {
     if (freeEmailSentRef.current) return;
     if (!gateEmail.trim() || !results) return;
     freeEmailSentRef.current = true;
+    setFreeEmailSentDisplay(true);
     try {
       fetch("/api/send-report-email", {
         method: "POST",
@@ -1402,7 +1404,10 @@ export default function UX() {
             "@keyframes uxSpin{to{transform:rotate(360deg)}}" +
             ".ux-role-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}" +
             "@media(min-width:768px){.ux-role-grid{grid-template-columns:repeat(3,1fr)}}" +
-            ".ux-company-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}",
+            ".ux-company-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}" +
+            "input[type=range].ux-dz-slider{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:3px;outline:none;cursor:pointer;border:none}" +
+            "input[type=range].ux-dz-slider::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:#d97706;border:3px solid white;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.18)}" +
+            "input[type=range].ux-dz-slider::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:#d97706;border:3px solid white;cursor:pointer}",
         }}
       />
 
@@ -2106,6 +2111,640 @@ export default function UX() {
               >
                 Analyse My Skills →
               </PrimaryBtn>
+            </div>
+          ) : null}
+
+          {gateVerified && step === 3 && !loading ? (
+            <div style={{ maxWidth: 720, margin: "0 auto", padding: "0 20px 40px", boxSizing: "border-box" }}>
+              <div style={{ marginBottom: 28 }}>
+                <Label style={{ color: S.gold, marginBottom: 10 }}>STEP 3 OF 5 — YOUR AFFINITY</Label>
+                <h1 style={{ fontFamily: S.serif, fontSize: 32, color: S.text, margin: "0 0 10px", fontWeight: 600 }}>
+                  How do you feel about this work?
+                </h1>
+                <p style={{ fontSize: 16, color: S.dim, lineHeight: 1.6, margin: 0 }}>
+                  Be honest. This calibrates your scores more accurately than anything else.
+                </p>
+              </div>
+
+              <Card style={{ marginBottom: 20 }}>
+                <Label>HOW YOU FEEL ABOUT YOUR WORK IN GENERAL</Label>
+                {["conscience", "pull"].map(function (key) {
+                  var copy = (AFFINITY_COPY[roleType] || AFFINITY_COPY.product)[key];
+                  var val = key === "conscience" ? conscience : pull;
+                  var setVal = key === "conscience" ? setConscience : setPull;
+                  return (
+                    <div key={key} style={{ marginBottom: key === "conscience" ? 28 : 0 }}>
+                      <p style={{ fontSize: 16, color: S.text, lineHeight: 1.55, margin: "0 0 6px" }}>{copy.question}</p>
+                      <p style={{ fontFamily: S.mono, fontSize: 12, color: S.dim, lineHeight: 1.5, margin: "0 0 16px" }}>{copy.explanation}</p>
+                      <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                        <input
+                          className="ux-dz-slider"
+                          type="range"
+                          min={0}
+                          max={10}
+                          step={1}
+                          value={val}
+                          onChange={function (e) {
+                            setVal(Number(e.target.value));
+                          }}
+                          style={{
+                            flex: 1,
+                            background: "linear-gradient(to right, " + S.gold + " " + val * 10 + "%, " + S.border + " " + val * 10 + "%)",
+                          }}
+                        />
+                        <span style={{ fontFamily: S.mono, fontSize: 36, fontWeight: 700, color: S.gold, minWidth: 44, textAlign: "right", lineHeight: 1 }}>
+                          {val}
+                        </span>
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8 }}>
+                        <span style={{ fontFamily: S.mono, fontSize: 11, color: S.dim }}>0 — Not really</span>
+                        <span style={{ fontFamily: S.mono, fontSize: 11, color: S.dim }}>10 — Deeply</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </Card>
+
+              <Card style={{ marginBottom: 24 }}>
+                <Label>YOUR SKILL-BY-SKILL FLUENCY</Label>
+                <p style={{ fontSize: 14, color: S.dim, margin: "0 0 20px", lineHeight: 1.5 }}>
+                  These are seeded from your global scores. Adjust any that feel off.
+                </p>
+                {skills.map(function (skill) {
+                  var fluencyVal = fluencies[skill.id] !== undefined ? fluencies[skill.id] : getSeed(conscience, pull);
+                  return (
+                    <div key={skill.id} style={{ marginBottom: 22, paddingBottom: 22, borderBottom: "1px solid " + S.border }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
+                        {skill.editing ? (
+                          <input
+                            autoFocus
+                            value={skill.text}
+                            onChange={function (e) {
+                              setSkills(
+                                skills.map(function (s) {
+                                  return s.id === skill.id ? Object.assign({}, s, { text: e.target.value }) : s;
+                                })
+                              );
+                            }}
+                            onBlur={function () {
+                              setSkills(
+                                skills.map(function (s) {
+                                  return s.id === skill.id ? Object.assign({}, s, { editing: false }) : s;
+                                })
+                              );
+                            }}
+                            onKeyDown={function (e) {
+                              if (e.key === "Enter") {
+                                setSkills(
+                                  skills.map(function (s) {
+                                    return s.id === skill.id ? Object.assign({}, s, { editing: false }) : s;
+                                  })
+                                );
+                              }
+                            }}
+                            style={{
+                              flex: 1,
+                              minWidth: 160,
+                              padding: "10px 12px",
+                              fontSize: 16,
+                              fontFamily: S.font,
+                              border: "1px solid " + S.border,
+                              borderRadius: 8,
+                              boxSizing: "border-box",
+                            }}
+                          />
+                        ) : (
+                          <>
+                            <span style={{ fontSize: 16, fontWeight: 600, color: S.text, flex: 1, lineHeight: 1.35 }}>{skill.text}</span>
+                            <button
+                              type="button"
+                              onClick={function () {
+                                setSkills(
+                                  skills.map(function (s) {
+                                    return s.id === skill.id ? Object.assign({}, s, { editing: true }) : s;
+                                  })
+                                );
+                              }}
+                              style={{
+                                background: "none",
+                                border: "none",
+                                cursor: "pointer",
+                                padding: 4,
+                                fontSize: 14,
+                                color: S.dim,
+                                lineHeight: 1,
+                              }}
+                              aria-label="Edit skill name"
+                            >
+                              ✎
+                            </button>
+                          </>
+                        )}
+                        {adjustedSkills.has(skill.id) ? (
+                          <span
+                            style={{
+                              fontFamily: S.mono,
+                              fontSize: 10,
+                              color: S.gold,
+                              background: "rgba(217,119,6,0.12)",
+                              padding: "2px 8px",
+                              borderRadius: 10,
+                              fontWeight: 700,
+                            }}
+                          >
+                            adjusted
+                          </span>
+                        ) : null}
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                        <input
+                          className="ux-dz-slider"
+                          type="range"
+                          min={0}
+                          max={10}
+                          step={1}
+                          value={fluencyVal}
+                          onChange={function (e) {
+                            var v = Number(e.target.value);
+                            markAdjusted(skill.id);
+                            setFluencies(function (prev) {
+                              return Object.assign({}, prev, { [skill.id]: v });
+                            });
+                          }}
+                          style={{
+                            flex: 1,
+                            background: "linear-gradient(to right, " + S.gold + " " + fluencyVal * 10 + "%, " + S.border + " " + fluencyVal * 10 + "%)",
+                          }}
+                        />
+                        <span style={{ fontFamily: S.mono, fontSize: 28, fontWeight: 700, color: S.gold, minWidth: 36, textAlign: "right", lineHeight: 1 }}>
+                          {fluencyVal}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+                <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
+                  <input
+                    type="text"
+                    value={customSkill}
+                    placeholder="Add a skill not listed above…"
+                    onChange={function (e) {
+                      setCustomSkill(e.target.value);
+                    }}
+                    onKeyDown={function (e) {
+                      if (e.key === "Enter" && customSkill.trim()) {
+                        setSkills(skills.concat([{ id: "s" + skills.length, text: customSkill.trim(), editing: false }]));
+                        setCustomSkill("");
+                      }
+                    }}
+                    style={{
+                      flex: 1,
+                      padding: "12px 14px",
+                      fontSize: 15,
+                      fontFamily: S.font,
+                      border: "1px solid " + S.border,
+                      borderRadius: 10,
+                      boxSizing: "border-box",
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={function () {
+                      if (!customSkill.trim()) return;
+                      setSkills(skills.concat([{ id: "s" + skills.length, text: customSkill.trim(), editing: false }]));
+                      setCustomSkill("");
+                    }}
+                    style={{
+                      background: S.accent,
+                      color: "#fff",
+                      border: "none",
+                      borderRadius: 10,
+                      padding: "12px 16px",
+                      fontFamily: S.mono,
+                      fontSize: 18,
+                      fontWeight: 700,
+                      cursor: customSkill.trim() ? "pointer" : "not-allowed",
+                      opacity: customSkill.trim() ? 1 : 0.5,
+                    }}
+                  >
+                    +
+                  </button>
+                </div>
+              </Card>
+
+              <button
+                type="button"
+                onClick={function () {
+                  setStep(2);
+                }}
+                style={{
+                  background: "none",
+                  border: "none",
+                  padding: 0,
+                  cursor: "pointer",
+                  fontFamily: S.mono,
+                  fontSize: 12,
+                  color: S.dim,
+                  marginBottom: 20,
+                  textDecoration: "underline",
+                }}
+              >
+                ← Back
+              </button>
+
+              <PrimaryBtn disabled={skills.length === 0} onClick={fetchScores}>
+                Score My Skills →
+              </PrimaryBtn>
+            </div>
+          ) : null}
+
+          {gateVerified && (step === 4 || (step === 5 && results)) && results && !loading ? (
+            <div style={{ maxWidth: 720, margin: "0 auto", padding: "0 20px 48px", boxSizing: "border-box" }}>
+              <div style={{ marginBottom: 28 }}>
+                <Label style={{ color: S.gold, marginBottom: 10 }}>STEP 4 OF 5 — YOUR RESULTS</Label>
+                <h1 style={{ fontFamily: S.serif, fontSize: 32, color: S.text, margin: "0 0 12px", fontWeight: 600, lineHeight: 1.2 }}>
+                  {results.profile && results.profile.summary ? results.profile.summary : buildProfile(roleType, seniority, isManager, companyTypeId, workFocus).summary}
+                </h1>
+                {results.landscape ? (
+                  <p style={{ fontSize: 16, color: S.dim, fontStyle: "italic", lineHeight: 1.7, margin: 0 }}>{results.landscape}</p>
+                ) : null}
+              </div>
+
+              {(function () {
+                var scoredSkills = results.skills || [];
+                var overallDZ =
+                  scoredSkills.length > 0
+                    ? Math.round(
+                        scoredSkills.reduce(function (sum, sk) {
+                          return sum + (typeof sk.dz === "number" ? sk.dz : 0);
+                        }, 0) / scoredSkills.length
+                      )
+                    : 0;
+                var overallCol = dzScoreColor(overallDZ);
+                var recsList = recommendations
+                  ? Array.isArray(recommendations)
+                    ? recommendations
+                    : recommendations.recommendations || []
+                  : [];
+                var sortedRecs = recsList.slice().sort(function (a, b) {
+                  return (a.phase || 1) - (b.phase || 1);
+                });
+                var phaseMeta = [
+                  { phase: 1, pill: "Phase 1 — Anchor", color: S.green },
+                  { phase: 2, pill: "Phase 2 — Reposition", color: S.gold },
+                  { phase: 3, pill: "Phase 3 — Extend", color: S.purple },
+                ];
+                var recGlobalIdx = 0;
+
+                function aiMetricColor(v) {
+                  if (v >= 7) return S.red;
+                  if (v >= 4) return S.gold;
+                  return S.green;
+                }
+
+                return (
+                  <>
+                    <Card style={{ marginBottom: 28, textAlign: "center" }}>
+                      <div style={{ fontFamily: S.mono, fontSize: 48, fontWeight: 700, color: overallCol, lineHeight: 1, marginBottom: 8 }}>{overallDZ}</div>
+                      <div style={{ fontFamily: S.serif, fontSize: 22, fontWeight: 600, color: overallCol, marginBottom: 6 }}>{getOverallLabel(overallDZ)}</div>
+                      <p style={{ fontSize: 15, color: S.dim, lineHeight: 1.6, margin: "0 0 16px" }}>{getOverallSublabel(overallDZ)}</p>
+                      <div style={{ height: 4, background: S.card2, borderRadius: 2, overflow: "hidden", maxWidth: 320, margin: "0 auto" }}>
+                        <div style={{ width: overallDZ + "%", height: "100%", background: S.gold, borderRadius: 2 }} />
+                      </div>
+                    </Card>
+
+                    {scoredSkills.map(function (skill) {
+                      var dz = typeof skill.dz === "number" ? skill.dz : 0;
+                      var aiR = typeof skill.ai_replaceability === "number" ? skill.ai_replaceability : 5;
+                      var mkt = typeof skill.market_demand === "number" ? skill.market_demand : 7;
+                      var aff = typeof skill.affinity === "number" ? skill.affinity : 5;
+                      var dzCol = dzScoreColor(dz);
+                      var aiCol = aiMetricColor(aiR);
+                      var mktCol = mkt >= 7 ? S.green : mkt >= 4 ? S.gold : S.dim;
+                      var isHovered = hoveredCard === skill.id;
+                      return (
+                        <div
+                          key={skill.id}
+                          onMouseEnter={function () {
+                            setHoveredCard(skill.id);
+                          }}
+                          onMouseLeave={function () {
+                            setHoveredCard(null);
+                          }}
+                          style={{
+                            background: S.card,
+                            border: "1px solid " + S.border,
+                            borderRadius: 14,
+                            padding: "20px 22px",
+                            marginBottom: 12,
+                            boxShadow: isHovered ? "0 6px 20px rgba(0,0,0,0.08)" : "none",
+                            transition: "box-shadow 0.2s ease",
+                          }}
+                        >
+                          <div style={{ fontSize: 16, fontWeight: 700, color: S.text, marginBottom: 16 }}>{skill.text}</div>
+
+                          <div style={{ marginBottom: 14 }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
+                              <span style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.06em", fontWeight: 600 }}>DEFENSIBLE ZONE</span>
+                              <span style={{ fontFamily: S.mono, fontSize: 32, fontWeight: 700, color: dzCol, lineHeight: 1 }}>{dz}</span>
+                            </div>
+                            <div style={{ height: 4, background: S.card2, borderRadius: 2, overflow: "hidden" }}>
+                              <div style={{ width: dz + "%", height: "100%", background: dzCol, borderRadius: 2 }} />
+                            </div>
+                          </div>
+
+                          <div style={{ marginBottom: 14 }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                              <span style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.06em", fontWeight: 600 }}>AI REPLACEABILITY</span>
+                              <span style={{ fontFamily: S.mono, fontSize: 14, fontWeight: 700, color: aiCol }}>{aiR}/10</span>
+                            </div>
+                            <div style={{ height: 4, background: S.card2, borderRadius: 2, overflow: "hidden" }}>
+                              <div style={{ width: (aiR / 10) * 100 + "%", height: "100%", background: aiCol, borderRadius: 2 }} />
+                            </div>
+                          </div>
+
+                          <div style={{ marginBottom: 12 }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                              <span style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.06em", fontWeight: 600 }}>MARKET DEMAND</span>
+                              <span style={{ fontFamily: S.mono, fontSize: 14, fontWeight: 700, color: mktCol }}>{mkt}/10</span>
+                            </div>
+                            <div style={{ height: 4, background: S.card2, borderRadius: 2, overflow: "hidden" }}>
+                              <div style={{ width: (mkt / 10) * 100 + "%", height: "100%", background: mktCol, borderRadius: 2 }} />
+                            </div>
+                          </div>
+
+                          <p style={{ fontFamily: S.mono, fontSize: 12, color: S.dim, lineHeight: 1.55, margin: 0 }}>
+                            {getSkillInterpretation(aiR, mkt, aff)}
+                          </p>
+                        </div>
+                      );
+                    })}
+
+                    {freeEmailSentDisplay ? (
+                      <div
+                        style={{
+                          background: "rgba(5,150,105,0.08)",
+                          border: "1px solid rgba(5,150,105,0.35)",
+                          borderRadius: 10,
+                          padding: "12px 16px",
+                          marginBottom: 28,
+                          fontSize: 14,
+                          color: S.green,
+                          lineHeight: 1.5,
+                        }}
+                      >
+                        ✓ Your free results have been emailed to {gateEmail}
+                      </div>
+                    ) : null}
+
+                    <div style={{ marginTop: 36, marginBottom: 24 }}>
+                      <h2 style={{ fontFamily: S.serif, fontSize: 26, color: S.text, margin: "0 0 8px", fontWeight: 600 }}>Your 90-Day Defensible Zone Plan</h2>
+                      <p style={{ fontSize: 15, color: S.dim, lineHeight: 1.6, margin: 0 }}>
+                        Based on your scores, we&apos;ve built a personalised action plan across 3 phases.
+                      </p>
+                    </div>
+
+                    {recsLoading ? (
+                      <div style={{ textAlign: "center", padding: "32px 0" }}>
+                        <div
+                          style={{
+                            width: 32,
+                            height: 32,
+                            border: "3px solid " + S.border,
+                            borderTop: "3px solid " + S.gold,
+                            borderRadius: "50%",
+                            animation: "uxSpin 0.85s linear infinite",
+                            margin: "0 auto 16px",
+                          }}
+                        />
+                        <div style={{ fontFamily: S.mono, fontSize: 14, color: S.muted, marginBottom: 6 }}>{loadingMsg}</div>
+                        <div style={{ fontSize: 14, color: S.dim }}>Building your plan…</div>
+                      </div>
+                    ) : recsError ? (
+                      <Card style={{ textAlign: "center", marginBottom: 24 }}>
+                        <p style={{ color: S.red, fontSize: 15, margin: "0 0 16px" }}>{recsError}</p>
+                        <PrimaryBtn
+                          onClick={fetchRecommendations}
+                          style={{ maxWidth: 240, margin: "0 auto" }}
+                        >
+                          Try Again
+                        </PrimaryBtn>
+                      </Card>
+                    ) : sortedRecs.length > 0 ? (
+                      <>
+                        {phaseMeta.map(function (pm) {
+                          var phaseRecs = sortedRecs.filter(function (r) {
+                            return (r.phase || 1) === pm.phase;
+                          });
+                          if (phaseRecs.length === 0) return null;
+                          return (
+                            <div key={pm.phase} style={{ marginBottom: 28 }}>
+                              <div
+                                style={{
+                                  display: "inline-block",
+                                  fontFamily: S.mono,
+                                  fontSize: 11,
+                                  fontWeight: 700,
+                                  color: "#fff",
+                                  background: pm.color,
+                                  padding: "6px 12px",
+                                  borderRadius: 20,
+                                  letterSpacing: "0.04em",
+                                  marginBottom: 6,
+                                }}
+                              >
+                                {pm.pill}
+                              </div>
+                              <div style={{ fontFamily: S.mono, fontSize: 12, color: S.dim, marginBottom: 14 }}>
+                                {phaseRecs.length} action{phaseRecs.length !== 1 ? "s" : ""}
+                              </div>
+                              {phaseRecs.map(function (rec) {
+                                var isFirst = recGlobalIdx === 0;
+                                recGlobalIdx += 1;
+                                var cardInner = (
+                                  <>
+                                    <div
+                                      style={{
+                                        display: "inline-block",
+                                        fontFamily: S.mono,
+                                        fontSize: 10,
+                                        fontWeight: 700,
+                                        color: pm.color,
+                                        letterSpacing: "0.06em",
+                                        marginBottom: 10,
+                                      }}
+                                    >
+                                      {pm.pill}
+                                    </div>
+                                    <div style={{ fontFamily: S.serif, fontSize: 20, color: S.text, marginBottom: 10, lineHeight: 1.3, fontWeight: 600 }}>
+                                      {rec.headline || "—"}
+                                    </div>
+                                    <p style={{ fontSize: 15, color: S.text, lineHeight: 1.6, margin: "0 0 10px" }}>{rec.action || ""}</p>
+                                    <p style={{ fontSize: 14, color: S.dim, lineHeight: 1.55, margin: 0, fontStyle: "italic" }}>{rec.why || ""}</p>
+                                  </>
+                                );
+                                if (isFirst) {
+                                  return (
+                                    <div
+                                      key={rec.id || recGlobalIdx}
+                                      style={{
+                                        background: S.card,
+                                        border: "1px solid " + S.border,
+                                        borderLeft: "4px solid " + S.gold,
+                                        borderRadius: 12,
+                                        padding: "22px 24px",
+                                        marginBottom: 12,
+                                      }}
+                                    >
+                                      {cardInner}
+                                    </div>
+                                  );
+                                }
+                                return (
+                                  <div
+                                    key={rec.id || recGlobalIdx}
+                                    style={{
+                                      position: "relative",
+                                      background: S.card,
+                                      border: "1px solid " + S.border,
+                                      borderRadius: 12,
+                                      padding: "22px 24px",
+                                      marginBottom: 12,
+                                      overflow: "hidden",
+                                    }}
+                                  >
+                                    <div style={{ filter: "blur(6px)", userSelect: "none", pointerEvents: "none" }}>{cardInner}</div>
+                                    <div
+                                      style={{
+                                        position: "absolute",
+                                        inset: 0,
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        fontSize: 28,
+                                        pointerEvents: "none",
+                                      }}
+                                    >
+                                      🔒
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          );
+                        })}
+
+                        <div
+                          style={{
+                            position: "sticky",
+                            bottom: 16,
+                            background: S.card,
+                            border: "1px solid " + S.border,
+                            borderRadius: 16,
+                            padding: "28px 24px",
+                            marginTop: 8,
+                            boxShadow: "0 8px 32px rgba(0,0,0,0.1)",
+                            zIndex: 2,
+                          }}
+                        >
+                          <h3 style={{ fontFamily: S.serif, fontSize: 24, color: S.text, margin: "0 0 8px", fontWeight: 600 }}>Unlock Your Full 90-Day Plan</h3>
+                          <p style={{ fontSize: 15, color: S.dim, margin: "0 0 20px", lineHeight: 1.6 }}>One payment. Yours to keep.</p>
+                          <div style={{ fontFamily: S.mono, fontSize: 42, fontWeight: 700, color: S.text, lineHeight: 1, marginBottom: 2 }}>$79</div>
+                          <div style={{ fontFamily: S.mono, fontSize: 12, color: S.dim, marginBottom: 20 }}>one-time</div>
+                          <ul style={{ margin: "0 0 24px", paddingLeft: 20, fontSize: 15, color: S.text, lineHeight: 1.7 }}>
+                            <li>Full 8-recommendation plan across 3 phases</li>
+                            <li>Personalised to your exact role, level, and company type</li>
+                            <li>Emailed to you immediately after payment</li>
+                          </ul>
+                          {paymentCanceled ? (
+                            <div
+                              style={{
+                                background: "#fef9ec",
+                                border: "1px solid #f0c060",
+                                borderRadius: 8,
+                                padding: "10px 14px",
+                                fontSize: 13,
+                                color: "#92400e",
+                                marginBottom: 16,
+                                lineHeight: 1.5,
+                              }}
+                            >
+                              Payment was canceled — your progress is saved.
+                            </div>
+                          ) : null}
+                          <PrimaryBtn
+                            disabled={checkoutLoading}
+                            onClick={function () {
+                              setCheckoutLoading(true);
+                              setCheckoutError(null);
+                              saveStateForReturn();
+                              window.location.href = "YOUR_STRIPE_PAYMENT_LINK";
+                            }}
+                          >
+                            {checkoutLoading ? "Redirecting…" : "Unlock My Plan — $79"}
+                          </PrimaryBtn>
+                          {checkoutError ? (
+                            <p style={{ color: S.red, fontSize: 14, marginTop: 12, marginBottom: 0 }}>{checkoutError}</p>
+                          ) : null}
+                          <div style={{ marginTop: 24 }}>
+                            <p style={{ fontFamily: S.mono, fontSize: 12, color: S.dim, margin: "0 0 10px" }}>Have a promo code?</p>
+                            <div style={{ display: "flex", gap: 10 }}>
+                              <input
+                                type="text"
+                                value={promoCode}
+                                onChange={function (e) {
+                                  setPromoCode(e.target.value.toUpperCase());
+                                  if (promoError) setPromoError("");
+                                }}
+                                style={{
+                                  flex: 1,
+                                  padding: "12px 14px",
+                                  fontSize: 15,
+                                  fontFamily: S.mono,
+                                  textTransform: "uppercase",
+                                  border: "1px solid " + S.border,
+                                  borderRadius: 10,
+                                  boxSizing: "border-box",
+                                }}
+                              />
+                              <button
+                                type="button"
+                                onClick={function () {
+                                  var code = promoCode.trim().toUpperCase();
+                                  if (PROMO_CODES.indexOf(code) !== -1) {
+                                    setPromoUsed(true);
+                                    setDiscountApplied(true);
+                                    setPromoError("");
+                                    setStep(6);
+                                  } else {
+                                    setPromoError("Invalid promo code");
+                                  }
+                                }}
+                                style={{
+                                  padding: "12px 18px",
+                                  fontFamily: S.mono,
+                                  fontSize: 13,
+                                  fontWeight: 700,
+                                  background: S.accent,
+                                  color: "#fff",
+                                  border: "none",
+                                  borderRadius: 10,
+                                  cursor: "pointer",
+                                }}
+                              >
+                                Apply
+                              </button>
+                            </div>
+                            {promoError ? <p style={{ color: S.red, fontSize: 13, marginTop: 8, marginBottom: 0 }}>{promoError}</p> : null}
+                          </div>
+                        </div>
+
+                        <UXDisclaimer />
+                      </>
+                    ) : null}
+                  </>
+                );
+              })()}
             </div>
           ) : null}
         </>
