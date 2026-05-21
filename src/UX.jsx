@@ -482,9 +482,9 @@ var S = {
   red: "#dc2626",
   blue: "#2563eb",
   orange: "#ea580c",
-  font: "'DM Sans',system-ui,-apple-system,sans-serif",
-  mono: "'DM Mono','Courier New',monospace",
-  serif: "'DM Serif Display',Georgia,serif",
+  font: "system-ui,-apple-system,sans-serif",
+  mono: "'Courier New',monospace",
+  serif: "'Playfair Display',Georgia,serif",
 };
 
 var PROMO_CODES = ["DZFRIEND", "DZPREVIEW", "DZTEST"];
@@ -712,6 +712,13 @@ export default function UX() {
 
   var adjustedSkillsRef = useRef(new Set());
 
+  useEffect(function() {
+    document.body.style.background = S.bg;
+    return function() {
+      document.body.style.background = "";
+    };
+  }, []);
+
   var UX_LOADING_MSGS = [
     "Mapping your UX landscape…",
     "Identifying your exposure points…",
@@ -735,18 +742,6 @@ export default function UX() {
     adjustedSkillsRef.current.add(skillId);
     setAdjustedSkills(new Set(adjustedSkillsRef.current));
   }
-
-  useEffect(function () {
-    var link = document.createElement("link");
-    link.href =
-      "https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;600;700&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=DM+Serif+Display:ital@0,400;0,600&display=swap";
-    link.rel = "stylesheet";
-    document.head.appendChild(link);
-    document.body.style.background = S.bg;
-    return function () {
-      document.body.style.background = "";
-    };
-  }, []);
 
   useEffect(function () {
     window.scrollTo(0, 0);
@@ -1398,7 +1393,6 @@ export default function UX() {
       <style
         dangerouslySetInnerHTML={{
           __html:
-            '@import url("https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;600;700&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=DM+Serif+Display:ital@0,400;0,600&display=swap");' +
             "@keyframes uxDZPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.55;transform:scale(.94)}}" +
             "@keyframes uxDots{0%,100%{opacity:.25}50%{opacity:1}}" +
             "@keyframes uxSpin{to{transform:rotate(360deg)}}" +
