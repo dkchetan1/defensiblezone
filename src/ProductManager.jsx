@@ -211,6 +211,29 @@ function Chip(props) {
     </button>
   );
 }
+var PM_DISCLAIMER =
+  "This tool is for professional reflection and educational purposes only. It does not constitute career advice or any professional assessment. Scores are estimates based on publicly available research and LLM calibration — not a definitive evaluation of your skills or employability.";
+
+function PMDisclaimer() {
+  return (
+    <div
+      style={{
+        background: "#fef9ec",
+        border: "1px solid #f0c060",
+        borderRadius: 12,
+        padding: "16px 20px",
+        marginBottom: 28,
+        textAlign: "center",
+      }}
+    >
+      <div style={{ fontFamily: S.mono, fontSize: 12, color: "#92400e", fontWeight: 700, marginBottom: 4, letterSpacing: "0.06em" }}>
+        IMPORTANT — PLEASE READ
+      </div>
+      <div style={{ fontFamily: S.mono, fontSize: 12, color: "#78350f", lineHeight: 1.7 }}>{PM_DISCLAIMER}</div>
+    </div>
+  );
+}
+
 function PMFooter() {
   return (
     <div style={{ marginTop: 40, paddingTop: 24, borderTop: "1px solid " + S.border, textAlign: "center" }}>
@@ -226,6 +249,7 @@ function PMFooter() {
           Questions or feedback → support@recursiolab.com
         </a>
       </div>
+      <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, lineHeight: 1.7, marginTop: 8 }}>© 2026</div>
     </div>
   );
 }
@@ -1460,6 +1484,28 @@ export default function ProductManager() {
             </div>
           </div>
 
+          {!gateOnDifferentDevice && !showExpiredInvalid ? (
+            <button
+              type="button"
+              onClick={resetAll}
+              style={{
+                background: "transparent",
+                border: "1px solid " + S.border,
+                color: S.dim,
+                borderRadius: 10,
+                padding: "10px 16px",
+                fontFamily: S.mono,
+                fontSize: 12,
+                fontWeight: 600,
+                cursor: "pointer",
+                letterSpacing: "0.06em",
+                marginBottom: 24,
+              }}
+            >
+              START OVER
+            </button>
+          ) : null}
+
           {gateOnDifferentDevice ? (
             <Card style={{ marginBottom: 20, textAlign: "center" }}>
               <p style={{ fontSize: 16, color: S.text, lineHeight: 1.7, margin: "0 0 20px" }}>
@@ -1470,7 +1516,7 @@ export default function ProductManager() {
                 onClick={resetAll}
                 style={gateTryAgainBtn}
               >
-                Start over
+                BEGIN ON THIS DEVICE
               </button>
             </Card>
           ) : gateSent ? (
@@ -2419,6 +2465,8 @@ export default function ProductManager() {
             </p>
           </div>
 
+          <PMDisclaimer />
+
           <PMFooter />
         </div>
       </div>
@@ -2730,6 +2778,8 @@ export default function ProductManager() {
               A copy of this plan has been sent to {gateEmail || "your email"}
             </p>
           </div>
+
+          <PMDisclaimer />
 
           <PMFooter />
         </div>
