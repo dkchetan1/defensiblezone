@@ -906,6 +906,42 @@ export default function UX() {
     [gateVerified, gateOnDifferentDevice, roleType, seniority]
   );
 
+  function computeOverallScore(skills) {
+    if (!Array.isArray(skills) || skills.length === 0) return 0;
+    return Math.round(
+      skills.reduce(function (sum, s) {
+        return sum + (typeof s.dz === "number" ? s.dz : 0);
+      }, 0) / skills.length
+    );
+  }
+
+  useEffect(
+    function () {
+      if (step !== 4 || !results) return;
+      if (freeEmailSentRef.current) return;
+      if (!gateEmail.trim()) return;
+      freeEmailSentRef.current = true;
+      var skillsList = Array.isArray(results.skills) ? results.skills : [];
+      setFreeEmailSentDisplay(true);
+      fetch("/api/send-results-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: gateEmail,
+          product: "ux",
+          type: "free",
+          results: {
+            profile: results.profile,
+            landscape: results.landscape,
+            skills: skillsList,
+            overallScore: computeOverallScore(skillsList),
+          },
+        }),
+      }).catch(function () {});
+    },
+    [step, results]
+  );
+
   function restoreSavedReport() {
     try {
       var savedRaw = localStorage.getItem("dz_saved_report_ux");
@@ -1190,7 +1226,6 @@ export default function UX() {
       var resultsPayload = { skills: enriched, profile: profile, landscape: landscape };
       setResults(resultsPayload);
       saveStateForReturn({ results: resultsPayload });
-      sendFreeResultsEmail();
       setStep(4);
     } catch (e) {
       if (e.message && e.message.indexOf("overloaded") !== -1) {
@@ -1252,7 +1287,6 @@ export default function UX() {
           var resultsPayload2 = { skills: enriched2, profile: profile, landscape: landscape };
           setResults(resultsPayload2);
           saveStateForReturn({ results: resultsPayload2 });
-          sendFreeResultsEmail();
           setStep(4);
         } catch (e2) {
           setError("Something went wrong — please try again in a moment.");
@@ -1363,27 +1397,6 @@ export default function UX() {
     } finally {
       setRecsLoading(false);
     }
-  }
-
-  function sendFreeResultsEmail() {
-    if (freeEmailSentRef.current) return;
-    if (!gateEmail.trim() || !results) return;
-    freeEmailSentRef.current = true;
-    setFreeEmailSentDisplay(true);
-    try {
-      fetch("/api/send-report-email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: gateEmail,
-          product: "ux",
-          type: "free_results",
-          profile: buildProfile(roleType, seniority, isManager, companyTypeId, workFocus),
-          skills: results.skills,
-          landscape: landscape,
-        }),
-      }).catch(function () {});
-    } catch (_e) {}
   }
 
   function sendPaidReportEmail() {
