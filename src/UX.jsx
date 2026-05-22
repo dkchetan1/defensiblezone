@@ -680,7 +680,6 @@ export default function UX() {
   var [skillPull, setSkillPull] = useState({});
   var [adjustedSkills, setAdjustedSkills] = useState(function () { return new Set(); });
   var [results, setResults] = useState(null);
-  var [benchmark, setBenchmark] = useState(null);
   var [recommendations, setRecommendations] = useState(null);
   var [recsLoading, setRecsLoading] = useState(false);
   var [recsError, setRecsError] = useState(null);
@@ -701,7 +700,6 @@ export default function UX() {
   var [checkoutLoading, setCheckoutLoading] = useState(false);
   var [checkoutError, setCheckoutError] = useState(null);
   var [paymentCanceled, setPaymentCanceled] = useState(false);
-  var [resultsLoading, setResultsLoading] = useState(false);
   var [resultsError, setResultsError] = useState(null);
   var freeEmailSentRef = useRef(false);
   var [freeEmailSentDisplay, setFreeEmailSentDisplay] = useState(false);
