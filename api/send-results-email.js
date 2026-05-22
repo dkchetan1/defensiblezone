@@ -22,6 +22,14 @@ const PRODUCT_CONFIG = {
       paid: "Your Defensible Zone™ Product Manager 90-day plan",
     },
   },
+  ux: {
+    path: "/ux",
+    productName: "Defensible Zone UX Professional Edition",
+    subjects: {
+      free: "Your Defensible Zone™ UX Professional results",
+      paid: "Your Defensible Zone™ UX Professional 90-day plan",
+    },
+  },
 };
 
 const VALID_TYPES = new Set(["free", "paid"]);
