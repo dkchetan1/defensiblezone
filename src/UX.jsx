@@ -2752,6 +2752,7 @@ export default function UX() {
                                 onClick={function () {
                                   var code = promoCode.trim().toUpperCase();
                                   if (PROMO_CODES.indexOf(code) !== -1) {
+                                    setTier(2);
                                     setPromoUsed(true);
                                     setDiscountApplied(true);
                                     setPromoError("");
