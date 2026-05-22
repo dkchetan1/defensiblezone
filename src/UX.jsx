@@ -881,13 +881,6 @@ export default function UX() {
     [step, tier, promoUsed, results]
   );
 
-  useEffect(function() {
-    if (step !== 6) return;
-    if (!recommendations) return;
-    if (!(tier >= 2 || promoUsed)) return;
-    sendPaidReportEmail();
-  }, [step, recommendations, tier, promoUsed]);
-
   useEffect(function () {
     if (step !== 4) return;
     if (!results || !results.skills || results.skills.length === 0) return;
@@ -940,6 +933,35 @@ export default function UX() {
       }).catch(function () {});
     },
     [step, results]
+  );
+
+  useEffect(
+    function () {
+      if (!recommendations || tier < 2) return;
+      if (!results) return;
+      if (paidEmailSentRef.current) return;
+      if (!gateEmail.trim()) return;
+      paidEmailSentRef.current = true;
+      var skillsList = Array.isArray(results.skills) ? results.skills : [];
+      setPaidEmailSentDisplay(true);
+      fetch("/api/send-results-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: gateEmail,
+          product: "ux",
+          type: "paid",
+          results: {
+            profile: results.profile,
+            landscape: results.landscape,
+            skills: skillsList,
+            overallScore: computeOverallScore(skillsList),
+            recommendations: recommendations,
+          },
+        }),
+      }).catch(function () {});
+    },
+    [recommendations, tier]
   );
 
   function restoreSavedReport() {
@@ -1397,28 +1419,6 @@ export default function UX() {
     } finally {
       setRecsLoading(false);
     }
-  }
-
-  function sendPaidReportEmail() {
-    if (paidEmailSentRef.current) return;
-    if (!gateEmail.trim() || !results) return;
-    paidEmailSentRef.current = true;
-    setPaidEmailSentDisplay(true);
-    try {
-      fetch("/api/send-report-email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: gateEmail,
-          product: "ux",
-          type: "paid_report",
-          profile: buildProfile(roleType, seniority, isManager, companyTypeId, workFocus),
-          skills: results.skills,
-          landscape: landscape,
-          recommendations: recommendations,
-        }),
-      }).catch(function () {});
-    } catch (_e) {}
   }
 
   var progressPct = step >= 1 && step <= 4 ? (step / 5) * 100 : 0;
