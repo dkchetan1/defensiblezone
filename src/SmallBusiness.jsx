@@ -1110,9 +1110,9 @@ export default function SmallBusiness(props) {
     var scoreLabel = getScoreLabel(overallScore);
     var flags = getDiagnosticFlags(sliderVP, sliderCS, sliderKM, sliderTH, snapshot);
     var subScoreItems = [
-      { label: "Value Defensibility", value: subScores.valueD },
-      { label: "Customer Defensibility", value: subScores.customerD },
-      { label: "Operational Defensibility", value: subScores.operationalD },
+      { label: "Value Defensibility", value: subScores.valueD, description: "How clearly your business answers the question: why hire you instead of an AI tool?" },
+      { label: "Customer Defensibility", value: subScores.customerD, description: "How likely your customers are to stay if you raise prices or a competitor appears." },
+      { label: "Operational Defensibility", value: subScores.operationalD, description: "How much of your business value lives in documented systems versus your personal knowledge and relationships." },
     ];
 
     return (
@@ -1157,6 +1157,10 @@ export default function SmallBusiness(props) {
             </p>
           </div>
 
+          <p style={{ fontSize: 15, color: S.dim, lineHeight: 1.7, margin: "16px 0 28px" }}>
+            Your Defensible Zone™ score reflects how well your business is positioned to survive and grow in an AI-saturated market. A higher score means your value is harder to replicate, your customers are harder to poach, and your business model has real staying power. A lower score is not a verdict — it is a map of where to focus.
+          </p>
+
           <div style={{ marginBottom: 32 }}>
             {subScoreItems.map(function(item) {
               var barColor = getScoreColor(item.value);
@@ -1169,13 +1173,20 @@ export default function SmallBusiness(props) {
                   <div style={{ height: 8, background: S.border, borderRadius: 4, overflow: "hidden" }}>
                     <div style={{ height: "100%", width: item.value + "%", background: barColor, borderRadius: 4 }} />
                   </div>
+                  <p style={{ fontSize: 13, color: S.dim, marginTop: 6, marginBottom: 0, lineHeight: 1.5 }}>
+                    {item.description}
+                  </p>
                 </div>
               );
             })}
           </div>
 
           {flags.length > 0 ? (
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 32 }}>
+            <div style={{ marginBottom: 32 }}>
+            <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.1em", fontWeight: 600, marginBottom: 12 }}>
+              WHAT WE FOUND
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
               {flags.map(function(flag, i) {
                 var isPositive = flag.type === "positive";
                 return (
@@ -1196,6 +1207,7 @@ export default function SmallBusiness(props) {
                   </span>
                 );
               })}
+            </div>
             </div>
           ) : null}
 
