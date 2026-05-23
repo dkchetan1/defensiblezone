@@ -36,6 +36,11 @@ const PRODUCT_CONFIG = {
     subject: "Your Defensible Zone™ Product Manager report is ready",
     productName: "Defensible Zone Product Manager Edition",
   },
+  smallbusiness: {
+    path: "/smallbusiness",
+    subject: "Your Defensible Zone™ Business Owner assessment is ready",
+    productName: "Defensible Zone Small Business Owner Edition",
+  },
 };
 
 function isValidEmail(email) {
