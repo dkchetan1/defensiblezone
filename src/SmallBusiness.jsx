@@ -193,6 +193,45 @@ export default function SmallBusiness(props) {
     }
   }
 
+  function calcSubScores(vp, cs, km) {
+    var valueD = Math.round(vp * 10);
+    var customerD = Math.round(cs * 10);
+    var operationalD = Math.round(km * 10);
+    return { valueD: valueD, customerD: customerD, operationalD: operationalD };
+  }
+
+  function calcOverallScore(vp, cs, km) {
+    var v = 100 * Math.pow(vp / 10, 0.40) * Math.pow(cs / 10, 0.35) * Math.pow(km / 10, 0.25);
+    return Math.min(100, Math.round(v));
+  }
+
+  function getScoreLabel(score) {
+    if (score < 30) return "High Risk — significant repositioning needed.";
+    if (score < 50) return "Vulnerable — real gaps to address before AI accelerates.";
+    if (score < 70) return "Moderate — some strong anchors, targeted moves needed.";
+    if (score < 85) return "Solid — well-positioned with room to extend your lead.";
+    return "Exceptional — you are operating in rare territory.";
+  }
+
+  function getScoreColor(score) {
+    if (score < 40) return S.red;
+    if (score < 65) return S.gold;
+    return S.green;
+  }
+
+  function getDiagnosticFlags(vp, cs, km, th, snapshotData) {
+    var flags = [];
+    if (vp >= 7) flags.push({ type: "positive", label: "Strong value proposition" });
+    if (cs >= 7) flags.push({ type: "positive", label: "Strong customer moat" });
+    if (km >= 7) flags.push({ type: "positive", label: "Deep knowledge moat" });
+    if (vp < 4) flags.push({ type: "warning", label: "Commoditization exposure — value proposition needs sharpening" });
+    if (cs < 4) flags.push({ type: "warning", label: "Customer fragility — low switching costs" });
+    if (km >= 7 && th <= 3) flags.push({ type: "warning", label: "Exit Risk — concentrated value, short time horizon" });
+    var wrongCount = snapshotData.filter(function(s) { return s.wrong; }).length;
+    if (wrongCount > 0) flags.push({ type: "warning", label: "AI substitution active — you flagged threats in your landscape" });
+    return flags;
+  }
+
   useEffect(function() {
     if (step === 3) fetchArchetypes();
   }, [step]);
@@ -1054,6 +1093,133 @@ export default function SmallBusiness(props) {
 
           <button
             onClick={function() { setStep(4); }}
+            style={{ marginTop: 16, background: "transparent", border: "none", padding: 0, cursor: "pointer", fontFamily: S.mono, fontSize: 12, color: S.dim, letterSpacing: "0.06em" }}
+          >
+            ← BACK
+          </button>
+
+        </div>
+      </div>
+    );
+  }
+
+  if (step === 6) {
+    var overallScore = calcOverallScore(sliderVP, sliderCS, sliderKM);
+    var subScores = calcSubScores(sliderVP, sliderCS, sliderKM);
+    var scoreColor = getScoreColor(overallScore);
+    var scoreLabel = getScoreLabel(overallScore);
+    var flags = getDiagnosticFlags(sliderVP, sliderCS, sliderKM, sliderTH, snapshot);
+    var subScoreItems = [
+      { label: "Value Defensibility", value: subScores.valueD },
+      { label: "Customer Defensibility", value: subScores.customerD },
+      { label: "Operational Defensibility", value: subScores.operationalD },
+    ];
+
+    return (
+      <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font }}>
+        <SBNavbar />
+        <div style={{ maxWidth: 680, margin: "0 auto", padding: "48px 24px", boxSizing: "border-box" }}>
+
+          <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.1em", marginBottom: 10, fontWeight: 600 }}>
+            STEP 6 OF 8 — YOUR SCORE
+          </div>
+          <div style={{ height: 4, background: S.border, borderRadius: 2, overflow: "hidden", marginBottom: 32 }}>
+            <div style={{ height: "100%", width: "75%", background: S.accent, borderRadius: 2 }} />
+          </div>
+
+          <h2 style={{ fontFamily: S.serif, fontSize: 28, color: S.text, margin: "0 0 8px", lineHeight: 1.2, fontWeight: 600 }}>
+            Your defensibility score
+          </h2>
+          <p style={{ fontSize: 16, color: S.dim, lineHeight: 1.6, margin: "0 0 32px" }}>
+            Based on your inputs and competitive landscape edits.
+          </p>
+
+          <div style={{
+            background: S.card,
+            border: "1px solid " + S.border,
+            borderRadius: 16,
+            padding: "36px 32px",
+            textAlign: "center",
+            marginBottom: 32,
+          }}>
+            <div style={{
+              fontFamily: S.serif,
+              fontSize: 72,
+              fontWeight: 700,
+              color: scoreColor,
+              lineHeight: 1,
+              marginBottom: 12,
+            }}>
+              {overallScore}
+            </div>
+            <p style={{ fontSize: 16, color: S.muted, lineHeight: 1.6, margin: 0, maxWidth: 480, marginLeft: "auto", marginRight: "auto" }}>
+              {scoreLabel}
+            </p>
+          </div>
+
+          <div style={{ marginBottom: 32 }}>
+            {subScoreItems.map(function(item) {
+              var barColor = getScoreColor(item.value);
+              return (
+                <div key={item.label} style={{ marginBottom: 20 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: S.text }}>{item.label}</span>
+                    <span style={{ fontFamily: S.mono, fontSize: 13, fontWeight: 700, color: barColor }}>{item.value}</span>
+                  </div>
+                  <div style={{ height: 8, background: S.border, borderRadius: 4, overflow: "hidden" }}>
+                    <div style={{ height: "100%", width: item.value + "%", background: barColor, borderRadius: 4 }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {flags.length > 0 ? (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 32 }}>
+              {flags.map(function(flag, i) {
+                var isPositive = flag.type === "positive";
+                return (
+                  <span
+                    key={i}
+                    style={{
+                      display: "inline-block",
+                      background: isPositive ? "#dcfce7" : "#fef3c7",
+                      color: isPositive ? "#166534" : "#92400e",
+                      fontSize: 13,
+                      lineHeight: 1.4,
+                      padding: "8px 14px",
+                      borderRadius: 999,
+                      fontWeight: 500,
+                    }}
+                  >
+                    {isPositive ? "✓ " : "⚠ "}{flag.label}
+                  </span>
+                );
+              })}
+            </div>
+          ) : null}
+
+          <button
+            onClick={function() { setStep(7); }}
+            style={{
+              background: S.accent,
+              color: "#ffffff",
+              border: "1px solid " + S.accent,
+              borderRadius: 12,
+              padding: "16px 32px",
+              fontSize: 15,
+              fontFamily: S.mono,
+              fontWeight: 700,
+              cursor: "pointer",
+              letterSpacing: "0.08em",
+              width: "100%",
+            }}
+          >
+            CONTINUE →
+          </button>
+
+          <button
+            onClick={function() { setStep(5); }}
             style={{ marginTop: 16, background: "transparent", border: "none", padding: 0, cursor: "pointer", fontFamily: S.mono, fontSize: 12, color: S.dim, letterSpacing: "0.06em" }}
           >
             ← BACK
