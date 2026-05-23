@@ -7,6 +7,7 @@ import ProductManager from "./ProductManager.jsx";
 import About from "./About.jsx";
 import Confirmed from "./Confirmed.jsx";
 import UX from "./UX.jsx";
+import SmallBusiness from "./SmallBusiness.jsx";
 
 export default function App() {
   var [path, setPath] = useState(window.location.pathname);
@@ -35,5 +36,7 @@ export default function App() {
   if (path === "/finance/report" || path === "/finance/report/") return <Finance reportMode={true} />;
   if (path === "/pm" || path === "/pm/") return <ProductManager />;
   if (path === "/ux" || path === "/ux/") return <UX />;
+  if (path === "/smallbusiness" || path === "/smallbusiness/") return <SmallBusiness />;
+  if (path === "/smallbusiness/report" || path === "/smallbusiness/report/") return <SmallBusiness reportMode={true} />;
   return <Landing />;
 }
