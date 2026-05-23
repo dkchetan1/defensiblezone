@@ -115,6 +115,12 @@ export default function SmallBusiness(props) {
   var [archetypes, setArchetypes] = useState([]);
   var [archetypeLoading, setArchetypeLoading] = useState(false);
   var [archetypeError, setArchetypeError] = useState("");
+  var [sliderVP, setSliderVP] = useState(5);
+  var [sliderCS, setSliderCS] = useState(5);
+  var [sliderKM, setSliderKM] = useState(5);
+  var [sliderTH, setSliderTH] = useState(5);
+
+  var sliderCSS = "input[type=range].sb-slider{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:3px;outline:none;cursor:pointer;border:none;background:#d0d7e8} input[type=range].sb-slider::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:#d97706;border:3px solid white;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.18)} input[type=range].sb-slider::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:#d97706;border:3px solid white;cursor:pointer;}";
 
   async function fetchArchetypes() {
     setArchetypeLoading(true);
@@ -571,6 +577,156 @@ export default function SmallBusiness(props) {
 
           <button
             onClick={function() { setStep(2); }}
+            style={{ marginTop: 16, background: "transparent", border: "none", padding: 0, cursor: "pointer", fontFamily: S.mono, fontSize: 12, color: S.dim, letterSpacing: "0.06em" }}
+          >
+            ← BACK
+          </button>
+
+        </div>
+      </div>
+    );
+  }
+
+  if (step === 4) {
+    var exitRisk = sliderKM >= 7 && sliderTH <= 3;
+    var cardStyle = {
+      background: S.card,
+      border: "1px solid " + S.border,
+      borderRadius: 12,
+      padding: "20px 22px",
+      marginBottom: 16,
+    };
+    return (
+      <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font }}>
+        <style>{sliderCSS}</style>
+        <SBNavbar />
+        <div style={{ maxWidth: 680, margin: "0 auto", padding: "48px 24px", boxSizing: "border-box" }}>
+
+          <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.1em", marginBottom: 10, fontWeight: 600 }}>
+            STEP 4 OF 8 — YOUR DEFENSIBILITY INPUTS
+          </div>
+          <div style={{ height: 4, background: S.border, borderRadius: 2, overflow: "hidden", marginBottom: 32 }}>
+            <div style={{ height: "100%", width: "50%", background: S.accent, borderRadius: 2 }} />
+          </div>
+
+          <h2 style={{ fontFamily: S.serif, fontSize: 28, color: S.text, margin: "0 0 8px", lineHeight: 1.2, fontWeight: 600 }}>
+            Rate your business on four dimensions
+          </h2>
+          <p style={{ fontSize: 16, color: S.dim, lineHeight: 1.6, margin: "0 0 32px" }}>
+            Be honest — this is for your eyes only. The more accurate your inputs, the more useful your results.
+          </p>
+
+          <div style={cardStyle}>
+            <p style={{ fontSize: 15, color: S.text, lineHeight: 1.55, margin: "0 0 16px", fontWeight: 500 }}>
+              If a potential customer asked why they should hire you instead of using an AI tool plus a cheap offshore assistant — how sharp and specific is your answer?
+            </p>
+            <input
+              type="range"
+              className="sb-slider"
+              min={1}
+              max={10}
+              value={sliderVP}
+              onChange={function(e) { setSliderVP(Number(e.target.value)); }}
+            />
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10, fontSize: 12, color: S.dim }}>
+              <span>Struggling to answer</span>
+              <span>Sharp and specific</span>
+            </div>
+          </div>
+
+          <div style={cardStyle}>
+            <p style={{ fontSize: 15, color: S.text, lineHeight: 1.55, margin: "0 0 16px", fontWeight: 500 }}>
+              If you raised your prices by 20% tomorrow, what fraction of your customers would stay?
+            </p>
+            <input
+              type="range"
+              className="sb-slider"
+              min={1}
+              max={10}
+              value={sliderCS}
+              onChange={function(e) { setSliderCS(Number(e.target.value)); }}
+            />
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10, fontSize: 12, color: S.dim }}>
+              <span>Most would leave</span>
+              <span>Almost none would leave</span>
+            </div>
+          </div>
+
+          <div style={cardStyle}>
+            <p style={{ fontSize: 15, color: S.text, lineHeight: 1.55, margin: "0 0 16px", fontWeight: 500 }}>
+              How much of what makes your business work lives in your head and your relationships — versus being documented and transferable to someone else?
+            </p>
+            <input
+              type="range"
+              className="sb-slider"
+              min={1}
+              max={10}
+              value={sliderKM}
+              onChange={function(e) { setSliderKM(Number(e.target.value)); }}
+            />
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10, fontSize: 12, color: S.dim }}>
+              <span>Fully documented</span>
+              <span>Almost all in my head</span>
+            </div>
+          </div>
+
+          <div style={Object.assign({}, cardStyle, { marginBottom: exitRisk ? 8 : 24 })}>
+            <p style={{ fontSize: 15, color: S.text, lineHeight: 1.55, margin: "0 0 16px", fontWeight: 500 }}>
+              What is your planning horizon for this business?
+            </p>
+            <input
+              type="range"
+              className="sb-slider"
+              min={1}
+              max={10}
+              value={sliderTH}
+              onChange={function(e) { setSliderTH(Number(e.target.value)); }}
+            />
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10, fontSize: 12, color: S.dim }}>
+              <span>Exiting within 24 months</span>
+              <span>10+ years</span>
+            </div>
+            <p style={{ fontSize: 13, color: S.dim, lineHeight: 1.5, margin: "14px 0 0", fontStyle: "italic" }}>
+              This doesn't affect your score — it shapes which recommendations you receive.
+            </p>
+          </div>
+
+          {exitRisk ? (
+            <div style={{
+              background: "#fff7ed",
+              border: "1px solid #ea580c",
+              borderRadius: 12,
+              padding: "16px 18px",
+              marginBottom: 24,
+              marginTop: 8,
+            }}>
+              <p style={{ fontSize: 14, color: "#9a3412", lineHeight: 1.6, margin: 0 }}>
+                ⚠ Exit Risk detected — you have concentrated value in yourself but a short time horizon. Any buyer will discount heavily for this. We'll factor this into your recommendations.
+              </p>
+            </div>
+          ) : null}
+
+          <button
+            onClick={function() { setStep(5); }}
+            style={{
+              background: S.accent,
+              color: "#ffffff",
+              border: "1px solid " + S.accent,
+              borderRadius: 12,
+              padding: "16px 32px",
+              fontSize: 15,
+              fontFamily: S.mono,
+              fontWeight: 700,
+              cursor: "pointer",
+              letterSpacing: "0.08em",
+              width: "100%",
+            }}
+          >
+            CONTINUE →
+          </button>
+
+          <button
+            onClick={function() { setStep(3); }}
             style={{ marginTop: 16, background: "transparent", border: "none", padding: 0, cursor: "pointer", fontFamily: S.mono, fontSize: 12, color: S.dim, letterSpacing: "0.06em" }}
           >
             ← BACK
