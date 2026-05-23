@@ -35,6 +35,17 @@ var SB_INDUSTRIES = [
   { id: "other",           label: "Other",                          sub: "describe your business below",                               pct: "~6%"  },
 ];
 
+var SB_STAGES = [
+  { id: "solo_pre",     label: "Solo / Pre-revenue or just hitting profitability",          sub: "No employees yet, early days" },
+  { id: "solo_profit",  label: "Solo & profitable",                                         sub: "No employees, running lean and making money" },
+  { id: "early_team",   label: "Early team — 1 to 9 employees",                             sub: "Owner still does delivery, knows every customer" },
+  { id: "growing",      label: "Growing & owner-dependent — 10 to 25 employees",            sub: "Owner is still the rainmaker" },
+  { id: "scaled",       label: "Scaled but owner-dependent — 26 to 100 employees",          sub: "Business doesn't run without you" },
+  { id: "systematized", label: "Systematized",                                              sub: "Business runs with or without you day-to-day" },
+  { id: "exiting",      label: "Exit-ready / in transition",                                sub: "Selling, handing off, or winding down in 24 months" },
+  { id: "over100",      label: "More than 100 employees",                                   sub: "" },
+];
+
 function SBNavbar() {
   return (
     <div style={{
@@ -99,6 +110,7 @@ export default function SmallBusiness(props) {
   var [step, setStep] = useState(0);
   var [industry, setIndustry] = useState("");
   var [otherText, setOtherText] = useState("");
+  var [stage, setStage] = useState("");
 
   if (step === 0) {
     return (
@@ -269,6 +281,139 @@ export default function SmallBusiness(props) {
 
           <button
             onClick={function() { setStep(0); }}
+            style={{ marginTop: 16, background: "transparent", border: "none", padding: 0, cursor: "pointer", fontFamily: S.mono, fontSize: 12, color: S.dim, letterSpacing: "0.06em" }}
+          >
+            ← BACK
+          </button>
+
+        </div>
+      </div>
+    );
+  }
+
+  if (step === 2) {
+    if (stage === "over100") {
+      return (
+        <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font }}>
+          <SBNavbar />
+          <div style={{ maxWidth: 680, margin: "0 auto", padding: "48px 24px", boxSizing: "border-box" }}>
+            <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.1em", marginBottom: 10, fontWeight: 600 }}>
+              STEP 2 OF 8 — BUSINESS STAGE
+            </div>
+            <div style={{ height: 4, background: S.border, borderRadius: 2, overflow: "hidden", marginBottom: 32 }}>
+              <div style={{ height: "100%", width: "25%", background: S.accent, borderRadius: 2 }} />
+            </div>
+            <div style={{ background: S.card, border: "1px solid " + S.border, borderRadius: 16, padding: "36px 32px", textAlign: "center", marginBottom: 24 }}>
+              <div style={{ fontFamily: S.mono, fontSize: 13, color: S.gold, letterSpacing: "0.1em", fontWeight: 700, marginBottom: 16 }}>
+                DEFENSIBLE ZONE™ · SMALL BUSINESS EDITION
+              </div>
+              <h2 style={{ fontFamily: S.serif, fontSize: 26, color: S.text, margin: "0 0 16px", lineHeight: 1.3, fontWeight: 600 }}>
+                This assessment is designed for businesses with up to 100 employees.
+              </h2>
+              <p style={{ fontSize: 16, color: S.dim, lineHeight: 1.7, margin: "0 0 24px" }}>
+                For larger organizations, our team engagement product is a better fit. Reach out and we'll point you in the right direction.
+              </p>
+              <a
+                href="mailto:support@recursiolab.com"
+                style={{
+                  display: "inline-block",
+                  background: S.accent,
+                  color: "#ffffff",
+                  borderRadius: 10,
+                  padding: "14px 28px",
+                  fontFamily: S.mono,
+                  fontSize: 14,
+                  fontWeight: 700,
+                  letterSpacing: "0.08em",
+                  textDecoration: "none",
+                }}
+              >
+                CONTACT US →
+              </a>
+            </div>
+            <button
+              onClick={function() { setStage(""); }}
+              style={{ background: "transparent", border: "none", padding: 0, cursor: "pointer", fontFamily: S.mono, fontSize: 12, color: S.dim, letterSpacing: "0.06em" }}
+            >
+              ← BACK
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font }}>
+        <SBNavbar />
+        <div style={{ maxWidth: 680, margin: "0 auto", padding: "48px 24px", boxSizing: "border-box" }}>
+
+          <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.1em", marginBottom: 10, fontWeight: 600 }}>
+            STEP 2 OF 8 — BUSINESS STAGE
+          </div>
+          <div style={{ height: 4, background: S.border, borderRadius: 2, overflow: "hidden", marginBottom: 32 }}>
+            <div style={{ height: "100%", width: "25%", background: S.accent, borderRadius: 2 }} />
+          </div>
+
+          <h2 style={{ fontFamily: S.serif, fontSize: 28, color: S.text, margin: "0 0 8px", lineHeight: 1.2, fontWeight: 600 }}>
+            Where is your business right now?
+          </h2>
+          <p style={{ fontSize: 16, color: S.dim, lineHeight: 1.6, margin: "0 0 32px" }}>
+            Pick the stage that best describes how your business operates today.
+          </p>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 32 }}>
+            {SB_STAGES.map(function(s) {
+              var isSelected = stage === s.id;
+              var isRedirect = s.id === "over100";
+              return (
+                <button
+                  key={s.id}
+                  onClick={function() { setStage(s.id); }}
+                  style={{
+                    background: isSelected ? S.accent : S.card,
+                    border: "1px solid " + (isSelected ? S.accent : S.border),
+                    borderRadius: 12,
+                    padding: "16px 20px",
+                    cursor: "pointer",
+                    textAlign: "left",
+                    transition: "all 0.15s",
+                  }}
+                >
+                  <div style={{ fontSize: 15, fontWeight: 600, color: isSelected ? "#ffffff" : (isRedirect ? S.dim : S.text), lineHeight: 1.3 }}>
+                    {s.label}
+                  </div>
+                  {s.sub ? (
+                    <div style={{ fontSize: 13, color: isSelected ? "rgba(255,255,255,0.65)" : S.dim, marginTop: 4, lineHeight: 1.4 }}>
+                      {s.sub}
+                    </div>
+                  ) : null}
+                </button>
+              );
+            })}
+          </div>
+
+          <button
+            onClick={function() { setStep(3); }}
+            disabled={!stage}
+            style={{
+              background: !stage ? S.card2 : S.accent,
+              color: !stage ? S.dim : "#ffffff",
+              border: "1px solid " + (!stage ? S.border : S.accent),
+              borderRadius: 12,
+              padding: "16px 32px",
+              fontSize: 15,
+              fontFamily: S.mono,
+              fontWeight: 700,
+              cursor: !stage ? "not-allowed" : "pointer",
+              letterSpacing: "0.08em",
+              width: "100%",
+            }}
+          >
+            CONTINUE →
+          </button>
+
+          <button
+            onClick={function() { setStep(1); }}
             style={{ marginTop: 16, background: "transparent", border: "none", padding: 0, cursor: "pointer", fontFamily: S.mono, fontSize: 12, color: S.dim, letterSpacing: "0.06em" }}
           >
             ← BACK
