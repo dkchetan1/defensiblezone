@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 var S = {
   bg: "#f8f9fc",
@@ -111,6 +111,46 @@ export default function SmallBusiness(props) {
   var [industry, setIndustry] = useState("");
   var [otherText, setOtherText] = useState("");
   var [stage, setStage] = useState("");
+  var [archetype, setArchetype] = useState("");
+  var [archetypes, setArchetypes] = useState([]);
+  var [archetypeLoading, setArchetypeLoading] = useState(false);
+  var [archetypeError, setArchetypeError] = useState("");
+
+  async function fetchArchetypes() {
+    setArchetypeLoading(true);
+    setArchetypeError("");
+    setArchetypes([]);
+    setArchetype("");
+    var industryLabel = (SB_INDUSTRIES.find(function(i) { return i.id === industry; }) || {}).label || industry;
+    var stageLabel = (SB_STAGES.find(function(s) { return s.id === stage; }) || {}).label || stage;
+    var prompt = "You are an expert in small business strategy and AI disruption.\n\nA US small business owner has told you:\n- Industry: " + industryLabel + "\n- Business stage: " + stageLabel + "\n\nGenerate 4 to 6 business model archetypes that are specific and realistic for this exact combination. Each archetype should be a short label (3-6 words) plus one sentence describing what makes it distinct and what its AI defensibility challenge is.\n\nReturn ONLY valid JSON, no other text:\n{\"archetypes\":[{\"id\":\"slug\",\"label\":\"Short Label\",\"desc\":\"One sentence description.\"}]}";
+    try {
+      var res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 1000,
+          messages: [{ role: "user", content: prompt }],
+        }),
+      });
+      var data = await res.json();
+      if (!data.content) throw new Error("API error");
+      var raw = data.content.map(function(b) { return b.text || ""; }).join("");
+      var m = raw.match(/\{[\s\S]*\}/);
+      if (!m) throw new Error("No JSON in response");
+      var parsed = JSON.parse(m[0]);
+      setArchetypes(parsed.archetypes || []);
+      setArchetypeLoading(false);
+    } catch(e) {
+      setArchetypeError("Something went wrong loading archetypes. Please try again.");
+      setArchetypeLoading(false);
+    }
+  }
+
+  useEffect(function() {
+    if (step === 3) fetchArchetypes();
+  }, [step]);
 
   if (step === 0) {
     return (
@@ -414,6 +454,123 @@ export default function SmallBusiness(props) {
 
           <button
             onClick={function() { setStep(1); }}
+            style={{ marginTop: 16, background: "transparent", border: "none", padding: 0, cursor: "pointer", fontFamily: S.mono, fontSize: 12, color: S.dim, letterSpacing: "0.06em" }}
+          >
+            ← BACK
+          </button>
+
+        </div>
+      </div>
+    );
+  }
+
+  if (step === 3) {
+    return (
+      <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font }}>
+        <SBNavbar />
+        <div style={{ maxWidth: 680, margin: "0 auto", padding: "48px 24px", boxSizing: "border-box" }}>
+
+          <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.1em", marginBottom: 10, fontWeight: 600 }}>
+            STEP 3 OF 8 — YOUR BUSINESS MODEL
+          </div>
+          <div style={{ height: 4, background: S.border, borderRadius: 2, overflow: "hidden", marginBottom: 32 }}>
+            <div style={{ height: "100%", width: "37.5%", background: S.accent, borderRadius: 2 }} />
+          </div>
+
+          {archetypeLoading ? (
+            <p style={{ fontSize: 16, color: S.dim, lineHeight: 1.6, margin: "0 0 32px" }}>
+              Generating archetypes for your business…
+            </p>
+          ) : null}
+
+          {archetypeError ? (
+            <div style={{ marginBottom: 32 }}>
+              <p style={{ fontSize: 16, color: S.red, lineHeight: 1.6, margin: "0 0 16px" }}>
+                {archetypeError}
+              </p>
+              <button
+                onClick={fetchArchetypes}
+                style={{
+                  background: S.accent,
+                  color: "#ffffff",
+                  border: "none",
+                  borderRadius: 12,
+                  padding: "14px 28px",
+                  fontSize: 14,
+                  fontFamily: S.mono,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  letterSpacing: "0.08em",
+                }}
+              >
+                TRY AGAIN
+              </button>
+            </div>
+          ) : null}
+
+          {!archetypeLoading && !archetypeError && archetypes.length > 0 ? (
+            <>
+              <h2 style={{ fontFamily: S.serif, fontSize: 28, color: S.text, margin: "0 0 8px", lineHeight: 1.2, fontWeight: 600 }}>
+                How does your business create value?
+              </h2>
+              <p style={{ fontSize: 16, color: S.dim, lineHeight: 1.6, margin: "0 0 32px" }}>
+                Pick the model that fits best. This shapes how we score your defensibility.
+              </p>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 32 }}>
+                {archetypes.map(function(a) {
+                  var isSelected = archetype === a.id;
+                  return (
+                    <button
+                      key={a.id}
+                      onClick={function() { setArchetype(a.id); }}
+                      style={{
+                        background: isSelected ? S.accent : S.card,
+                        border: "1px solid " + (isSelected ? S.accent : S.border),
+                        borderRadius: 12,
+                        padding: "16px 20px",
+                        cursor: "pointer",
+                        textAlign: "left",
+                        transition: "all 0.15s",
+                      }}
+                    >
+                      <div style={{ fontSize: 15, fontWeight: 600, color: isSelected ? "#ffffff" : S.text, lineHeight: 1.3 }}>
+                        {a.label}
+                      </div>
+                      {a.desc ? (
+                        <div style={{ fontSize: 13, color: isSelected ? "rgba(255,255,255,0.65)" : S.dim, marginTop: 4, lineHeight: 1.4 }}>
+                          {a.desc}
+                        </div>
+                      ) : null}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button
+                onClick={function() { setStep(4); }}
+                disabled={!archetype}
+                style={{
+                  background: !archetype ? S.card2 : S.accent,
+                  color: !archetype ? S.dim : "#ffffff",
+                  border: "1px solid " + (!archetype ? S.border : S.accent),
+                  borderRadius: 12,
+                  padding: "16px 32px",
+                  fontSize: 15,
+                  fontFamily: S.mono,
+                  fontWeight: 700,
+                  cursor: !archetype ? "not-allowed" : "pointer",
+                  letterSpacing: "0.08em",
+                  width: "100%",
+                }}
+              >
+                CONTINUE →
+              </button>
+            </>
+          ) : null}
+
+          <button
+            onClick={function() { setStep(2); }}
             style={{ marginTop: 16, background: "transparent", border: "none", padding: 0, cursor: "pointer", fontFamily: S.mono, fontSize: 12, color: S.dim, letterSpacing: "0.06em" }}
           >
             ← BACK
