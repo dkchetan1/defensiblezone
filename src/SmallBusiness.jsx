@@ -119,6 +119,11 @@ export default function SmallBusiness(props) {
   var [sliderCS, setSliderCS] = useState(5);
   var [sliderKM, setSliderKM] = useState(5);
   var [sliderTH, setSliderTH] = useState(5);
+  var [snapshot, setSnapshot] = useState([]);
+  var [snapshotLoading, setSnapshotLoading] = useState(false);
+  var [snapshotError, setSnapshotError] = useState("");
+  var [newSentence, setNewSentence] = useState("");
+  var [editDraft, setEditDraft] = useState("");
 
   var sliderCSS = "input[type=range].sb-slider{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:3px;outline:none;cursor:pointer;border:none;background:#d0d7e8} input[type=range].sb-slider::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:#d97706;border:3px solid white;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.18)} input[type=range].sb-slider::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:#d97706;border:3px solid white;cursor:pointer;}";
 
@@ -154,8 +159,46 @@ export default function SmallBusiness(props) {
     }
   }
 
+  async function fetchSnapshot() {
+    setSnapshotLoading(true);
+    setSnapshotError("");
+    setSnapshot([]);
+    var industryLabel = (SB_INDUSTRIES.find(function(i) { return i.id === industry; }) || {}).label || industry;
+    var stageLabel = (SB_STAGES.find(function(s) { return s.id === stage; }) || {}).label || stage;
+    var archetypeLabel = (archetypes.find(function(a) { return a.id === archetype; }) || {}).label || archetype;
+    var prompt = "You are an expert in small business strategy and AI disruption.\n\nA US small business owner has provided this profile:\n- Industry: " + industryLabel + "\n- Stage: " + stageLabel + "\n- Business model: " + archetypeLabel + "\n- Value proposition clarity (0-10): " + sliderVP + "\n- Customer switching cost (0-10): " + sliderCS + "\n- Knowledge moat (0-10): " + sliderKM + "\n- Time horizon (0-10): " + sliderTH + "\n\nWrite a 3-4 sentence competitive landscape snapshot for this business. Be specific to their industry and model. Describe the AI threat they face right now, what is still defensible, and what is most at risk. Do not be generic.\n\nReturn ONLY valid JSON:\n{\"sentences\":[\"Sentence one.\",\"Sentence two.\",\"Sentence three.\",\"Sentence four.\"]}";
+    try {
+      var res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 800,
+          messages: [{ role: "user", content: prompt }],
+        }),
+      });
+      var data = await res.json();
+      if (!data.content) throw new Error("API error");
+      var raw = data.content.map(function(b) { return b.text || ""; }).join("");
+      var m = raw.match(/\{[\s\S]*\}/);
+      if (!m) throw new Error("No JSON in response");
+      var parsed = JSON.parse(m[0]);
+      setSnapshot((parsed.sentences || []).map(function(text, i) {
+        return { id: "s" + i, text: text, wrong: false, editing: false };
+      }));
+      setSnapshotLoading(false);
+    } catch(e) {
+      setSnapshotError("Something went wrong. Please try again.");
+      setSnapshotLoading(false);
+    }
+  }
+
   useEffect(function() {
     if (step === 3) fetchArchetypes();
+  }, [step]);
+
+  useEffect(function() {
+    if (step === 5) fetchSnapshot();
   }, [step]);
 
   if (step === 0) {
@@ -727,6 +770,290 @@ export default function SmallBusiness(props) {
 
           <button
             onClick={function() { setStep(3); }}
+            style={{ marginTop: 16, background: "transparent", border: "none", padding: 0, cursor: "pointer", fontFamily: S.mono, fontSize: 12, color: S.dim, letterSpacing: "0.06em" }}
+          >
+            ← BACK
+          </button>
+
+        </div>
+      </div>
+    );
+  }
+
+  if (step === 5) {
+    function startEdit(item) {
+      setEditDraft(item.text);
+      setSnapshot(snapshot.map(function(s) {
+        return { id: s.id, text: s.text, wrong: s.wrong, editing: s.id === item.id };
+      }));
+    }
+
+    function saveEdit(id) {
+      setSnapshot(snapshot.map(function(s) {
+        if (s.id === id) {
+          return { id: s.id, text: editDraft.trim() || s.text, wrong: s.wrong, editing: false };
+        }
+        return { id: s.id, text: s.text, wrong: s.wrong, editing: false };
+      }));
+    }
+
+    function toggleWrong(id) {
+      setSnapshot(snapshot.map(function(s) {
+        if (s.id === id) {
+          return { id: s.id, text: s.text, wrong: !s.wrong, editing: s.editing };
+        }
+        return s;
+      }));
+    }
+
+    function addSentence() {
+      if (!newSentence.trim()) return;
+      setSnapshot(snapshot.concat([{
+        id: "s" + Date.now(),
+        text: newSentence.trim(),
+        wrong: false,
+        editing: false,
+      }]));
+      setNewSentence("");
+    }
+
+    return (
+      <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font }}>
+        <SBNavbar />
+        <div style={{ maxWidth: 680, margin: "0 auto", padding: "48px 24px", boxSizing: "border-box" }}>
+
+          <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.1em", marginBottom: 10, fontWeight: 600 }}>
+            STEP 5 OF 8 — YOUR COMPETITIVE LANDSCAPE
+          </div>
+          <div style={{ height: 4, background: S.border, borderRadius: 2, overflow: "hidden", marginBottom: 32 }}>
+            <div style={{ height: "100%", width: "62.5%", background: S.accent, borderRadius: 2 }} />
+          </div>
+
+          {snapshotLoading ? (
+            <p style={{ fontSize: 16, color: S.dim, lineHeight: 1.6, margin: "0 0 32px" }}>
+              Analyzing your competitive landscape…
+            </p>
+          ) : null}
+
+          {snapshotError ? (
+            <div style={{ marginBottom: 32 }}>
+              <p style={{ fontSize: 16, color: S.red, lineHeight: 1.6, margin: "0 0 16px" }}>
+                {snapshotError}
+              </p>
+              <button
+                onClick={fetchSnapshot}
+                style={{
+                  background: S.accent,
+                  color: "#ffffff",
+                  border: "none",
+                  borderRadius: 12,
+                  padding: "14px 28px",
+                  fontSize: 14,
+                  fontFamily: S.mono,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  letterSpacing: "0.08em",
+                }}
+              >
+                TRY AGAIN
+              </button>
+            </div>
+          ) : null}
+
+          {!snapshotLoading && !snapshotError && snapshot.length > 0 ? (
+            <>
+              <h2 style={{ fontFamily: S.serif, fontSize: 28, color: S.text, margin: "0 0 8px", lineHeight: 1.2, fontWeight: 600 }}>
+                Does this sound like your business?
+              </h2>
+
+              <div style={{
+                background: "#eff6ff",
+                border: "1px solid #2563eb",
+                borderRadius: 12,
+                padding: "16px 18px",
+                marginBottom: 28,
+                marginTop: 24,
+              }}>
+                <p style={{ fontSize: 14, color: "#1e40af", lineHeight: 1.6, margin: 0 }}>
+                  This snapshot is AI-generated based on your inputs and general industry patterns. It is not based on real-time market research. Edit it to reflect your actual situation — your edits sharpen the scoring in the next step.
+                </p>
+              </div>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 24 }}>
+                {snapshot.map(function(item) {
+                  return (
+                    <div
+                      key={item.id}
+                      style={{
+                        background: S.card,
+                        border: "1px solid " + S.border,
+                        borderRadius: 12,
+                        padding: "14px 16px",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 10,
+                      }}
+                    >
+                      {item.editing ? (
+                        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                          <input
+                            type="text"
+                            value={editDraft}
+                            onChange={function(e) { setEditDraft(e.target.value); }}
+                            onKeyDown={function(e) {
+                              if (e.key === "Enter") saveEdit(item.id);
+                            }}
+                            onBlur={function() { saveEdit(item.id); }}
+                            autoFocus
+                            style={{
+                              flex: 1,
+                              padding: "10px 12px",
+                              fontSize: 15,
+                              fontFamily: S.font,
+                              border: "1px solid " + S.border,
+                              borderRadius: 8,
+                              outline: "none",
+                              boxSizing: "border-box",
+                              color: S.text,
+                              background: S.card,
+                            }}
+                          />
+                          <button
+                            onMouseDown={function(e) { e.preventDefault(); }}
+                            onClick={function() { saveEdit(item.id); }}
+                            style={{
+                              background: S.accent,
+                              color: "#ffffff",
+                              border: "none",
+                              borderRadius: 8,
+                              padding: "10px 16px",
+                              fontSize: 13,
+                              fontFamily: S.mono,
+                              fontWeight: 700,
+                              cursor: "pointer",
+                              letterSpacing: "0.06em",
+                              flexShrink: 0,
+                            }}
+                          >
+                            SAVE
+                          </button>
+                        </div>
+                      ) : (
+                        <div style={{ display: "flex", gap: 12, alignItems: "flex-start", justifyContent: "space-between" }}>
+                          <span
+                            onClick={function() { startEdit(item); }}
+                            style={{
+                              fontSize: 15,
+                              color: item.wrong ? S.dim : S.text,
+                              lineHeight: 1.55,
+                              flex: 1,
+                              cursor: "pointer",
+                              textDecoration: item.wrong ? "line-through" : "none",
+                              opacity: item.wrong ? 0.55 : 1,
+                            }}
+                          >
+                            {item.text}
+                          </span>
+                          <button
+                            onClick={function() { toggleWrong(item.id); }}
+                            style={{
+                              background: item.wrong ? "#fef2f2" : S.card2,
+                              color: item.wrong ? S.red : S.dim,
+                              border: "1px solid " + (item.wrong ? S.red : S.border),
+                              borderRadius: 8,
+                              padding: "6px 12px",
+                              fontSize: 11,
+                              fontFamily: S.mono,
+                              fontWeight: 600,
+                              cursor: "pointer",
+                              letterSpacing: "0.04em",
+                              flexShrink: 0,
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            {item.wrong ? "Marked wrong" : "Mark as wrong"}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div style={{ display: "flex", gap: 8, marginBottom: 32 }}>
+                <input
+                  type="text"
+                  value={newSentence}
+                  onChange={function(e) { setNewSentence(e.target.value); }}
+                  onKeyDown={function(e) {
+                    if (e.key === "Enter") addSentence();
+                  }}
+                  placeholder="Add a sentence"
+                  style={{
+                    flex: 1,
+                    padding: "12px 14px",
+                    fontSize: 15,
+                    fontFamily: S.font,
+                    border: "1px solid " + S.border,
+                    borderRadius: 10,
+                    outline: "none",
+                    boxSizing: "border-box",
+                    color: S.text,
+                    background: S.card,
+                  }}
+                />
+                <button
+                  onClick={addSentence}
+                  disabled={!newSentence.trim()}
+                  style={{
+                    background: !newSentence.trim() ? S.card2 : S.accent,
+                    color: !newSentence.trim() ? S.dim : "#ffffff",
+                    border: "1px solid " + (!newSentence.trim() ? S.border : S.accent),
+                    borderRadius: 10,
+                    padding: "12px 20px",
+                    fontSize: 13,
+                    fontFamily: S.mono,
+                    fontWeight: 700,
+                    cursor: !newSentence.trim() ? "not-allowed" : "pointer",
+                    letterSpacing: "0.06em",
+                    flexShrink: 0,
+                  }}
+                >
+                  ADD
+                </button>
+              </div>
+            </>
+          ) : null}
+
+          {!snapshotLoading ? (
+            <>
+              <p style={{ fontSize: 13, color: S.dim, lineHeight: 1.5, margin: "0 0 16px", fontStyle: "italic" }}>
+                Your edits will recalibrate the scoring in the next step.
+              </p>
+
+              <button
+                onClick={function() { setStep(6); }}
+                style={{
+                  background: S.accent,
+                  color: "#ffffff",
+                  border: "1px solid " + S.accent,
+                  borderRadius: 12,
+                  padding: "16px 32px",
+                  fontSize: 15,
+                  fontFamily: S.mono,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  letterSpacing: "0.08em",
+                  width: "100%",
+                }}
+              >
+                CONTINUE →
+              </button>
+            </>
+          ) : null}
+
+          <button
+            onClick={function() { setStep(4); }}
             style={{ marginTop: 16, background: "transparent", border: "none", padding: 0, cursor: "pointer", fontFamily: S.mono, fontSize: 12, color: S.dim, letterSpacing: "0.06em" }}
           >
             ← BACK
