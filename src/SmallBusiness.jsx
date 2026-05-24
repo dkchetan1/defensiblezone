@@ -46,6 +46,113 @@ var SB_STAGES = [
   { id: "over100",      label: "More than 100 employees",                                   sub: "" },
 ];
 
+var SB_ARCHETYPES = {
+  prof_services: [
+    { id: "solo_consultant", label: "Independent Consultant", desc: "Sells expertise and advice directly to clients on a project or retainer basis. Threatened by AI tools that automate research, analysis, and report generation." },
+    { id: "boutique_agency", label: "Boutique Agency", desc: "Small team delivering creative, marketing, or strategic services to business clients. Threatened by AI content generation and automated campaign tools." },
+    { id: "accounting_tax", label: "Accounting & Tax Practice", desc: "Prepares taxes, manages books, and advises on financial compliance for individuals or small businesses. Threatened by AI-powered accounting software and automated tax filing." },
+    { id: "law_practice", label: "Small Law Practice", desc: "Provides legal services in one or more practice areas to individuals or businesses. Threatened by AI contract review, document automation, and online legal platforms." },
+    { id: "it_services", label: "IT Services & Managed Services Provider", desc: "Provides technology support, maintenance, and consulting to small businesses. Threatened by AI-assisted diagnostics and offshore managed service competitors." },
+    { id: "recruiting", label: "Independent Recruiter / Staffing Firm", desc: "Matches candidates to employer roles, earning fees on placements. Threatened by AI resume screening, LinkedIn automation, and direct-hire platforms." },
+    { id: "training", label: "Training & Coaching Practice", desc: "Delivers professional development, coaching, or skills training to individuals or organizations. Threatened by AI tutors, on-demand learning platforms, and automated coaching tools." },
+    { id: "other_prof", label: "None of these — describe your business", desc: "" },
+  ],
+  retail: [
+    { id: "brick_mortar", label: "Brick-and-Mortar Retail Store", desc: "Sells physical products from a storefront to walk-in customers. Threatened by e-commerce giants, AI-personalized online shopping, and same-day delivery." },
+    { id: "ecommerce_only", label: "E-commerce Only Retailer", desc: "Sells products exclusively online via own site or marketplaces like Amazon and Etsy. Threatened by AI-optimized competitors and rising ad costs." },
+    { id: "hybrid_retail", label: "Hybrid Retail (Store + Online)", desc: "Operates both a physical location and an online store. Faces pressure from pure-play online retailers with lower overhead." },
+    { id: "specialty_retail", label: "Specialty / Niche Retailer", desc: "Sells a focused category of products to a specific customer segment. Defensibility comes from curation and expertise but threatened by AI-powered niche discovery." },
+    { id: "consignment", label: "Consignment or Resale Shop", desc: "Sells second-hand or consigned goods, earning a cut of each sale. Threatened by AI-driven resale platforms like ThredUp and Poshmark." },
+    { id: "wholesale_dist", label: "Wholesale Distributor to Retailers", desc: "Buys in bulk and resells to retail businesses. Threatened by direct-to-retailer manufacturer relationships and AI-optimized supply chains." },
+    { id: "other_retail", label: "None of these — describe your business", desc: "" },
+  ],
+  trades: [
+    { id: "hvac", label: "HVAC Contractor", desc: "Installs, maintains, and repairs heating and cooling systems for residential and commercial clients. Threatened by AI diagnostic tools and national service aggregators." },
+    { id: "electrical", label: "Electrical Contractor", desc: "Performs electrical installation and repair work for residential and commercial clients. Defensible through licensing but threatened by aggregator platforms commoditizing job bidding." },
+    { id: "plumbing", label: "Plumbing Contractor", desc: "Provides plumbing installation, repair, and emergency services. Similar aggregator and commoditization pressure as electrical." },
+    { id: "general_contractor", label: "General Contractor / Remodeler", desc: "Manages construction and renovation projects, coordinating subcontractors and materials. Threatened by AI project estimation tools and platform-based contractor matching." },
+    { id: "specialty_trade", label: "Specialty Trade Contractor", desc: "Provides a focused trade service such as roofing, flooring, painting, or landscaping. Threatened by national franchise competitors and online bidding platforms." },
+    { id: "home_services", label: "Home Services Operator", desc: "Delivers recurring residential services such as cleaning, lawn care, or pest control. Threatened by app-based service platforms and AI-optimized scheduling competitors." },
+    { id: "other_trades", label: "None of these — describe your business", desc: "" },
+  ],
+  health_personal: [
+    { id: "independent_practice", label: "Independent Medical or Dental Practice", desc: "Provides clinical care directly to patients outside a hospital system. Threatened by AI diagnostics, telehealth platforms, and private equity consolidation." },
+    { id: "pt_chiro", label: "Physical Therapy or Chiropractic Practice", desc: "Delivers hands-on rehabilitative or musculoskeletal care. Threatened by AI exercise prescription tools and telehealth PT platforms." },
+    { id: "mental_health", label: "Mental Health Practice", desc: "Provides therapy, counseling, or psychiatric services to individuals or groups. Threatened by AI therapy apps and teletherapy platforms at lower price points." },
+    { id: "salon_spa", label: "Salon, Spa, or Personal Care Studio", desc: "Delivers beauty, grooming, or wellness services to individual clients. Relatively low AI threat on delivery but threatened by booking aggregators and chain competition." },
+    { id: "fitness", label: "Fitness Studio or Personal Training", desc: "Provides group fitness classes or one-on-one training. Threatened by AI fitness apps, on-demand platforms, and large gym chains." },
+    { id: "wellness_alt", label: "Wellness or Alternative Health Practice", desc: "Delivers services such as acupuncture, nutrition coaching, or holistic health. Threatened by AI health coaches and wellness apps." },
+    { id: "childcare", label: "Childcare or Early Education Provider", desc: "Operates a daycare, preschool, or after-school program. Regulatory barriers provide some protection but faces staffing and margin pressure." },
+    { id: "other_health", label: "None of these — describe your business", desc: "" },
+  ],
+  food_hosp: [
+    { id: "independent_restaurant", label: "Independent Restaurant", desc: "Operates a full-service or fast-casual dining establishment. Threatened by AI-optimized delivery platforms, ghost kitchens, and rising labor costs." },
+    { id: "cafe_coffee", label: "Cafe or Coffee Shop", desc: "Serves coffee, light food, and beverages in a community-oriented setting. Threatened by chain competitors and AI-personalized loyalty programs." },
+    { id: "catering", label: "Catering Company", desc: "Prepares and delivers food for events, corporate clients, or institutions. Threatened by AI-powered event planning platforms and meal delivery aggregators." },
+    { id: "food_truck", label: "Food Truck or Pop-Up Operator", desc: "Sells food from a mobile unit or temporary location. Lower overhead but dependent on foot traffic and social media visibility." },
+    { id: "bakery_specialty", label: "Bakery or Specialty Food Producer", desc: "Produces and sells baked goods or specialty food products direct to consumers or wholesale. Threatened by AI-optimized food manufacturing and direct-to-consumer brands." },
+    { id: "lodging", label: "Small Lodging Operator", desc: "Runs a bed and breakfast, boutique hotel, or short-term rental portfolio. Threatened by AI-optimized pricing on Airbnb and OTA platforms." },
+    { id: "other_food", label: "None of these — describe your business", desc: "" },
+  ],
+  auto_repair: [
+    { id: "auto_repair_shop", label: "Independent Auto Repair Shop", desc: "Services and repairs personal vehicles for local customers. Threatened by AI diagnostic tools and national chain competitors like Jiffy Lube and Firestone." },
+    { id: "auto_body", label: "Auto Body & Collision Shop", desc: "Repairs vehicle bodies and paint after accidents. Insurance relationships are a moat but threatened by consolidation and AI damage estimation tools." },
+    { id: "auto_dealer", label: "Independent Used Car Dealer", desc: "Buys and resells used vehicles to individual buyers. Threatened by AI-powered pricing platforms and online dealers like Carvana." },
+    { id: "equipment_rental", label: "Equipment Rental Company", desc: "Rents tools, machinery, or vehicles to contractors and consumers. Threatened by peer-to-peer rental platforms and AI inventory optimization." },
+    { id: "cleaning_service", label: "Commercial or Residential Cleaning Service", desc: "Provides recurring cleaning to homes or businesses. Low AI threat on delivery but highly price-competitive and threatened by app-based platforms." },
+    { id: "mobile_service", label: "Mobile Service Operator", desc: "Delivers repair or maintenance services on-site at the customer's location. Convenience is the moat but threatened by aggregator platforms commoditizing booking." },
+    { id: "other_auto", label: "None of these — describe your business", desc: "" },
+  ],
+  realestate: [
+    { id: "buyers_agent", label: "Independent Residential Buyer's Agent", desc: "Represents buyers in home purchases, earning commission on closed transactions. Threatened by AI-powered search platforms and flat-fee buyer representation services." },
+    { id: "listing_specialist", label: "Residential Listing Specialist", desc: "Lists and markets homes for sellers, managing pricing, staging, and negotiation. Threatened by AI valuation tools and discount brokerages." },
+    { id: "dual_agent", label: "Dual-Agent Generalist", desc: "Represents both buyers and sellers across residential transactions. Broad exposure to AI automation on both sides of the transaction." },
+    { id: "property_manager", label: "Property Manager", desc: "Manages day-to-day operations of rental properties on behalf of owners. Threatened by AI-driven tenant screening and rent collection platforms." },
+    { id: "flipper", label: "Residential Developer / Flipper", desc: "Buys, renovates, and resells residential properties for profit. Threatened by AI deal-finding tools and automated renovation cost estimators." },
+    { id: "commercial_broker", label: "Commercial Real Estate Broker", desc: "Leases or sells commercial properties including office, retail, and industrial. Slower AI disruption but threatened by data platforms commoditizing market intelligence." },
+    { id: "auctioneer", label: "Real Estate Auctioneer", desc: "Sells properties via competitive auction format, often distressed or estate sales. Threatened by online auction platforms." },
+    { id: "other_realestate", label: "None of these — describe your business", desc: "" },
+  ],
+  transport: [
+    { id: "trucking", label: "Small Trucking Operator", desc: "Hauls freight for businesses using one or more trucks. Threatened by AI load-matching platforms and autonomous vehicle development." },
+    { id: "delivery", label: "Local Delivery Service", desc: "Provides last-mile delivery for businesses or consumers in a defined geography. Threatened by Amazon Logistics, DoorDash, and AI-optimized routing." },
+    { id: "moving", label: "Moving Company", desc: "Provides residential or commercial moving services. Threatened by app-based moving platforms and AI-powered booking and pricing tools." },
+    { id: "limo_charter", label: "Limousine or Charter Service", desc: "Provides scheduled or on-demand transportation for individuals or groups. Threatened by Uber Black and AI-optimized ride dispatch." },
+    { id: "courier", label: "Courier or Messenger Service", desc: "Provides time-sensitive document or package delivery for businesses. Threatened by same-day delivery expansion from major carriers." },
+    { id: "logistics_broker", label: "Freight Broker", desc: "Connects shippers with carriers, earning a margin on each load. Highly threatened by AI-powered freight matching platforms." },
+    { id: "other_transport", label: "None of these — describe your business", desc: "" },
+  ],
+  admin_staffing: [
+    { id: "janitorial", label: "Janitorial or Facility Maintenance Company", desc: "Provides recurring cleaning and maintenance to commercial clients. Price-competitive market threatened by app-based platforms and large national contractors." },
+    { id: "security", label: "Private Security Company", desc: "Provides security personnel and monitoring services to businesses and events. Threatened by AI surveillance systems and remote monitoring technology." },
+    { id: "staffing_agency", label: "Staffing or Temp Agency", desc: "Connects businesses with temporary or permanent workers across industries. Threatened by AI recruiting platforms and direct-hire tools." },
+    { id: "landscaping", label: "Landscaping or Groundskeeping Company", desc: "Provides outdoor maintenance and landscaping services to residential or commercial clients. Threatened by app-based platforms and robotic mowing technology." },
+    { id: "waste_mgmt", label: "Waste Management or Recycling Service", desc: "Collects and disposes of waste for commercial or residential clients. Relatively defensible through contracts but threatened by municipal consolidation." },
+    { id: "other_admin", label: "None of these — describe your business", desc: "" },
+  ],
+  manuf_wholesale: [
+    { id: "custom_manufacturer", label: "Custom Manufacturer", desc: "Produces goods to customer specifications in small or medium runs. Threatened by AI-assisted design tools and overseas low-cost manufacturing." },
+    { id: "contract_manufacturer", label: "Contract Manufacturer", desc: "Produces goods for other brands on a white-label or contract basis. Threatened by AI-optimized supply chains and direct overseas sourcing." },
+    { id: "wholesale_distributor", label: "Wholesale Distributor", desc: "Buys products in bulk from manufacturers and resells to retailers or businesses. Threatened by direct-to-retailer manufacturer relationships and AI inventory tools." },
+    { id: "specialty_producer", label: "Specialty Food or Beverage Producer", desc: "Produces and sells a branded food or beverage product to retailers or direct to consumers. Threatened by AI-optimized large-scale producers and private label competition." },
+    { id: "fabricator", label: "Metal, Wood, or Materials Fabricator", desc: "Cuts, shapes, and assembles materials for construction or industrial clients. Threatened by AI-driven CNC automation and offshore fabrication." },
+    { id: "import_export", label: "Import / Export Business", desc: "Sources goods internationally and sells domestically, or vice versa. Threatened by AI tariff optimization tools and direct sourcing platforms." },
+    { id: "other_manuf", label: "None of these — describe your business", desc: "" },
+  ],
+  finance_advisory: [
+    { id: "financial_advisor", label: "Independent Financial Advisor", desc: "Provides investment advice and financial planning to individual clients. Threatened by AI robo-advisors and low-cost index fund platforms." },
+    { id: "insurance_agent", label: "Independent Insurance Agent or Broker", desc: "Sells and services insurance policies across carriers. Threatened by AI-powered comparison platforms and direct-to-consumer insurance products." },
+    { id: "mortgage_broker", label: "Mortgage Broker", desc: "Matches borrowers with lenders and manages the loan origination process. Threatened by AI underwriting tools and digital mortgage platforms like Better.com." },
+    { id: "bookkeeping", label: "Bookkeeping or Payroll Service", desc: "Manages financial records and payroll processing for small business clients. Highly threatened by AI-powered accounting software like QuickBooks AI and Pilot." },
+    { id: "tax_preparer", label: "Independent Tax Preparer", desc: "Prepares individual or business tax returns. Threatened by AI tax filing tools and expanding capabilities of TurboTax and similar platforms." },
+    { id: "business_broker", label: "Business Broker", desc: "Facilitates the buying and selling of small businesses. Defensible through relationships but threatened by online business marketplace platforms." },
+    { id: "other_finance", label: "None of these — describe your business", desc: "" },
+  ],
+  other: [
+    { id: "other_free", label: "Describe your business model", desc: "" },
+  ],
+};
+
 function SBNavbar() {
   return (
     <div style={{
@@ -113,8 +220,7 @@ export default function SmallBusiness(props) {
   var [stage, setStage] = useState("");
   var [archetype, setArchetype] = useState("");
   var [archetypes, setArchetypes] = useState([]);
-  var [archetypeLoading, setArchetypeLoading] = useState(false);
-  var [archetypeError, setArchetypeError] = useState("");
+  var [archetypeOther, setArchetypeOther] = useState("");
   var [sliderVP, setSliderVP] = useState(5);
   var [sliderCS, setSliderCS] = useState(5);
   var [sliderKM, setSliderKM] = useState(5);
@@ -133,45 +239,14 @@ export default function SmallBusiness(props) {
 
   var sliderCSS = "input[type=range].sb-slider{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:3px;outline:none;cursor:pointer;border:none;background:#d0d7e8} input[type=range].sb-slider::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:#d97706;border:3px solid white;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.18)} input[type=range].sb-slider::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:#d97706;border:3px solid white;cursor:pointer;}";
 
-  async function fetchArchetypes() {
-    setArchetypeLoading(true);
-    setArchetypeError("");
-    setArchetypes([]);
-    setArchetype("");
-    var industryLabel = (SB_INDUSTRIES.find(function(i) { return i.id === industry; }) || {}).label || industry;
-    var stageLabel = (SB_STAGES.find(function(s) { return s.id === stage; }) || {}).label || stage;
-    var prompt = "You are an expert in small business strategy and AI disruption.\n\nA US small business owner has told you:\n- Industry: " + industryLabel + "\n- Business stage: " + stageLabel + "\n\nGenerate 4 to 6 business model archetypes that are specific and realistic for this exact combination. Each archetype should be a short label (3-6 words) plus one sentence describing what makes it distinct and what its AI defensibility challenge is.\n\nReturn ONLY valid JSON, no other text:\n{\"archetypes\":[{\"id\":\"slug\",\"label\":\"Short Label\",\"desc\":\"One sentence description.\"}]}";
-    try {
-      var res = await fetch("/api/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 1000,
-          messages: [{ role: "user", content: prompt }],
-        }),
-      });
-      var data = await res.json();
-      if (!data.content) throw new Error("API error");
-      var raw = data.content.map(function(b) { return b.text || ""; }).join("");
-      var m = raw.match(/\{[\s\S]*\}/);
-      if (!m) throw new Error("No JSON in response");
-      var parsed = JSON.parse(m[0]);
-      setArchetypes(parsed.archetypes || []);
-      setArchetypeLoading(false);
-    } catch(e) {
-      setArchetypeError("Something went wrong loading archetypes. Please try again.");
-      setArchetypeLoading(false);
-    }
-  }
-
   async function fetchSnapshot() {
     setSnapshotLoading(true);
     setSnapshotError("");
     setSnapshot([]);
     var industryLabel = (SB_INDUSTRIES.find(function(i) { return i.id === industry; }) || {}).label || industry;
     var stageLabel = (SB_STAGES.find(function(s) { return s.id === stage; }) || {}).label || stage;
-    var archetypeLabel = (archetypes.find(function(a) { return a.id === archetype; }) || {}).label || archetype;
+    var currentArchetypes = SB_ARCHETYPES[industry] || [];
+    var archetypeLabel = archetypeOther.trim() || (currentArchetypes.find(function(a) { return a.id === archetype; }) || {}).label || archetype;
     var prompt = "You are an expert in small business strategy and AI disruption.\n\nA US small business owner has provided this profile:\n- Industry: " + industryLabel + "\n- Stage: " + stageLabel + "\n- Business model: " + archetypeLabel + "\n- Value proposition clarity (0-10): " + sliderVP + "\n- Customer switching cost (0-10): " + sliderCS + "\n- Knowledge moat (0-10): " + sliderKM + "\n- Time horizon (0-10): " + sliderTH + "\n\nWrite a 3-4 sentence competitive landscape snapshot for this business. Be specific to their industry and model. Describe the AI threat they face right now, what is still defensible, and what is most at risk. Do not be generic.\n\nReturn ONLY valid JSON:\n{\"sentences\":[\"Sentence one.\",\"Sentence two.\",\"Sentence three.\",\"Sentence four.\"]}";
     try {
       var res = await fetch("/api/generate", {
@@ -268,10 +343,6 @@ export default function SmallBusiness(props) {
       setGateLoading(false);
     }
   }
-
-  useEffect(function() {
-    if (step === 3) fetchArchetypes();
-  }, [step]);
 
   useEffect(function() {
     if (step === 5) fetchSnapshot();
@@ -631,6 +702,10 @@ export default function SmallBusiness(props) {
   }
 
   if (step === 3) {
+    var currentArchetypes = SB_ARCHETYPES[industry] || SB_ARCHETYPES["other"];
+    var isOtherSelected = archetype === "other_free" ||
+      (archetype && archetype.startsWith("other_"));
+
     return (
       <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font }}>
         <SBNavbar />
@@ -643,39 +718,6 @@ export default function SmallBusiness(props) {
             <div style={{ height: "100%", width: "37.5%", background: S.accent, borderRadius: 2 }} />
           </div>
 
-          {archetypeLoading ? (
-            <p style={{ fontSize: 16, color: S.dim, lineHeight: 1.6, margin: "0 0 32px" }}>
-              Generating archetypes for your business…
-            </p>
-          ) : null}
-
-          {archetypeError ? (
-            <div style={{ marginBottom: 32 }}>
-              <p style={{ fontSize: 16, color: S.red, lineHeight: 1.6, margin: "0 0 16px" }}>
-                {archetypeError}
-              </p>
-              <button
-                onClick={fetchArchetypes}
-                style={{
-                  background: S.accent,
-                  color: "#ffffff",
-                  border: "none",
-                  borderRadius: 12,
-                  padding: "14px 28px",
-                  fontSize: 14,
-                  fontFamily: S.mono,
-                  fontWeight: 700,
-                  cursor: "pointer",
-                  letterSpacing: "0.08em",
-                }}
-              >
-                TRY AGAIN
-              </button>
-            </div>
-          ) : null}
-
-          {!archetypeLoading && !archetypeError && archetypes.length > 0 ? (
-            <>
               <h2 style={{ fontFamily: S.serif, fontSize: 28, color: S.text, margin: "0 0 8px", lineHeight: 1.2, fontWeight: 600 }}>
                 How does your business create value?
               </h2>
@@ -683,13 +725,14 @@ export default function SmallBusiness(props) {
                 Pick the model that fits best. This shapes how we score your defensibility.
               </p>
 
-              <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 32 }}>
-                {archetypes.map(function(a) {
+              <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 24 }}>
+                {currentArchetypes.map(function(a) {
                   var isSelected = archetype === a.id;
+                  var isFreeform = a.id.startsWith("other_");
                   return (
                     <button
                       key={a.id}
-                      onClick={function() { setArchetype(a.id); }}
+                      onClick={function() { setArchetype(a.id); if (!isFreeform) setArchetypeOther(""); }}
                       style={{
                         background: isSelected ? S.accent : S.card,
                         border: "1px solid " + (isSelected ? S.accent : S.border),
@@ -700,11 +743,11 @@ export default function SmallBusiness(props) {
                         transition: "all 0.15s",
                       }}
                     >
-                      <div style={{ fontSize: 15, fontWeight: 600, color: isSelected ? "#ffffff" : S.text, lineHeight: 1.3 }}>
+                      <div style={{ fontSize: 15, fontWeight: 700, color: isSelected ? "#ffffff" : S.text, marginBottom: a.desc ? 4 : 0 }}>
                         {a.label}
                       </div>
                       {a.desc ? (
-                        <div style={{ fontSize: 13, color: isSelected ? "rgba(255,255,255,0.65)" : S.dim, marginTop: 4, lineHeight: 1.4 }}>
+                        <div style={{ fontSize: 13, color: isSelected ? "rgba(255,255,255,0.7)" : S.dim, lineHeight: 1.45 }}>
                           {a.desc}
                         </div>
                       ) : null}
@@ -713,27 +756,52 @@ export default function SmallBusiness(props) {
                 })}
               </div>
 
+              {isOtherSelected ? (
+                <div style={{ marginBottom: 24 }}>
+                  <div style={{ fontFamily: S.mono, fontSize: 12, color: S.muted, letterSpacing: "0.06em", fontWeight: 600, marginBottom: 8 }}>
+                    DESCRIBE YOUR BUSINESS MODEL
+                  </div>
+                  <textarea
+                    value={archetypeOther}
+                    onChange={function(e) { setArchetypeOther(e.target.value); }}
+                    placeholder="e.g. We provide mobile notary services to real estate attorneys and title companies..."
+                    rows={3}
+                    style={{
+                      width: "100%",
+                      padding: "12px 14px",
+                      fontSize: 15,
+                      fontFamily: S.font,
+                      border: "1px solid " + S.border,
+                      borderRadius: 10,
+                      outline: "none",
+                      boxSizing: "border-box",
+                      resize: "vertical",
+                      color: S.text,
+                      background: S.card,
+                    }}
+                  />
+                </div>
+              ) : null}
+
               <button
                 onClick={function() { setStep(4); }}
-                disabled={!archetype}
+                disabled={!archetype || (isOtherSelected && !archetypeOther.trim())}
                 style={{
-                  background: !archetype ? S.card2 : S.accent,
-                  color: !archetype ? S.dim : "#ffffff",
-                  border: "1px solid " + (!archetype ? S.border : S.accent),
+                  background: (!archetype || (isOtherSelected && !archetypeOther.trim())) ? S.card2 : S.accent,
+                  color: (!archetype || (isOtherSelected && !archetypeOther.trim())) ? S.dim : "#ffffff",
+                  border: "1px solid " + ((!archetype || (isOtherSelected && !archetypeOther.trim())) ? S.border : S.accent),
                   borderRadius: 12,
                   padding: "16px 32px",
                   fontSize: 15,
                   fontFamily: S.mono,
                   fontWeight: 700,
-                  cursor: !archetype ? "not-allowed" : "pointer",
+                  cursor: (!archetype || (isOtherSelected && !archetypeOther.trim())) ? "not-allowed" : "pointer",
                   letterSpacing: "0.08em",
                   width: "100%",
                 }}
               >
                 CONTINUE →
               </button>
-            </>
-          ) : null}
 
           <button
             onClick={function() { setStep(2); }}
