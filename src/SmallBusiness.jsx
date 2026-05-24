@@ -357,6 +357,20 @@ export default function SmallBusiness(props) {
       return;
     }
     setGateError("");
+    try {
+      localStorage.setItem("dz_sb_state", JSON.stringify({
+        industry: industry,
+        otherText: otherText,
+        stage: stage,
+        archetype: archetype,
+        archetypeOther: archetypeOther,
+        sliderVP: sliderVP,
+        sliderCS: sliderCS,
+        sliderKM: sliderKM,
+        sliderTH: sliderTH,
+        snapshot: snapshot,
+      }));
+    } catch(e) {}
     setGateLoading(true);
     try {
       var res = await fetch("/api/send-gate-email", {
@@ -376,18 +390,35 @@ export default function SmallBusiness(props) {
   }
 
   async function fetchReport() {
+    var saved = {};
+    try {
+      var raw = localStorage.getItem("dz_sb_state");
+      if (raw) saved = JSON.parse(raw);
+    } catch(e) {}
+
+    var _industry = industry || saved.industry || "";
+    var _otherText = otherText || saved.otherText || "";
+    var _stage = stage || saved.stage || "";
+    var _archetype = archetype || saved.archetype || "";
+    var _archetypeOther = archetypeOther || saved.archetypeOther || "";
+    var _sliderVP = (sliderVP !== 5 ? sliderVP : null) ?? saved.sliderVP ?? 5;
+    var _sliderCS = (sliderCS !== 5 ? sliderCS : null) ?? saved.sliderCS ?? 5;
+    var _sliderKM = (sliderKM !== 5 ? sliderKM : null) ?? saved.sliderKM ?? 5;
+    var _sliderTH = (sliderTH !== 5 ? sliderTH : null) ?? saved.sliderTH ?? 5;
+    var _snapshot = (snapshot && snapshot.length > 0) ? snapshot : (saved.snapshot || []);
+
     setReportLoading(true);
     setReportError("");
-    var industryLabel = (SB_INDUSTRIES.find(function(i) { return i.id === industry; }) || {}).label || industry;
-    var stageLabel = (SB_STAGES.find(function(s) { return s.id === stage; }) || {}).label || stage;
-    var currentArchetypes = SB_ARCHETYPES[industry] || [];
-    var archetypeLabel = archetypeOther.trim() || (currentArchetypes.find(function(a) { return a.id === archetype; }) || {}).label || archetype;
-    var overallScore = calcOverallScore(sliderVP, sliderCS, sliderKM);
-    var subScores = calcSubScores(sliderVP, sliderCS, sliderKM);
-    var flags = getDiagnosticFlags(sliderVP, sliderCS, sliderKM, sliderTH, snapshot);
+    var industryLabel = (SB_INDUSTRIES.find(function(i) { return i.id === _industry; }) || {}).label || _industry;
+    var stageLabel = (SB_STAGES.find(function(s) { return s.id === _stage; }) || {}).label || _stage;
+    var currentArchetypes = SB_ARCHETYPES[_industry] || [];
+    var archetypeLabel = _archetypeOther.trim() || (currentArchetypes.find(function(a) { return a.id === _archetype; }) || {}).label || _archetype;
+    var overallScore = calcOverallScore(_sliderVP, _sliderCS, _sliderKM);
+    var subScores = calcSubScores(_sliderVP, _sliderCS, _sliderKM);
+    var flags = getDiagnosticFlags(_sliderVP, _sliderCS, _sliderKM, _sliderTH, _snapshot);
     var flagLabels = flags.map(function(f) { return f.label; }).join(", ");
-    var snapshotText = snapshot.filter(function(s) { return !s.wrong; }).map(function(s) { return s.text; }).join(" ");
-    var prompt = "You are a senior business strategist specializing in AI disruption and small business defensibility. You are writing a paid, premium diagnostic report for a US small business owner. This must read like advice from a trusted advisor who knows their industry — specific, honest, and actionable. No generic business advice. No filler.\n\nBUSINESS PROFILE:\n- Industry: " + industryLabel + "\n- Stage: " + stageLabel + "\n- Business model: " + archetypeLabel + "\n- Overall Defensibility Score: " + overallScore + "/100\n- Value Defensibility: " + subScores.valueD + "/100\n- Customer Defensibility: " + subScores.customerD + "/100\n- Operational Defensibility: " + subScores.operationalD + "/100\n- Diagnostic flags: " + (flagLabels || "none") + "\n- Owner time horizon (0=exiting soon, 10=10+ years): " + sliderTH + "\n- Competitive landscape: " + (snapshotText || "not provided") + "\n\nGenerate a five-section Defensibility Report. Be brutally specific to this exact business type and score.\n\nSection 1 — Score in Context (2-3 sentences): What does this score mean for THIS specific business? What does it say about their AI exposure and owner-dependence risk right now? Be direct.\n\nSection 2 — Top 5 Risks (prioritized): List exactly 5 risks, ranked from most to least urgent. For each risk provide: a short risk title (5 words max), a priority_rationale (one sentence explaining WHY this is ranked at this position — what makes it more or less urgent than the others), and an action (2-3 sentences of exactly what to do, specific to their business model, not generic advice).\n\nSection 3 — Strongest Anchors (2-4 items): What is genuinely defensible about this business right now? Each anchor gets a title and one sentence. Be honest — if nothing is strongly defensible, say so with one item.\n\nSection 4 — One Strategic Question (1 question + 2 sentence context): A single reframing question that a good consultant would leave them with. Should make them think differently about their business model, not just their operations.\n\nSection 5 — What to Do First (3 sentences): The single most important move for this owner given their score, flags, and time horizon. This is the last thing they read — make it land.\n\nReturn ONLY valid JSON:\n{\"section1\":\"...\",\"section2\":[{\"title\":\"...\",\"priority_rationale\":\"...\",\"action\":\"...\"}],\"section3\":[{\"title\":\"...\",\"desc\":\"...\"}],\"section4\":{\"question\":\"...\",\"context\":\"...\"},\"section5\":\"...\"}";
+    var snapshotText = _snapshot.filter(function(s) { return !s.wrong; }).map(function(s) { return s.text; }).join(" ");
+    var prompt = "You are a senior business strategist specializing in AI disruption and small business defensibility. You are writing a paid, premium diagnostic report for a US small business owner. This must read like advice from a trusted advisor who knows their industry — specific, honest, and actionable. No generic business advice. No filler.\n\nBUSINESS PROFILE:\n- Industry: " + industryLabel + "\n- Stage: " + stageLabel + "\n- Business model: " + archetypeLabel + "\n- Overall Defensibility Score: " + overallScore + "/100\n- Value Defensibility: " + subScores.valueD + "/100\n- Customer Defensibility: " + subScores.customerD + "/100\n- Operational Defensibility: " + subScores.operationalD + "/100\n- Diagnostic flags: " + (flagLabels || "none") + "\n- Owner time horizon (0=exiting soon, 10=10+ years): " + _sliderTH + "\n- Competitive landscape: " + (snapshotText || "not provided") + "\n\nGenerate a five-section Defensibility Report. Be brutally specific to this exact business type and score.\n\nSection 1 — Score in Context (2-3 sentences): What does this score mean for THIS specific business? What does it say about their AI exposure and owner-dependence risk right now? Be direct.\n\nSection 2 — Top 5 Risks (prioritized): List exactly 5 risks, ranked from most to least urgent. For each risk provide: a short risk title (5 words max), a priority_rationale (one sentence explaining WHY this is ranked at this position — what makes it more or less urgent than the others), and an action (2-3 sentences of exactly what to do, specific to their business model, not generic advice).\n\nSection 3 — Strongest Anchors (2-4 items): What is genuinely defensible about this business right now? Each anchor gets a title and one sentence. Be honest — if nothing is strongly defensible, say so with one item.\n\nSection 4 — One Strategic Question (1 question + 2 sentence context): A single reframing question that a good consultant would leave them with. Should make them think differently about their business model, not just their operations.\n\nSection 5 — What to Do First (3 sentences): The single most important move for this owner given their score, flags, and time horizon. This is the last thing they read — make it land.\n\nReturn ONLY valid JSON:\n{\"section1\":\"...\",\"section2\":[{\"title\":\"...\",\"priority_rationale\":\"...\",\"action\":\"...\"}],\"section3\":[{\"title\":\"...\",\"desc\":\"...\"}],\"section4\":{\"question\":\"...\",\"context\":\"...\"},\"section5\":\"...\"}";
     try {
       var res = await fetch("/api/generate", {
         method: "POST",
@@ -424,6 +455,7 @@ export default function SmallBusiness(props) {
   }
 
   function resetAll() {
+    try { localStorage.removeItem("dz_sb_state"); } catch(e) {}
     setStep(0);
     setIndustry(""); setOtherText("");
     setStage("");
@@ -463,6 +495,22 @@ export default function SmallBusiness(props) {
         if (data && data.valid === true) {
           if (data.email) setGateEmail(data.email);
           setGateVerified(true);
+          try {
+            var savedStr = localStorage.getItem("dz_sb_state");
+            if (savedStr) {
+              var savedData = JSON.parse(savedStr);
+              if (savedData.industry) setIndustry(savedData.industry);
+              if (savedData.otherText) setOtherText(savedData.otherText);
+              if (savedData.stage) setStage(savedData.stage);
+              if (savedData.archetype) setArchetype(savedData.archetype);
+              if (savedData.archetypeOther) setArchetypeOther(savedData.archetypeOther);
+              if (typeof savedData.sliderVP === "number") setSliderVP(savedData.sliderVP);
+              if (typeof savedData.sliderCS === "number") setSliderCS(savedData.sliderCS);
+              if (typeof savedData.sliderKM === "number") setSliderKM(savedData.sliderKM);
+              if (typeof savedData.sliderTH === "number") setSliderTH(savedData.sliderTH);
+              if (Array.isArray(savedData.snapshot)) setSnapshot(savedData.snapshot);
+            }
+          } catch(e) {}
           setStep(8);
         } else if (data && data.reason === "expired") {
           setGateError("expired");
