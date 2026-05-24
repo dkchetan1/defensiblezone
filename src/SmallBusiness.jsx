@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 var S = {
   bg: "#f8f9fc",
@@ -270,6 +270,34 @@ export default function SmallBusiness(props) {
   var [sessionPromo, setSessionPromo] = useState(false);
   var [showPromo, setShowPromo] = useState(false);
 
+  var sessionBriefSentRef = useRef(false);
+
+  var _industry = industry;
+  var _stage = stage;
+  var _archetype = archetype;
+  var _archetypeOther = archetypeOther;
+  var _sliderVP = sliderVP;
+  var _sliderCS = sliderCS;
+  var _sliderKM = sliderKM;
+  var _sliderTH = sliderTH;
+  var _snapshot = snapshot;
+
+  try {
+    var sbSaved = localStorage.getItem("dz_sb_state");
+    if (sbSaved) {
+      var sbParsed = JSON.parse(sbSaved);
+      if (sbParsed.industry) _industry = sbParsed.industry;
+      if (sbParsed.stage) _stage = sbParsed.stage;
+      if (sbParsed.archetype) _archetype = sbParsed.archetype;
+      if (sbParsed.archetypeOther) _archetypeOther = sbParsed.archetypeOther;
+      if (typeof sbParsed.sliderVP === "number") _sliderVP = sbParsed.sliderVP;
+      if (typeof sbParsed.sliderCS === "number") _sliderCS = sbParsed.sliderCS;
+      if (typeof sbParsed.sliderKM === "number") _sliderKM = sbParsed.sliderKM;
+      if (typeof sbParsed.sliderTH === "number") _sliderTH = sbParsed.sliderTH;
+      if (Array.isArray(sbParsed.snapshot)) _snapshot = sbParsed.snapshot;
+    }
+  } catch(e) {}
+
   var sliderCSS = "input[type=range].sb-slider{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:3px;outline:none;cursor:pointer;border:none;background:#d0d7e8} input[type=range].sb-slider::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:#d97706;border:3px solid white;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.18)} input[type=range].sb-slider::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:#d97706;border:3px solid white;cursor:pointer;}";
 
   async function fetchSnapshot() {
@@ -391,43 +419,58 @@ export default function SmallBusiness(props) {
     }
   }
 
-  async function fetchReport() {
-    var saved = {};
+  async function sendSessionBrief(reportData) {
+    if (sessionBriefSentRef.current) return;
+    sessionBriefSentRef.current = true;
+    var industryLabel = (SB_INDUSTRIES.find(function(i) { return i.id === _industry; }) || {}).label || _industry;
     try {
-      var raw = localStorage.getItem("dz_sb_state");
-      if (raw) saved = JSON.parse(raw);
-    } catch(e) {}
+      await fetch("/api/send-results-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "session_brief",
+          product: "smallbusiness",
+          ownerEmail: gateEmail,
+          adminEmail: "dilip@recursiolab.com",
+          profile: {
+            industry: industryLabel,
+            stage: _stage,
+            archetype: _archetype,
+            archetypeOther: _archetypeOther,
+            sliderVP: _sliderVP,
+            sliderCS: _sliderCS,
+            sliderKM: _sliderKM,
+            sliderTH: _sliderTH,
+            snapshot: _snapshot,
+          },
+          report: reportData,
+        }),
+      });
+    } catch(e) {
+      console.error("Session brief email failed:", e);
+    }
+  }
 
-    var _industry = industry || saved.industry || "";
-    var _otherText = otherText || saved.otherText || "";
-    var _stage = stage || saved.stage || "";
-    var _archetype = archetype || saved.archetype || "";
-    var _archetypeOther = archetypeOther || saved.archetypeOther || "";
-    var _sliderVP = (sliderVP !== 5 ? sliderVP : null) ?? saved.sliderVP ?? 5;
-    var _sliderCS = (sliderCS !== 5 ? sliderCS : null) ?? saved.sliderCS ?? 5;
-    var _sliderKM = (sliderKM !== 5 ? sliderKM : null) ?? saved.sliderKM ?? 5;
-    var _sliderTH = (sliderTH !== 5 ? sliderTH : null) ?? saved.sliderTH ?? 5;
-    var _snapshot = (snapshot && snapshot.length > 0) ? snapshot : (saved.snapshot || []);
-
+  async function fetchReport() {
     setReportLoading(true);
     setReportError("");
-    var industryLabel = (SB_INDUSTRIES.find(function(i) { return i.id === _industry; }) || {}).label || _industry;
-    var stageLabel = (SB_STAGES.find(function(s) { return s.id === _stage; }) || {}).label || _stage;
+    var _stageLabel = (SB_STAGES.find(function(s) { return s.id === _stage; }) || {}).label || _stage;
     var currentArchetypes = SB_ARCHETYPES[_industry] || [];
-    var archetypeLabel = _archetypeOther.trim() || (currentArchetypes.find(function(a) { return a.id === _archetype; }) || {}).label || _archetype;
+    var _archetypeLabel = _archetypeOther.trim() || (currentArchetypes.find(function(a) { return a.id === _archetype; }) || {}).label || _archetype;
     var overallScore = calcOverallScore(_sliderVP, _sliderCS, _sliderKM);
     var subScores = calcSubScores(_sliderVP, _sliderCS, _sliderKM);
     var flags = getDiagnosticFlags(_sliderVP, _sliderCS, _sliderKM, _sliderTH, _snapshot);
     var flagLabels = flags.map(function(f) { return f.label; }).join(", ");
     var snapshotText = _snapshot.filter(function(s) { return !s.wrong; }).map(function(s) { return s.text; }).join(" ");
-    var prompt = "You are a senior business strategist specializing in AI disruption and small business defensibility. You are writing a paid, premium diagnostic report for a US small business owner. This must read like advice from a trusted advisor who knows their industry — specific, honest, and actionable. No generic business advice. No filler.\n\nBUSINESS PROFILE:\n- Industry: " + industryLabel + "\n- Stage: " + stageLabel + "\n- Business model: " + archetypeLabel + "\n- Overall Defensibility Score: " + overallScore + "/100\n- Value Defensibility: " + subScores.valueD + "/100\n- Customer Defensibility: " + subScores.customerD + "/100\n- Operational Defensibility: " + subScores.operationalD + "/100\n- Diagnostic flags: " + (flagLabels || "none") + "\n- Owner time horizon (0=exiting soon, 10=10+ years): " + _sliderTH + "\n- Competitive landscape: " + (snapshotText || "not provided") + "\n\nGenerate a five-section Defensibility Report. Be brutally specific to this exact business type and score.\n\nSection 1 — Score in Context (2-3 sentences): What does this score mean for THIS specific business? What does it say about their AI exposure and owner-dependence risk right now? Be direct.\n\nSection 2 — Top 5 Risks (prioritized): List exactly 5 risks, ranked from most to least urgent. For each risk provide: a short risk title (5 words max), a priority_rationale (one sentence explaining WHY this is ranked at this position — what makes it more or less urgent than the others), and an action (2-3 sentences of exactly what to do, specific to their business model, not generic advice).\n\nSection 3 — Strongest Anchors (2-4 items): What is genuinely defensible about this business right now? Each anchor gets a title and one sentence. Be honest — if nothing is strongly defensible, say so with one item.\n\nSection 4 — One Strategic Question (1 question + 2 sentence context): A single reframing question that a good consultant would leave them with. Should make them think differently about their business model, not just their operations.\n\nSection 5 — What to Do First (3 sentences): The single most important move for this owner given their score, flags, and time horizon. This is the last thing they read — make it land.\n\nReturn ONLY valid JSON:\n{\"section1\":\"...\",\"section2\":[{\"title\":\"...\",\"priority_rationale\":\"...\",\"action\":\"...\"}],\"section3\":[{\"title\":\"...\",\"desc\":\"...\"}],\"section4\":{\"question\":\"...\",\"context\":\"...\"},\"section5\":\"...\"}";
+    var prompt = "You are a senior business strategist and AI disruption expert writing a premium paid diagnostic report for a US small business owner. This must read like advice from a trusted advisor who has deep knowledge of their specific industry. Every section must be specific to their exact business type, stage, and inputs. No generic advice. No filler. No platitudes.\n\nBUSINESS PROFILE:\n- Industry: " + _industry + "\n- Stage: " + _stageLabel + "\n- Business model: " + _archetypeLabel + "\n- Overall Defensibility Score: " + overallScore + "/100\n- Value Defensibility: " + subScores.valueD + "/100\n- Customer Defensibility: " + subScores.customerD + "/100\n- Operational Defensibility: " + subScores.operationalD + "/100\n- Diagnostic flags: " + (flagLabels || "none") + "\n- Owner time horizon (0=exiting soon, 10=10+ years): " + _sliderTH + "\n- Value proposition clarity (0-10): " + _sliderVP + "\n- Customer switching cost (0-10): " + _sliderCS + "\n- Knowledge moat (0-10): " + _sliderKM + "\n- Competitive landscape notes: " + (snapshotText || "not provided") + "\n\nGenerate a comprehensive 10-section Defensibility Report. Be brutally specific.\n\nSection 1 — Score in Context (2-3 sentences): What does this score mean for THIS specific business right now? What is the AI exposure and owner-dependence risk? Be direct and honest.\n\nSection 2 — Top 5 Risks (prioritized): Exactly 5 risks ranked most to least urgent. Each risk: title (5 words max), priority_rationale (one sentence on WHY this rank), action (2-3 sentences of specific actionable steps for this exact business model).\n\nSection 3 — Strongest Anchors (2-4 items): What is genuinely defensible right now. Each anchor: title and one honest sentence. If nothing is strongly defensible, say so.\n\nSection 4 — One Strategic Question: A single reframing question a great consultant would leave them with. Plus 2 sentence context explaining why this question matters for their specific situation.\n\nSection 5 — What to Do First (3 sentences): The single most important move given their score, flags, and time horizon. Make it land.\n\nSection 6 — AI Threat Timeline: What AI will be able to do to this specific business model in the next 12 months, 24 months, and 36 months that it cannot do today. Be specific to their industry and archetype. Not generic AI trends — specific threats to THIS business. Each period: 2-3 sentences.\n\nSection 7 — Competitive Analysis: A rigorous analysis of the competitive landscape for this specific business type. Cover: (a) who the main competitors are today — both traditional and AI-powered, (b) what competitive advantages are being eroded by AI right now, (c) what the 2-3 most defensible competitive positions look like in this industry. Use your knowledge of current market conditions. Be specific — name actual platforms, tools, and competitors where relevant.\n\nSection 8 — What a Buyer Would Say: If someone tried to acquire or succeed this business today, what would they pay a premium for and what would cause them to heavily discount the price. Two lists: premium_factors (2-3 items) and discount_factors (2-3 items). Each item is a title and one sentence.\n\nSection 9 — Owner Dependence Analysis: List exactly 3-4 specific ways this business currently depends on the owner personally. Be specific to their business model and inputs — not generic. Each dependency: a short name and one sentence describing the risk if the owner steps back or exits.\n\nSection 10 — Competitive Benchmark: How does a business like this typically score on defensibility, and what do the higher-scoring ones do differently. Give a typical score range for this industry and archetype, and list 2-3 specific things that separate high-scoring from low-scoring businesses in this category.\n\nReturn ONLY valid JSON — no markdown, no backticks, no preamble:\n{\"section1\":\"...\",\"section2\":[{\"title\":\"...\",\"priority_rationale\":\"...\",\"action\":\"...\"}],\"section3\":[{\"title\":\"...\",\"desc\":\"...\"}],\"section4\":{\"question\":\"...\",\"context\":\"...\"},\"section5\":\"...\",\"section6\":{\"months12\":\"...\",\"months24\":\"...\",\"months36\":\"...\"},\"section7\":{\"competitors\":\"...\",\"eroding\":\"...\",\"defensible\":\"...\"},\"section8\":{\"premium_factors\":[{\"title\":\"...\",\"desc\":\"...\"}],\"discount_factors\":[{\"title\":\"...\",\"desc\":\"...\"}]},\"section9\":[{\"name\":\"...\",\"risk\":\"...\"}],\"section10\":{\"typical_range\":\"...\",\"differentiators\":\"...\"}}";
     try {
       var res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           model: "claude-sonnet-4-20250514",
-          max_tokens: 2000,
+          max_tokens: 4000,
+          tools: [{ type: "web_search_20250305", name: "web_search" }],
           messages: [{ role: "user", content: prompt }],
         }),
       });
@@ -438,6 +481,7 @@ export default function SmallBusiness(props) {
       if (!m) throw new Error("No JSON found in: " + raw.slice(0, 300));
       var parsed = JSON.parse(m[0]);
       setReport(parsed);
+      sendSessionBrief(parsed);
       setReportLoading(false);
     } catch(e) {
       setReportError("Error: " + (e && e.message ? e.message : String(e)));
@@ -2157,6 +2201,186 @@ export default function SmallBusiness(props) {
                     </div>
                   </div>
                 </>
+              ) : null}
+
+              {(tier >= 1 || promoUsed || sessionPromo) && report && report.section6 ? (
+                <div style={{ marginBottom: 36 }}>
+                  <div style={{ fontFamily: S.mono, fontSize: 11, color: S.red, letterSpacing: "0.1em", fontWeight: 600, marginBottom: 12 }}>
+                    AI THREAT TIMELINE
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "row", gap: 12, flexWrap: "wrap" }}>
+                    {[
+                      { label: "12 MONTHS", key: "months12" },
+                      { label: "24 MONTHS", key: "months24" },
+                      { label: "36 MONTHS", key: "months36" },
+                    ].map(function(period) {
+                      return (
+                        <div
+                          key={period.key}
+                          style={{
+                            flex: "1 1 0",
+                            minWidth: 180,
+                            background: "#fef2f2",
+                            border: "1px solid #fecaca",
+                            borderRadius: 12,
+                            padding: "16px 18px",
+                          }}
+                        >
+                          <div style={{ fontFamily: S.mono, fontSize: 10, color: S.red, letterSpacing: "0.08em", fontWeight: 700, marginBottom: 10 }}>
+                            {period.label}
+                          </div>
+                          <p style={{ fontSize: 14, color: S.muted, lineHeight: 1.55, margin: 0 }}>
+                            {report.section6[period.key]}
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : null}
+
+              {(tier >= 1 || promoUsed || sessionPromo) && report && report.section7 ? (
+                <div style={{ marginBottom: 36 }}>
+                  <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.1em", fontWeight: 600, marginBottom: 12 }}>
+                    COMPETITIVE ANALYSIS
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    {[
+                      { label: "WHO YOU'RE COMPETING AGAINST", key: "competitors" },
+                      { label: "WHAT AI IS ERODING RIGHT NOW", key: "eroding" },
+                      { label: "DEFENSIBLE POSITIONS IN YOUR MARKET", key: "defensible" },
+                    ].map(function(sub) {
+                      return (
+                        <div
+                          key={sub.key}
+                          style={{
+                            background: S.card,
+                            border: "1px solid " + S.border,
+                            borderRadius: 12,
+                            padding: "16px 18px",
+                          }}
+                        >
+                          <div style={{ fontFamily: S.mono, fontSize: 10, color: S.dim, letterSpacing: "0.08em", fontWeight: 700, marginBottom: 8 }}>
+                            {sub.label}
+                          </div>
+                          <p style={{ fontSize: 14, color: S.muted, lineHeight: 1.55, margin: 0 }}>
+                            {report.section7[sub.key]}
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : null}
+
+              {(tier >= 1 || promoUsed || sessionPromo) && report && report.section8 ? (
+                <div style={{ marginBottom: 36 }}>
+                  <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.1em", fontWeight: 600, marginBottom: 12 }}>
+                    WHAT A BUYER WOULD SAY
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "row", gap: 16, flexWrap: "wrap" }}>
+                    <div style={{ flex: "1 1 0", minWidth: 220 }}>
+                      <div style={{ fontFamily: S.mono, fontSize: 10, color: S.green, letterSpacing: "0.08em", fontWeight: 700, marginBottom: 10 }}>
+                        WOULD PAY A PREMIUM FOR
+                      </div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                        {(report.section8.premium_factors || []).map(function(item, i) {
+                          return (
+                            <div
+                              key={i}
+                              style={{
+                                background: "#f0fdf4",
+                                border: "1px solid #86efac",
+                                borderRadius: 12,
+                                padding: "14px 16px",
+                              }}
+                            >
+                              <div style={{ fontSize: 14, fontWeight: 700, color: S.text, marginBottom: 4 }}>{item.title}</div>
+                              <p style={{ fontSize: 13, color: S.muted, lineHeight: 1.5, margin: 0 }}>{item.desc}</p>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    <div style={{ flex: "1 1 0", minWidth: 220 }}>
+                      <div style={{ fontFamily: S.mono, fontSize: 10, color: S.red, letterSpacing: "0.08em", fontWeight: 700, marginBottom: 10 }}>
+                        WOULD DISCOUNT FOR
+                      </div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                        {(report.section8.discount_factors || []).map(function(item, i) {
+                          return (
+                            <div
+                              key={i}
+                              style={{
+                                background: "#fef2f2",
+                                border: "1px solid #fecaca",
+                                borderRadius: 12,
+                                padding: "14px 16px",
+                              }}
+                            >
+                              <div style={{ fontSize: 14, fontWeight: 700, color: S.text, marginBottom: 4 }}>{item.title}</div>
+                              <p style={{ fontSize: 13, color: S.muted, lineHeight: 1.5, margin: 0 }}>{item.desc}</p>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+
+              {(tier >= 1 || promoUsed || sessionPromo) && report && report.section9 ? (
+                <div style={{ marginBottom: 36 }}>
+                  <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.1em", fontWeight: 600, marginBottom: 12 }}>
+                    OWNER DEPENDENCE ANALYSIS
+                  </div>
+                  <p style={{ fontSize: 14, color: S.dim, lineHeight: 1.55, margin: "0 0 14px" }}>
+                    Your business currently depends on you personally in these specific ways:
+                  </p>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    {(report.section9 || []).map(function(dep, i) {
+                      return (
+                        <div
+                          key={i}
+                          style={{
+                            background: "#fefce8",
+                            border: "1px solid #fde68a",
+                            borderRadius: 12,
+                            padding: "16px 18px",
+                          }}
+                        >
+                          <div style={{ fontSize: 15, fontWeight: 700, color: S.text, marginBottom: 6 }}>{dep.name}</div>
+                          <p style={{ fontSize: 14, color: S.muted, lineHeight: 1.55, margin: 0 }}>{dep.risk}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : null}
+
+              {(tier >= 1 || promoUsed || sessionPromo) && report && report.section10 ? (
+                <div style={{ marginBottom: 36 }}>
+                  <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.1em", fontWeight: 600, marginBottom: 12 }}>
+                    COMPETITIVE BENCHMARK
+                  </div>
+                  <div style={{
+                    background: "#eff6ff",
+                    border: "1px solid #bfdbfe",
+                    borderRadius: 12,
+                    padding: "16px 18px",
+                    marginBottom: 16,
+                  }}>
+                    <p style={{ fontSize: 14, color: S.muted, lineHeight: 1.6, margin: 0 }}>
+                      {report.section10.typical_range}
+                    </p>
+                  </div>
+                  <div style={{ fontFamily: S.mono, fontSize: 10, color: S.dim, letterSpacing: "0.08em", fontWeight: 700, marginBottom: 8 }}>
+                    WHAT HIGH-SCORING BUSINESSES DO DIFFERENTLY
+                  </div>
+                  <p style={{ fontSize: 14, color: S.muted, lineHeight: 1.6, margin: 0 }}>
+                    {report.section10.differentiators}
+                  </p>
+                </div>
               ) : null}
 
               {(tier >= 2 || promoUsed || sessionPromo) && (
