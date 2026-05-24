@@ -430,15 +430,15 @@ export default function SmallBusiness(props) {
         }),
       });
       var data = await res.json();
-      if (!data.content) throw new Error("API error");
+      if (!data.content) throw new Error("No content in API response: " + JSON.stringify(data).slice(0, 200));
       var raw = data.content.map(function(b) { return b.text || ""; }).join("");
       var m = raw.match(/\{[\s\S]*\}/);
-      if (!m) throw new Error("No JSON in response");
+      if (!m) throw new Error("No JSON found in: " + raw.slice(0, 300));
       var parsed = JSON.parse(m[0]);
       setReport(parsed);
       setReportLoading(false);
     } catch(e) {
-      setReportError("Something went wrong generating your report. Please try again.");
+      setReportError("Error: " + (e && e.message ? e.message : String(e)));
       setReportLoading(false);
     }
   }
