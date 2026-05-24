@@ -153,6 +153,8 @@ var SB_ARCHETYPES = {
   ],
 };
 
+var SB_PROMO_CODES = ["DZFRIEND", "DZPREVIEW", "DZTEST"];
+
 function SBNavbar() {
   return (
     <div style={{
@@ -213,6 +215,27 @@ function SBNavbar() {
   );
 }
 
+function SBFooter() {
+  return (
+    <div style={{ marginTop: 48, borderTop: "1px solid " + S.border, padding: "24px", textAlign: "center" }}>
+      <div style={{ display: "flex", justifyContent: "center", gap: 32, flexWrap: "wrap" }}>
+        <a href="https://defensiblezone.ai" target="_blank" rel="noopener noreferrer"
+          style={{ fontFamily: S.mono, fontSize: 12, color: S.muted, textDecoration: "none" }}>
+          defensiblezone.ai
+        </a>
+        <a href="https://defensiblezone.ai/businesses" target="_blank" rel="noopener noreferrer"
+          style={{ fontFamily: S.mono, fontSize: 12, color: S.muted, textDecoration: "none" }}>
+          For Businesses
+        </a>
+        <a href="mailto:support@recursiolab.com"
+          style={{ fontFamily: S.mono, fontSize: 12, color: S.muted, textDecoration: "none" }}>
+          Support
+        </a>
+      </div>
+    </div>
+  );
+}
+
 export default function SmallBusiness(props) {
   var [step, setStep] = useState(0);
   var [industry, setIndustry] = useState("");
@@ -236,6 +259,14 @@ export default function SmallBusiness(props) {
   var [gateLoading, setGateLoading] = useState(false);
   var [gateError, setGateError] = useState("");
   var [showResend, setShowResend] = useState(false);
+  var [report, setReport] = useState(null);
+  var [reportLoading, setReportLoading] = useState(false);
+  var [reportError, setReportError] = useState("");
+  var [tier, setTier] = useState(0);
+  var [promoCode, setPromoCode] = useState("");
+  var [promoError, setPromoError] = useState("");
+  var [promoUsed, setPromoUsed] = useState(false);
+  var [showPromo, setShowPromo] = useState(false);
 
   var sliderCSS = "input[type=range].sb-slider{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:3px;outline:none;cursor:pointer;border:none;background:#d0d7e8} input[type=range].sb-slider::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:#d97706;border:3px solid white;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.18)} input[type=range].sb-slider::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:#d97706;border:3px solid white;cursor:pointer;}";
 
@@ -344,9 +375,76 @@ export default function SmallBusiness(props) {
     }
   }
 
+  async function fetchReport() {
+    setReportLoading(true);
+    setReportError("");
+    var industryLabel = (SB_INDUSTRIES.find(function(i) { return i.id === industry; }) || {}).label || industry;
+    var stageLabel = (SB_STAGES.find(function(s) { return s.id === stage; }) || {}).label || stage;
+    var currentArchetypes = SB_ARCHETYPES[industry] || [];
+    var archetypeLabel = archetypeOther.trim() || (currentArchetypes.find(function(a) { return a.id === archetype; }) || {}).label || archetype;
+    var overallScore = calcOverallScore(sliderVP, sliderCS, sliderKM);
+    var subScores = calcSubScores(sliderVP, sliderCS, sliderKM);
+    var flags = getDiagnosticFlags(sliderVP, sliderCS, sliderKM, sliderTH, snapshot);
+    var flagLabels = flags.map(function(f) { return f.label; }).join(", ");
+    var snapshotText = snapshot.filter(function(s) { return !s.wrong; }).map(function(s) { return s.text; }).join(" ");
+    var prompt = "You are a senior business strategist specializing in AI disruption and small business defensibility. You are writing a paid, premium diagnostic report for a US small business owner. This must read like advice from a trusted advisor who knows their industry — specific, honest, and actionable. No generic business advice. No filler.\n\nBUSINESS PROFILE:\n- Industry: " + industryLabel + "\n- Stage: " + stageLabel + "\n- Business model: " + archetypeLabel + "\n- Overall Defensibility Score: " + overallScore + "/100\n- Value Defensibility: " + subScores.valueD + "/100\n- Customer Defensibility: " + subScores.customerD + "/100\n- Operational Defensibility: " + subScores.operationalD + "/100\n- Diagnostic flags: " + (flagLabels || "none") + "\n- Owner time horizon (0=exiting soon, 10=10+ years): " + sliderTH + "\n- Competitive landscape: " + (snapshotText || "not provided") + "\n\nGenerate a five-section Defensibility Report. Be brutally specific to this exact business type and score.\n\nSection 1 — Score in Context (2-3 sentences): What does this score mean for THIS specific business? What does it say about their AI exposure and owner-dependence risk right now? Be direct.\n\nSection 2 — Top 5 Risks (prioritized): List exactly 5 risks, ranked from most to least urgent. For each risk provide: a short risk title (5 words max), a priority_rationale (one sentence explaining WHY this is ranked at this position — what makes it more or less urgent than the others), and an action (2-3 sentences of exactly what to do, specific to their business model, not generic advice).\n\nSection 3 — Strongest Anchors (2-4 items): What is genuinely defensible about this business right now? Each anchor gets a title and one sentence. Be honest — if nothing is strongly defensible, say so with one item.\n\nSection 4 — One Strategic Question (1 question + 2 sentence context): A single reframing question that a good consultant would leave them with. Should make them think differently about their business model, not just their operations.\n\nSection 5 — What to Do First (3 sentences): The single most important move for this owner given their score, flags, and time horizon. This is the last thing they read — make it land.\n\nReturn ONLY valid JSON:\n{\"section1\":\"...\",\"section2\":[{\"title\":\"...\",\"priority_rationale\":\"...\",\"action\":\"...\"}],\"section3\":[{\"title\":\"...\",\"desc\":\"...\"}],\"section4\":{\"question\":\"...\",\"context\":\"...\"},\"section5\":\"...\"}";
+    try {
+      var res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 2000,
+          messages: [{ role: "user", content: prompt }],
+        }),
+      });
+      var data = await res.json();
+      if (!data.content) throw new Error("API error");
+      var raw = data.content.map(function(b) { return b.text || ""; }).join("");
+      var m = raw.match(/\{[\s\S]*\}/);
+      if (!m) throw new Error("No JSON in response");
+      var parsed = JSON.parse(m[0]);
+      setReport(parsed);
+      setReportLoading(false);
+    } catch(e) {
+      setReportError("Something went wrong generating your report. Please try again.");
+      setReportLoading(false);
+    }
+  }
+
+  function applyPromoCode() {
+    var v = (promoCode || "").trim().toUpperCase();
+    if (SB_PROMO_CODES.includes(v)) {
+      setTier(2);
+      setPromoUsed(true);
+      setPromoError("");
+    } else {
+      setPromoError("That code isn't valid.");
+    }
+  }
+
+  function resetAll() {
+    setStep(0);
+    setIndustry(""); setOtherText("");
+    setStage("");
+    setArchetype(""); setArchetypes([]); setArchetypeOther("");
+    setSliderVP(5); setSliderCS(5); setSliderKM(5); setSliderTH(5);
+    setSnapshot([]); setSnapshotLoading(false); setSnapshotError(""); setNewSentence("");
+    setGateEmail(""); setGateSent(false); setGateVerified(false);
+    setGateLoading(false); setGateError(""); setShowResend(false);
+    setReport(null); setReportLoading(false); setReportError("");
+    setTier(0); setPromoCode(""); setPromoError(""); setPromoUsed(false); setShowPromo(false);
+  }
+
   useEffect(function() {
     if (step === 5) fetchSnapshot();
   }, [step]);
+
+  useEffect(function() {
+    if (step === 8 && gateVerified && !report && !reportLoading) {
+      fetchReport();
+    }
+  }, [step, gateVerified]);
 
   useEffect(function() {
     var params = new URLSearchParams(window.location.search);
@@ -1523,12 +1621,574 @@ export default function SmallBusiness(props) {
     );
   }
 
-  return (
-    <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font }}>
-      <SBNavbar />
-      <div style={{ maxWidth: 680, margin: "0 auto", padding: "60px 24px", boxSizing: "border-box" }}>
-        <p style={{ color: S.dim, fontFamily: S.mono, fontSize: 14 }}>Step {step} — coming soon</p>
+  if (step === 8) {
+    var reportIndustryLabel = (SB_INDUSTRIES.find(function(i) { return i.id === industry; }) || {}).label || industry;
+    var reportArchetypes = SB_ARCHETYPES[industry] || [];
+    var reportArchetypeLabel = archetypeOther.trim() || (reportArchetypes.find(function(a) { return a.id === archetype; }) || {}).label || archetype;
+    var reportOverallScore = calcOverallScore(sliderVP, sliderCS, sliderKM);
+    var reportScoreColor = getScoreColor(reportOverallScore);
+    var unlocked = tier >= 1 || promoUsed;
+    var showCalendly = tier >= 2 || promoUsed;
+
+    function riskBadgeColor(idx) {
+      if (idx === 0) return S.red;
+      if (idx <= 2) return S.orange;
+      return S.gold;
+    }
+
+    function riskBadgeLabel(idx) {
+      if (idx === 0) return "#1 HIGHEST PRIORITY";
+      return "#" + (idx + 1);
+    }
+
+    function renderRiskCard(risk, idx, blurred) {
+      return (
+        <div
+          key={idx}
+          style={{
+            background: S.card,
+            border: "1px solid " + S.border,
+            borderRadius: 12,
+            padding: "20px 22px",
+            marginBottom: 12,
+            filter: blurred ? "blur(5px)" : "none",
+            userSelect: blurred ? "none" : "auto",
+            pointerEvents: blurred ? "none" : "auto",
+          }}
+        >
+          <div style={{
+            fontFamily: S.mono,
+            fontSize: 11,
+            fontWeight: 700,
+            color: riskBadgeColor(idx),
+            letterSpacing: "0.08em",
+            marginBottom: 10,
+          }}>
+            {riskBadgeLabel(idx)}
+          </div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: S.text, marginBottom: 10, lineHeight: 1.3 }}>
+            {risk.title}
+          </div>
+          <div style={{ fontFamily: S.mono, fontSize: 10, color: S.dim, letterSpacing: "0.06em", marginBottom: 4 }}>
+            WHY THIS RANK:
+          </div>
+          <p style={{ fontSize: 14, color: S.dim, fontStyle: "italic", lineHeight: 1.55, margin: "0 0 14px" }}>
+            {risk.priority_rationale}
+          </p>
+          <div style={{ fontFamily: S.mono, fontSize: 10, color: S.muted, letterSpacing: "0.06em", marginBottom: 4 }}>
+            WHAT TO DO:
+          </div>
+          <p style={{ fontSize: 14, color: S.text, lineHeight: 1.6, margin: 0 }}>
+            {risk.action}
+          </p>
+        </div>
+      );
+    }
+
+    return (
+      <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font }}>
+        <SBNavbar />
+        <div style={{ maxWidth: 900, margin: "0 auto", padding: "48px 24px", boxSizing: "border-box" }}>
+
+          <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.1em", marginBottom: 10, fontWeight: 600 }}>
+            COMPLETE — YOUR DEFENSIBILITY REPORT
+          </div>
+          <div style={{ height: 4, background: S.border, borderRadius: 2, overflow: "hidden", marginBottom: 40 }}>
+            <div style={{ height: "100%", width: "100%", background: S.green, borderRadius: 2 }} />
+          </div>
+
+          {reportLoading ? (
+            <div style={{ textAlign: "center", padding: "80px 24px" }}>
+              <p style={{ fontFamily: S.serif, fontSize: 22, color: S.text, margin: "0 0 12px", fontWeight: 600 }}>
+                Generating your Defensibility Report…
+              </p>
+              <p style={{ fontSize: 15, color: S.dim, lineHeight: 1.6, margin: 0, maxWidth: 420, marginLeft: "auto", marginRight: "auto" }}>
+                This takes about 15 seconds — we are analyzing your full profile.
+              </p>
+            </div>
+          ) : null}
+
+          {reportError ? (
+            <div style={{ textAlign: "center", padding: "48px 24px", marginBottom: 32 }}>
+              <p style={{ fontSize: 16, color: S.red, lineHeight: 1.6, margin: "0 0 20px" }}>
+                {reportError}
+              </p>
+              <button
+                onClick={fetchReport}
+                style={{
+                  background: S.accent,
+                  color: "#ffffff",
+                  border: "none",
+                  borderRadius: 12,
+                  padding: "14px 28px",
+                  fontSize: 14,
+                  fontFamily: S.mono,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  letterSpacing: "0.08em",
+                }}
+              >
+                TRY AGAIN
+              </button>
+            </div>
+          ) : null}
+
+          {report && !reportLoading ? (
+            <>
+              <div style={{ marginBottom: 40 }}>
+                <div style={{
+                  fontFamily: S.mono,
+                  fontSize: 11,
+                  color: S.gold,
+                  letterSpacing: "0.14em",
+                  marginBottom: 16,
+                  fontWeight: 600,
+                }}>
+                  DEFENSIBLE ZONE™ · SMALL BUSINESS OWNER EDITION
+                </div>
+                <h1 style={{
+                  fontFamily: S.serif,
+                  fontSize: 36,
+                  color: S.text,
+                  margin: "0 0 12px",
+                  lineHeight: 1.2,
+                  fontWeight: 600,
+                }}>
+                  Your Defensibility Report
+                </h1>
+                <p style={{ fontSize: 16, color: S.dim, lineHeight: 1.6, margin: 0 }}>
+                  {reportIndustryLabel + " · " + reportArchetypeLabel + " · Overall score: "}
+                  <span style={{ fontWeight: 700, color: reportScoreColor }}>{reportOverallScore + "/100"}</span>
+                </p>
+              </div>
+
+              <div style={{ marginBottom: 36 }}>
+                <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.1em", fontWeight: 600, marginBottom: 12 }}>
+                  SCORE IN CONTEXT
+                </div>
+                <div style={{
+                  background: S.card,
+                  border: "1px solid " + S.border,
+                  borderRadius: 12,
+                  padding: "20px 22px",
+                }}>
+                  <p style={{ fontSize: 15, color: S.text, lineHeight: 1.7, margin: 0 }}>
+                    {report.section1}
+                  </p>
+                </div>
+              </div>
+
+              <div style={{ marginBottom: 36 }}>
+                <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.1em", fontWeight: 600, marginBottom: 12 }}>
+                  YOUR TOP 5 RISKS — PRIORITIZED
+                </div>
+
+                {(report.section2 || []).length > 0 ? renderRiskCard(report.section2[0], 0, false) : null}
+
+                {(report.section2 || []).length > 1 && tier === 0 ? (
+                  <div style={{ position: "relative", marginBottom: 12 }}>
+                    {(report.section2 || []).slice(1).map(function(risk, i) {
+                      return renderRiskCard(risk, i + 1, true);
+                    })}
+                    <div style={{
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      padding: "24px",
+                      boxSizing: "border-box",
+                    }}>
+                      <div style={{
+                        background: S.card,
+                        border: "1px solid " + S.border,
+                        borderRadius: 16,
+                        padding: "32px 28px",
+                        maxWidth: 720,
+                        width: "100%",
+                        boxShadow: "0 8px 32px rgba(0,0,0,0.12)",
+                      }}>
+                        <h3 style={{ fontFamily: S.serif, fontSize: 24, color: S.text, margin: "0 0 10px", fontWeight: 600, textAlign: "center" }}>
+                          Your full report is ready.
+                        </h3>
+                        <p style={{ fontSize: 15, color: S.dim, lineHeight: 1.65, margin: "0 0 20px", textAlign: "center" }}>
+                          Unlock all 5 risks, your strongest anchors, your strategic question, and your priority first move.
+                        </p>
+                        <p style={{ fontFamily: S.mono, fontSize: 12, color: S.muted, textAlign: "center", margin: "0 0 28px", letterSpacing: "0.04em" }}>
+                          {"Everything will be emailed to " + gateEmail}
+                        </p>
+
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 16, justifyContent: "center" }}>
+                          <div style={{
+                            flex: "1 1 240px",
+                            maxWidth: 280,
+                            background: S.card,
+                            border: "1px solid " + S.border,
+                            borderRadius: 12,
+                            padding: "20px 18px",
+                            display: "flex",
+                            flexDirection: "column",
+                          }}>
+                            <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.06em", marginBottom: 4 }}>TIER 1</div>
+                            <div style={{ fontFamily: S.serif, fontSize: 28, fontWeight: 700, color: S.text, marginBottom: 2 }}>$99</div>
+                            <div style={{ fontSize: 15, fontWeight: 700, color: S.text, marginBottom: 14 }}>The Report</div>
+                            <ul style={{ fontSize: 13, color: S.dim, lineHeight: 1.55, margin: "0 0 20px", paddingLeft: 18, flex: 1 }}>
+                              <li>Full 5-section Defensibility Report</li>
+                              <li>All 5 risks with priority rationale and actions</li>
+                              <li>Your strongest anchors</li>
+                              <li>Strategic reframing question</li>
+                              <li>Priority first move</li>
+                              <li>PDF emailed to you</li>
+                            </ul>
+                            <button type="button" style={{
+                              background: S.accent,
+                              color: "#ffffff",
+                              border: "none",
+                              borderRadius: 10,
+                              padding: "14px 16px",
+                              fontSize: 12,
+                              fontFamily: S.mono,
+                              fontWeight: 700,
+                              cursor: "pointer",
+                              letterSpacing: "0.06em",
+                              width: "100%",
+                            }}>
+                              UNLOCK REPORT → $99
+                            </button>
+                          </div>
+
+                          <div style={{
+                            flex: "1 1 240px",
+                            maxWidth: 280,
+                            background: S.card,
+                            border: "2px solid " + S.purple,
+                            borderRadius: 12,
+                            padding: "20px 18px",
+                            display: "flex",
+                            flexDirection: "column",
+                            position: "relative",
+                          }}>
+                            <div style={{
+                              position: "absolute",
+                              top: -12,
+                              left: "50%",
+                              transform: "translateX(-50%)",
+                              background: S.purple,
+                              color: "#ffffff",
+                              fontFamily: S.mono,
+                              fontSize: 10,
+                              fontWeight: 700,
+                              padding: "4px 12px",
+                              borderRadius: 999,
+                              letterSpacing: "0.06em",
+                              whiteSpace: "nowrap",
+                            }}>
+                              ★ MOST POPULAR
+                            </div>
+                            <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.06em", marginBottom: 4, marginTop: 8 }}>TIER 2</div>
+                            <div style={{ fontFamily: S.serif, fontSize: 28, fontWeight: 700, color: S.text, marginBottom: 2 }}>$199</div>
+                            <div style={{ fontSize: 15, fontWeight: 700, color: S.text, marginBottom: 14 }}>Report + Strategy Session</div>
+                            <ul style={{ fontSize: 13, color: S.dim, lineHeight: 1.55, margin: "0 0 20px", paddingLeft: 18, flex: 1 }}>
+                              <li>Everything in Tier 1, plus:</li>
+                              <li>30-minute 1:1 strategy session with Dilip</li>
+                              <li>Focused on your top 2 risks</li>
+                              <li>Session notes emailed after</li>
+                            </ul>
+                            <button type="button" style={{
+                              background: S.purple,
+                              color: "#ffffff",
+                              border: "none",
+                              borderRadius: 10,
+                              padding: "14px 16px",
+                              fontSize: 12,
+                              fontFamily: S.mono,
+                              fontWeight: 700,
+                              cursor: "pointer",
+                              letterSpacing: "0.06em",
+                              width: "100%",
+                            }}>
+                              UNLOCK + BOOK SESSION → $199
+                            </button>
+                          </div>
+
+                          <div style={{
+                            flex: "1 1 240px",
+                            maxWidth: 280,
+                            background: S.card,
+                            border: "1px solid " + S.border,
+                            borderRadius: 12,
+                            padding: "20px 18px",
+                            display: "flex",
+                            flexDirection: "column",
+                          }}>
+                            <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.06em", marginBottom: 4 }}>TIER 3</div>
+                            <div style={{ fontFamily: S.serif, fontSize: 28, fontWeight: 700, color: S.text, marginBottom: 2 }}>$395</div>
+                            <div style={{ fontSize: 15, fontWeight: 700, color: S.text, marginBottom: 14 }}>Full Strategic Roadmap</div>
+                            <ul style={{ fontSize: 13, color: S.dim, lineHeight: 1.55, margin: "0 0 20px", paddingLeft: 18, flex: 1 }}>
+                              <li>Everything in Tier 2, plus:</li>
+                              <li>60-minute strategic roadmap session</li>
+                              <li>Written 2-3 page roadmap document</li>
+                              <li>Delivered within 5 business days</li>
+                            </ul>
+                            <button type="button" style={{
+                              background: S.gold,
+                              color: S.text,
+                              border: "none",
+                              borderRadius: 10,
+                              padding: "14px 16px",
+                              fontSize: 12,
+                              fontFamily: S.mono,
+                              fontWeight: 700,
+                              cursor: "pointer",
+                              letterSpacing: "0.06em",
+                              width: "100%",
+                            }}>
+                              UNLOCK FULL ROADMAP → $395
+                            </button>
+                          </div>
+                        </div>
+
+                        <div style={{ textAlign: "center", marginTop: 24 }}>
+                          <button
+                            type="button"
+                            onClick={function() { setShowPromo(!showPromo); }}
+                            style={{
+                              background: "transparent",
+                              border: "none",
+                              padding: 0,
+                              cursor: "pointer",
+                              fontFamily: S.mono,
+                              fontSize: 12,
+                              color: S.dim,
+                              textDecoration: "underline",
+                            }}
+                          >
+                            Have a promo code?
+                          </button>
+                          {showPromo ? (
+                            <div style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 12, flexWrap: "wrap" }}>
+                              <input
+                                type="text"
+                                value={promoCode}
+                                onChange={function(e) { setPromoCode(e.target.value); setPromoError(""); }}
+                                placeholder="Enter code"
+                                style={{
+                                  padding: "10px 14px",
+                                  fontSize: 14,
+                                  fontFamily: S.mono,
+                                  border: "1px solid " + S.border,
+                                  borderRadius: 8,
+                                  outline: "none",
+                                  minWidth: 160,
+                                }}
+                              />
+                              <button
+                                type="button"
+                                onClick={applyPromoCode}
+                                style={{
+                                  background: S.accent,
+                                  color: "#ffffff",
+                                  border: "none",
+                                  borderRadius: 8,
+                                  padding: "10px 20px",
+                                  fontFamily: S.mono,
+                                  fontSize: 12,
+                                  fontWeight: 700,
+                                  cursor: "pointer",
+                                  letterSpacing: "0.06em",
+                                }}
+                              >
+                                APPLY
+                              </button>
+                            </div>
+                          ) : null}
+                          {promoError ? (
+                            <p style={{ fontSize: 13, color: S.red, marginTop: 8, marginBottom: 0 }}>{promoError}</p>
+                          ) : null}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+
+                {(report.section2 || []).length > 1 && tier !== 0 ? (
+                  (report.section2 || []).slice(1).map(function(risk, i) {
+                    return renderRiskCard(risk, i + 1, false);
+                  })
+                ) : null}
+              </div>
+
+              {unlocked ? (
+                <>
+                  <div style={{ marginBottom: 36 }}>
+                    <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.1em", fontWeight: 600, marginBottom: 12 }}>
+                      YOUR STRONGEST ANCHORS
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                      {(report.section3 || []).map(function(anchor, i) {
+                        return (
+                          <div
+                            key={i}
+                            style={{
+                              background: "#f0fdf4",
+                              border: "1px solid #86efac",
+                              borderRadius: 12,
+                              padding: "16px 18px",
+                            }}
+                          >
+                            <div style={{ fontSize: 15, fontWeight: 700, color: S.text, marginBottom: 6 }}>
+                              {"✓ " + anchor.title}
+                            </div>
+                            <p style={{ fontSize: 14, color: S.muted, lineHeight: 1.55, margin: 0 }}>
+                              {anchor.desc}
+                            </p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div style={{ marginBottom: 36 }}>
+                    <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.1em", fontWeight: 600, marginBottom: 12 }}>
+                      THE STRATEGIC QUESTION
+                    </div>
+                    <div style={{
+                      background: S.card,
+                      border: "1px solid " + S.border,
+                      borderLeft: "4px solid " + S.gold,
+                      borderRadius: 12,
+                      padding: "24px 22px",
+                    }}>
+                      <p style={{
+                        fontFamily: S.serif,
+                        fontSize: 22,
+                        color: S.text,
+                        lineHeight: 1.4,
+                        margin: "0 0 16px",
+                        fontWeight: 600,
+                      }}>
+                        {report.section4 && report.section4.question}
+                      </p>
+                      <p style={{ fontSize: 14, color: S.dim, lineHeight: 1.65, margin: 0 }}>
+                        {report.section4 && report.section4.context}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div style={{ marginBottom: 36 }}>
+                    <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.1em", fontWeight: 600, marginBottom: 12 }}>
+                      WHAT TO DO FIRST
+                    </div>
+                    <div style={{
+                      background: S.accent,
+                      borderRadius: 12,
+                      padding: "24px 22px",
+                    }}>
+                      <p style={{ fontSize: 17, color: "#ffffff", lineHeight: 1.7, margin: 0 }}>
+                        {report.section5}
+                      </p>
+                    </div>
+                  </div>
+                </>
+              ) : null}
+
+              {showCalendly ? (
+                <div style={{
+                  background: S.card,
+                  border: "1px solid " + S.border,
+                  borderRadius: 16,
+                  padding: "32px 28px",
+                  marginBottom: 36,
+                  textAlign: "center",
+                }}>
+                  <h3 style={{ fontFamily: S.serif, fontSize: 24, color: S.text, margin: "0 0 12px", fontWeight: 600 }}>
+                    Your next step
+                  </h3>
+                  {tier === 3 ? (
+                    <>
+                      <p style={{ fontSize: 15, color: S.dim, lineHeight: 1.65, margin: "0 0 20px" }}>
+                        You&apos;ve unlocked a 60-minute strategic roadmap session. Book your time below.
+                      </p>
+                      <a
+                        href="https://cal.com/dkchetan/company-roadmap"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          display: "inline-block",
+                          background: S.gold,
+                          color: S.text,
+                          borderRadius: 10,
+                          padding: "14px 28px",
+                          fontFamily: S.mono,
+                          fontSize: 13,
+                          fontWeight: 700,
+                          letterSpacing: "0.08em",
+                          textDecoration: "none",
+                        }}
+                      >
+                        BOOK 60-MIN ROADMAP SESSION →
+                      </a>
+                    </>
+                  ) : (
+                    <>
+                      <p style={{ fontSize: 15, color: S.dim, lineHeight: 1.65, margin: "0 0 20px" }}>
+                        You&apos;ve unlocked a 30-minute strategy session. Book your time below.
+                      </p>
+                      <a
+                        href="https://cal.com/dkchetan/company-strategy"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          display: "inline-block",
+                          background: S.purple,
+                          color: "#ffffff",
+                          borderRadius: 10,
+                          padding: "14px 28px",
+                          fontFamily: S.mono,
+                          fontSize: 13,
+                          fontWeight: 700,
+                          letterSpacing: "0.08em",
+                          textDecoration: "none",
+                        }}
+                      >
+                        BOOK 30-MIN STRATEGY SESSION →
+                      </a>
+                    </>
+                  )}
+                </div>
+              ) : null}
+
+              <div style={{ textAlign: "center", marginBottom: 24 }}>
+                <button
+                  type="button"
+                  onClick={resetAll}
+                  style={{
+                    background: "transparent",
+                    border: "1px solid " + S.border,
+                    borderRadius: 10,
+                    padding: "12px 24px",
+                    fontFamily: S.mono,
+                    fontSize: 12,
+                    fontWeight: 600,
+                    color: S.muted,
+                    cursor: "pointer",
+                    letterSpacing: "0.06em",
+                  }}
+                >
+                  START OVER
+                </button>
+              </div>
+            </>
+          ) : null}
+
+        </div>
+        <SBFooter />
       </div>
-    </div>
-  );
+    );
+  }
+
+  return null;
 }
