@@ -154,6 +154,7 @@ var SB_ARCHETYPES = {
 };
 
 var SB_PROMO_CODES = ["DZFRIEND", "DZPREVIEW", "DZTEST"];
+var SB_SESSION_PROMO = "30FREE";
 
 function SBNavbar() {
   return (
@@ -266,6 +267,7 @@ export default function SmallBusiness(props) {
   var [promoCode, setPromoCode] = useState("");
   var [promoError, setPromoError] = useState("");
   var [promoUsed, setPromoUsed] = useState(false);
+  var [sessionPromo, setSessionPromo] = useState(false);
   var [showPromo, setShowPromo] = useState(false);
 
   var sliderCSS = "input[type=range].sb-slider{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:3px;outline:none;cursor:pointer;border:none;background:#d0d7e8} input[type=range].sb-slider::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:#d97706;border:3px solid white;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.18)} input[type=range].sb-slider::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:#d97706;border:3px solid white;cursor:pointer;}";
@@ -449,6 +451,11 @@ export default function SmallBusiness(props) {
       setTier(2);
       setPromoUsed(true);
       setPromoError("");
+    } else if (v === SB_SESSION_PROMO) {
+      setTier(1);
+      setPromoUsed(true);
+      setSessionPromo(true);
+      setPromoError("");
     } else {
       setPromoError("That code isn't valid.");
     }
@@ -465,7 +472,7 @@ export default function SmallBusiness(props) {
     setGateEmail(""); setGateSent(false); setGateVerified(false);
     setGateLoading(false); setGateError(""); setShowResend(false);
     setReport(null); setReportLoading(false); setReportError("");
-    setTier(0); setPromoCode(""); setPromoError(""); setPromoUsed(false); setShowPromo(false);
+    setTier(0); setPromoCode(""); setPromoError(""); setPromoUsed(false); setSessionPromo(false); setShowPromo(false);
   }
 
   useEffect(function() {
@@ -1676,7 +1683,6 @@ export default function SmallBusiness(props) {
     var reportOverallScore = calcOverallScore(sliderVP, sliderCS, sliderKM);
     var reportScoreColor = getScoreColor(reportOverallScore);
     var unlocked = tier >= 1 || promoUsed;
-    var showCalendly = tier >= 2 || promoUsed;
 
     function riskBadgeColor(idx) {
       if (idx === 0) return S.red;
@@ -1869,16 +1875,24 @@ export default function SmallBusiness(props) {
                           {"Everything will be emailed to " + gateEmail}
                         </p>
 
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: 16, justifyContent: "center" }}>
+                        <div style={{
+                          display: "flex",
+                          flexDirection: "row",
+                          gap: 16,
+                          alignItems: "stretch",
+                          marginBottom: 24,
+                          flexWrap: "nowrap",
+                        }}>
                           <div style={{
-                            flex: "1 1 240px",
-                            maxWidth: 280,
-                            background: S.card,
+                            flex: "1 1 0",
+                            minWidth: 0,
                             border: "1px solid " + S.border,
-                            borderRadius: 12,
-                            padding: "20px 18px",
+                            borderRadius: 16,
+                            padding: "24px 20px",
+                            background: S.card,
                             display: "flex",
                             flexDirection: "column",
+                            justifyContent: "space-between",
                           }}>
                             <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.06em", marginBottom: 4 }}>TIER 1</div>
                             <div style={{ fontFamily: S.serif, fontSize: 28, fontWeight: 700, color: S.text, marginBottom: 2 }}>$99</div>
@@ -1909,14 +1923,15 @@ export default function SmallBusiness(props) {
                           </div>
 
                           <div style={{
-                            flex: "1 1 240px",
-                            maxWidth: 280,
-                            background: S.card,
+                            flex: "1 1 0",
+                            minWidth: 0,
                             border: "2px solid " + S.purple,
-                            borderRadius: 12,
-                            padding: "20px 18px",
+                            borderRadius: 16,
+                            padding: "24px 20px",
+                            background: S.card,
                             display: "flex",
                             flexDirection: "column",
+                            justifyContent: "space-between",
                             position: "relative",
                           }}>
                             <div style={{
@@ -1963,17 +1978,18 @@ export default function SmallBusiness(props) {
                           </div>
 
                           <div style={{
-                            flex: "1 1 240px",
-                            maxWidth: 280,
-                            background: S.card,
+                            flex: "1 1 0",
+                            minWidth: 0,
                             border: "1px solid " + S.border,
-                            borderRadius: 12,
-                            padding: "20px 18px",
+                            borderRadius: 16,
+                            padding: "24px 20px",
+                            background: S.card,
                             display: "flex",
                             flexDirection: "column",
+                            justifyContent: "space-between",
                           }}>
                             <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.06em", marginBottom: 4 }}>TIER 3</div>
-                            <div style={{ fontFamily: S.serif, fontSize: 28, fontWeight: 700, color: S.text, marginBottom: 2 }}>$395</div>
+                            <div style={{ fontFamily: S.serif, fontSize: 28, fontWeight: 700, color: S.text, marginBottom: 2 }}>$349</div>
                             <div style={{ fontSize: 15, fontWeight: 700, color: S.text, marginBottom: 14 }}>Full Strategic Roadmap</div>
                             <ul style={{ fontSize: 13, color: S.dim, lineHeight: 1.55, margin: "0 0 20px", paddingLeft: 18, flex: 1 }}>
                               <li>Everything in Tier 2, plus:</li>
@@ -1994,7 +2010,7 @@ export default function SmallBusiness(props) {
                               letterSpacing: "0.06em",
                               width: "100%",
                             }}>
-                              UNLOCK FULL ROADMAP → $395
+                              UNLOCK FULL ROADMAP → $349
                             </button>
                           </div>
                         </div>
@@ -2143,71 +2159,89 @@ export default function SmallBusiness(props) {
                 </>
               ) : null}
 
-              {showCalendly ? (
-                <div style={{
-                  background: S.card,
-                  border: "1px solid " + S.border,
-                  borderRadius: 16,
-                  padding: "32px 28px",
-                  marginBottom: 36,
-                  textAlign: "center",
-                }}>
-                  <h3 style={{ fontFamily: S.serif, fontSize: 24, color: S.text, margin: "0 0 12px", fontWeight: 600 }}>
-                    Your next step
-                  </h3>
-                  {tier === 3 ? (
-                    <>
-                      <p style={{ fontSize: 15, color: S.dim, lineHeight: 1.65, margin: "0 0 20px" }}>
-                        You&apos;ve unlocked a 60-minute strategic roadmap session. Book your time below.
+              {(tier >= 2 || promoUsed || sessionPromo) && (
+                <div style={{ background: S.card, border: "1px solid " + S.border, borderRadius: 16, padding: "32px", marginBottom: 24, textAlign: "center" }}>
+                  <div style={{ fontFamily: S.mono, fontSize: 11, color: S.gold, letterSpacing: "0.12em", fontWeight: 700, marginBottom: 12 }}>
+                    YOUR NEXT STEP
+                  </div>
+                  {sessionPromo && tier < 2 ? (
+                    <div>
+                      <h3 style={{ fontFamily: S.serif, fontSize: 22, color: S.text, margin: "0 0 12px" }}>
+                        You&apos;ve unlocked a complimentary 30-minute strategy session.
+                      </h3>
+                      <p style={{ fontSize: 15, color: S.dim, lineHeight: 1.6, margin: "0 0 24px" }}>
+                        Book your session below. Come prepared with your top question about your business.
                       </p>
-                      <a
-                        href="https://cal.com/dkchetan/company-roadmap"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{
-                          display: "inline-block",
-                          background: S.gold,
-                          color: S.text,
-                          borderRadius: 10,
-                          padding: "14px 28px",
-                          fontFamily: S.mono,
-                          fontSize: 13,
-                          fontWeight: 700,
-                          letterSpacing: "0.08em",
-                          textDecoration: "none",
-                        }}
-                      >
-                        BOOK 60-MIN ROADMAP SESSION →
+                      <a href="https://cal.com/dkchetan/company-strategy" target="_blank" rel="noopener noreferrer"
+                        style={{ display: "inline-block", background: S.accent, color: "#ffffff", borderRadius: 12, padding: "16px 32px", fontFamily: S.mono, fontSize: 14, fontWeight: 700, letterSpacing: "0.08em", textDecoration: "none" }}>
+                        BOOK 30-MIN SESSION →
                       </a>
-                    </>
-                  ) : (
-                    <>
-                      <p style={{ fontSize: 15, color: S.dim, lineHeight: 1.65, margin: "0 0 20px" }}>
-                        You&apos;ve unlocked a 30-minute strategy session. Book your time below.
+                    </div>
+                  ) : tier === 2 || (promoUsed && tier < 3) ? (
+                    <div>
+                      <h3 style={{ fontFamily: S.serif, fontSize: 22, color: S.text, margin: "0 0 12px" }}>
+                        You&apos;ve unlocked a 30-minute strategy session.
+                      </h3>
+                      <p style={{ fontSize: 15, color: S.dim, lineHeight: 1.6, margin: "0 0 24px" }}>
+                        Book your time below. We&apos;ll work through your top 2 risks together.
                       </p>
-                      <a
-                        href="https://cal.com/dkchetan/company-strategy"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{
-                          display: "inline-block",
-                          background: S.purple,
-                          color: "#ffffff",
-                          borderRadius: 10,
-                          padding: "14px 28px",
-                          fontFamily: S.mono,
-                          fontSize: 13,
-                          fontWeight: 700,
-                          letterSpacing: "0.08em",
-                          textDecoration: "none",
-                        }}
-                      >
+                      <a href="https://cal.com/dkchetan/company-strategy" target="_blank" rel="noopener noreferrer"
+                        style={{ display: "inline-block", background: S.purple, color: "#ffffff", borderRadius: 12, padding: "16px 32px", fontFamily: S.mono, fontSize: 14, fontWeight: 700, letterSpacing: "0.08em", textDecoration: "none" }}>
                         BOOK 30-MIN STRATEGY SESSION →
                       </a>
-                    </>
-                  )}
+                    </div>
+                  ) : tier >= 3 ? (
+                    <div>
+                      <h3 style={{ fontFamily: S.serif, fontSize: 22, color: S.text, margin: "0 0 12px" }}>
+                        You&apos;ve unlocked a 60-minute strategic roadmap session.
+                      </h3>
+                      <p style={{ fontSize: 15, color: S.dim, lineHeight: 1.6, margin: "0 0 24px" }}>
+                        Book your time below. We&apos;ll cover your competitive positioning, top risks, and build your written roadmap.
+                      </p>
+                      <a href="https://cal.com/dkchetan/company-roadmap" target="_blank" rel="noopener noreferrer"
+                        style={{ display: "inline-block", background: S.gold, color: "#ffffff", borderRadius: 12, padding: "16px 32px", fontFamily: S.mono, fontSize: 14, fontWeight: 700, letterSpacing: "0.08em", textDecoration: "none" }}>
+                        BOOK 60-MIN ROADMAP SESSION →
+                      </a>
+                    </div>
+                  ) : null}
                 </div>
-              ) : null}
+              )}
+
+              {(tier >= 1 || promoUsed || sessionPromo) && (
+                <div style={{ marginBottom: 32 }}>
+                  <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.12em", fontWeight: 600, marginBottom: 16 }}>
+                    BOOK ADDITIONAL SESSIONS
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "row", gap: 16, flexWrap: "nowrap" }}>
+                    <div style={{ flex: "1 1 0", minWidth: 0, background: S.card, border: "1px solid " + S.border, borderRadius: 16, padding: "24px 20px" }}>
+                      <div style={{ fontFamily: S.mono, fontSize: 11, color: S.muted, letterSpacing: "0.08em", fontWeight: 600, marginBottom: 8 }}>
+                        30-MIN SESSION
+                      </div>
+                      <div style={{ fontFamily: S.serif, fontSize: 28, color: S.text, fontWeight: 700, marginBottom: 8 }}>$149</div>
+                      <p style={{ fontSize: 14, color: S.dim, lineHeight: 1.6, margin: "0 0 20px" }}>
+                        A focused working session on one specific risk or decision in your business. Bring your top question.
+                      </p>
+                      <a href="https://cal.com/dkchetan/company-strategy" target="_blank" rel="noopener noreferrer"
+                        style={{ display: "block", background: S.accent, color: "#ffffff", borderRadius: 10, padding: "14px 20px", fontFamily: S.mono, fontSize: 13, fontWeight: 700, letterSpacing: "0.08em", textDecoration: "none", textAlign: "center" }}>
+                        BOOK → $149
+                      </a>
+                    </div>
+                    <div style={{ flex: "1 1 0", minWidth: 0, background: S.card, border: "1px solid " + S.border, borderRadius: 16, padding: "24px 20px" }}>
+                      <div style={{ fontFamily: S.mono, fontSize: 11, color: S.muted, letterSpacing: "0.08em", fontWeight: 600, marginBottom: 8 }}>
+                        60-MIN DEEP DIVE
+                      </div>
+                      <div style={{ fontFamily: S.serif, fontSize: 28, color: S.text, fontWeight: 700, marginBottom: 8 }}>$249</div>
+                      <p style={{ fontSize: 14, color: S.dim, lineHeight: 1.6, margin: "0 0 20px" }}>
+                        Full working session on competitive positioning and top risks. Written action summary delivered within 48 hours.
+                      </p>
+                      <a href="https://cal.com/dkchetan/company-roadmap" target="_blank" rel="noopener noreferrer"
+                        style={{ display: "block", background: S.purple, color: "#ffffff", borderRadius: 10, padding: "14px 20px", fontFamily: S.mono, fontSize: 13, fontWeight: 700, letterSpacing: "0.08em", textDecoration: "none", textAlign: "center" }}>
+                        BOOK → $249
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div style={{ textAlign: "center", marginBottom: 24 }}>
                 <button
