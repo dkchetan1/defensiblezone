@@ -1231,34 +1231,189 @@ export default function SmallBusiness(props) {
   }
 
   if (step === 45) {
+    var allAnswered = bizGoal && bizAge && bizLocation &&
+      bizChannels.length > 0 && bizTech &&
+      bizCustomerSpread && bizDiff &&
+      (!bizChannels.includes("other_channel") ||
+        bizChannelOther.trim());
+
     return (
-      <div style={{ background: S.bg, minHeight: "100vh",
-        fontFamily: S.font }}>
+      <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font }}>
         <SBNavbar />
-        <div style={{ maxWidth: 680, margin: "0 auto",
-          padding: "48px 24px", boxSizing: "border-box" }}>
-          <div style={{ fontFamily: S.mono, fontSize: 11,
-            color: S.dim, letterSpacing: "0.1em",
-            marginBottom: 10, fontWeight: 600 }}>
+        <div style={{ maxWidth: 680, margin: "0 auto", padding: "48px 24px", boxSizing: "border-box" }}>
+
+          <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.1em", marginBottom: 10, fontWeight: 600 }}>
             STEP 4.5 OF 8 — YOUR BUSINESS CONTEXT
           </div>
-          <div style={{ height: 4, background: S.border,
-            borderRadius: 2, overflow: "hidden",
-            marginBottom: 32 }}>
-            <div style={{ height: "100%", width: "56%",
-              background: S.accent, borderRadius: 2 }} />
+          <div style={{ height: 4, background: S.border, borderRadius: 2, overflow: "hidden", marginBottom: 32 }}>
+            <div style={{ height: "100%", width: "56%", background: S.accent, borderRadius: 2 }} />
           </div>
-          <p style={{ color: S.dim, fontFamily: S.mono,
-            fontSize: 14 }}>
-            Step 4.5 UI coming in next prompt
+
+          <h2 style={{ fontFamily: S.serif, fontSize: 28, color: S.text, margin: "0 0 8px", lineHeight: 1.2, fontWeight: 600 }}>
+            Help us understand your business better.
+          </h2>
+          <p style={{ fontSize: 16, color: S.dim, lineHeight: 1.6, margin: "0 0 40px" }}>
+            These answers sharpen your risk analysis and recommendations significantly.
           </p>
+
+          {/* Q1 — Business Goal */}
+          <div style={{ marginBottom: 36 }}>
+            <div style={{ fontFamily: S.mono, fontSize: 11, color: S.muted, letterSpacing: "0.1em", fontWeight: 600, marginBottom: 8 }}>YOUR GOAL FOR THIS BUSINESS</div>
+            <div style={{ fontSize: 17, fontFamily: S.serif, color: S.text, marginBottom: 16, lineHeight: 1.4 }}>What are you trying to do with this business over the next few years?</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {BIZ_GOALS.map(function(o) {
+                var sel = bizGoal === o.id;
+                return (
+                  <button key={o.id} onClick={function() { setBizGoal(o.id); }}
+                    style={{ background: sel ? S.accent : S.card, border: "1px solid " + (sel ? S.accent : S.border), borderRadius: 12, padding: "14px 18px", cursor: "pointer", textAlign: "left" }}>
+                    <div style={{ fontSize: 15, fontWeight: 600, color: sel ? "#fff" : S.text }}>{o.label}</div>
+                    <div style={{ fontSize: 13, color: sel ? "rgba(255,255,255,0.65)" : S.dim, marginTop: 3 }}>{o.sub}</div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Q2 — Age */}
+          <div style={{ marginBottom: 36 }}>
+            <div style={{ fontFamily: S.mono, fontSize: 11, color: S.muted, letterSpacing: "0.1em", fontWeight: 600, marginBottom: 8 }}>YOUR AGE</div>
+            <div style={{ fontSize: 17, fontFamily: S.serif, color: S.text, marginBottom: 16, lineHeight: 1.4 }}>Which age bracket are you in?</div>
+            <div style={{ display: "flex", flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
+              {BIZ_AGES.map(function(o) {
+                var sel = bizAge === o.id;
+                return (
+                  <button key={o.id} onClick={function() { setBizAge(o.id); }}
+                    style={{ background: sel ? S.accent : S.card, border: "1px solid " + (sel ? S.accent : S.border), borderRadius: 10, padding: "12px 20px", cursor: "pointer", fontSize: 14, fontWeight: 600, color: sel ? "#fff" : S.text, whiteSpace: "nowrap" }}>
+                    {o.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Q3 — Location */}
+          <div style={{ marginBottom: 36 }}>
+            <div style={{ fontFamily: S.mono, fontSize: 11, color: S.muted, letterSpacing: "0.1em", fontWeight: 600, marginBottom: 8 }}>WHERE YOU OPERATE</div>
+            <div style={{ fontSize: 17, fontFamily: S.serif, color: S.text, marginBottom: 16, lineHeight: 1.4 }}>Where does your business primarily operate?</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {BIZ_LOCATIONS.map(function(o) {
+                var sel = bizLocation === o.id;
+                return (
+                  <button key={o.id} onClick={function() { setBizLocation(o.id); }}
+                    style={{ background: sel ? S.accent : S.card, border: "1px solid " + (sel ? S.accent : S.border), borderRadius: 12, padding: "14px 18px", cursor: "pointer", textAlign: "left", fontSize: 15, fontWeight: 600, color: sel ? "#fff" : S.text }}>
+                    {o.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Q4 — Channels (multi-select) */}
+          <div style={{ marginBottom: 36 }}>
+            <div style={{ fontFamily: S.mono, fontSize: 11, color: S.muted, letterSpacing: "0.1em", fontWeight: 600, marginBottom: 8 }}>HOW CUSTOMERS FIND YOU</div>
+            <div style={{ fontSize: 17, fontFamily: S.serif, color: S.text, marginBottom: 16, lineHeight: 1.4 }}>How do most new customers find your business? Select all that apply.</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {BIZ_CHANNELS.map(function(o) {
+                var sel = bizChannels.includes(o.id);
+                return (
+                  <button key={o.id} onClick={function() {
+                    setBizChannels(function(prev) {
+                      return sel ? prev.filter(function(c) { return c !== o.id; }) : prev.concat(o.id);
+                    });
+                  }}
+                    style={{ background: sel ? S.accent : S.card, border: "1px solid " + (sel ? S.accent : S.border), borderRadius: 12, padding: "14px 18px", cursor: "pointer", textAlign: "left", fontSize: 15, fontWeight: 600, color: sel ? "#fff" : S.text }}>
+                    {o.label}
+                  </button>
+                );
+              })}
+            </div>
+            {bizChannels.includes("other_channel") && (
+              <div style={{ marginTop: 12 }}>
+                <textarea
+                  value={bizChannelOther}
+                  onChange={function(e) { setBizChannelOther(e.target.value); }}
+                  placeholder="Describe how customers find you..."
+                  rows={2}
+                  style={{ width: "100%", padding: "12px 14px", fontSize: 15, fontFamily: S.font, border: "1px solid " + S.border, borderRadius: 10, outline: "none", boxSizing: "border-box", resize: "vertical", color: S.text, background: S.card }}
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Q5 — Tech */}
+          <div style={{ marginBottom: 36 }}>
+            <div style={{ fontFamily: S.mono, fontSize: 11, color: S.muted, letterSpacing: "0.1em", fontWeight: 600, marginBottom: 8 }}>YOUR RELATIONSHIP WITH NEW TECHNOLOGY</div>
+            <div style={{ fontSize: 17, fontFamily: S.serif, color: S.text, marginBottom: 16, lineHeight: 1.4 }}>When a new tool could save you time or money, what do you usually do?</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {BIZ_TECH.map(function(o) {
+                var sel = bizTech === o.id;
+                return (
+                  <button key={o.id} onClick={function() { setBizTech(o.id); }}
+                    style={{ background: sel ? S.accent : S.card, border: "1px solid " + (sel ? S.accent : S.border), borderRadius: 12, padding: "14px 18px", cursor: "pointer", textAlign: "left" }}>
+                    <div style={{ fontSize: 15, fontWeight: 600, color: sel ? "#fff" : S.text }}>{o.label}</div>
+                    <div style={{ fontSize: 13, color: sel ? "rgba(255,255,255,0.65)" : S.dim, marginTop: 3 }}>{o.sub}</div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Q6 — Customer Spread */}
+          <div style={{ marginBottom: 36 }}>
+            <div style={{ fontFamily: S.mono, fontSize: 11, color: S.muted, letterSpacing: "0.1em", fontWeight: 600, marginBottom: 8 }}>YOUR CUSTOMER BASE</div>
+            <div style={{ fontSize: 17, fontFamily: S.serif, color: S.text, marginBottom: 16, lineHeight: 1.4 }}>How spread out is your customer base?</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {BIZ_CUSTOMER_SPREAD.map(function(o) {
+                var sel = bizCustomerSpread === o.id;
+                return (
+                  <button key={o.id} onClick={function() { setBizCustomerSpread(o.id); }}
+                    style={{ background: sel ? S.accent : S.card, border: "1px solid " + (sel ? S.accent : S.border), borderRadius: 12, padding: "14px 18px", cursor: "pointer", textAlign: "left" }}>
+                    <div style={{ fontSize: 15, fontWeight: 600, color: sel ? "#fff" : S.text }}>{o.label}</div>
+                    <div style={{ fontSize: 13, color: sel ? "rgba(255,255,255,0.65)" : S.dim, marginTop: 3 }}>{o.sub}</div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Q7 — Differentiator */}
+          <div style={{ marginBottom: 36 }}>
+            <div style={{ fontFamily: S.mono, fontSize: 11, color: S.muted, letterSpacing: "0.1em", fontWeight: 600, marginBottom: 8 }}>WHAT MAKES YOU DIFFERENT</div>
+            <div style={{ fontSize: 17, fontFamily: S.serif, color: S.text, marginBottom: 16, lineHeight: 1.4 }}>How would you honestly describe what makes your offering different from alternatives?</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {BIZ_DIFF.map(function(o) {
+                var sel = bizDiff === o.id;
+                return (
+                  <button key={o.id} onClick={function() { setBizDiff(o.id); }}
+                    style={{ background: sel ? S.accent : S.card, border: "1px solid " + (sel ? S.accent : S.border), borderRadius: 12, padding: "14px 18px", cursor: "pointer", textAlign: "left" }}>
+                    <div style={{ fontSize: 15, fontWeight: 600, color: sel ? "#fff" : S.text }}>{o.label}</div>
+                    <div style={{ fontSize: 13, color: sel ? "rgba(255,255,255,0.65)" : S.dim, marginTop: 3 }}>{o.sub}</div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           <button
-            onClick={function() { setStep(4); }}
-            style={{ marginTop: 16, background: "transparent",
-              border: "none", padding: 0, cursor: "pointer",
-              fontFamily: S.mono, fontSize: 12, color: S.dim }}>
+            onClick={function() { setStep(5); }}
+            disabled={!allAnswered}
+            style={{
+              background: !allAnswered ? S.card2 : S.accent,
+              color: !allAnswered ? S.dim : "#ffffff",
+              border: "1px solid " + (!allAnswered ? S.border : S.accent),
+              borderRadius: 12, padding: "16px 32px", fontSize: 15,
+              fontFamily: S.mono, fontWeight: 700,
+              cursor: !allAnswered ? "not-allowed" : "pointer",
+              letterSpacing: "0.08em", width: "100%",
+            }}>
+            CONTINUE →
+          </button>
+
+          <button onClick={function() { setStep(4); }}
+            style={{ marginTop: 16, background: "transparent", border: "none", padding: 0, cursor: "pointer", fontFamily: S.mono, fontSize: 12, color: S.dim, letterSpacing: "0.06em" }}>
             ← BACK
           </button>
+
         </div>
       </div>
     );
