@@ -346,6 +346,14 @@ export default function SmallBusiness(props) {
   var _sliderKM = sliderKM;
   var _sliderTH = sliderTH;
   var _snapshot = snapshot;
+  var _bizGoal = bizGoal;
+  var _bizAge = bizAge;
+  var _bizLocation = bizLocation;
+  var _bizChannels = bizChannels;
+  var _bizChannelOther = bizChannelOther;
+  var _bizTech = bizTech;
+  var _bizCustomerSpread = bizCustomerSpread;
+  var _bizDiff = bizDiff;
 
   try {
     var sbSaved = localStorage.getItem("dz_sb_state");
@@ -360,6 +368,14 @@ export default function SmallBusiness(props) {
       if (typeof sbParsed.sliderKM === "number") _sliderKM = sbParsed.sliderKM;
       if (typeof sbParsed.sliderTH === "number") _sliderTH = sbParsed.sliderTH;
       if (Array.isArray(sbParsed.snapshot)) _snapshot = sbParsed.snapshot;
+      if (sbParsed.bizGoal) _bizGoal = sbParsed.bizGoal;
+      if (sbParsed.bizAge) _bizAge = sbParsed.bizAge;
+      if (sbParsed.bizLocation) _bizLocation = sbParsed.bizLocation;
+      if (Array.isArray(sbParsed.bizChannels)) _bizChannels = sbParsed.bizChannels;
+      if (sbParsed.bizChannelOther) _bizChannelOther = sbParsed.bizChannelOther;
+      if (sbParsed.bizTech) _bizTech = sbParsed.bizTech;
+      if (sbParsed.bizCustomerSpread) _bizCustomerSpread = sbParsed.bizCustomerSpread;
+      if (sbParsed.bizDiff) _bizDiff = sbParsed.bizDiff;
     }
   } catch(e) {}
 
@@ -373,7 +389,16 @@ export default function SmallBusiness(props) {
     var stageLabel = (SB_STAGES.find(function(s) { return s.id === stage; }) || {}).label || stage;
     var currentArchetypes = SB_ARCHETYPES[industry] || [];
     var archetypeLabel = archetypeOther.trim() || (currentArchetypes.find(function(a) { return a.id === archetype; }) || {}).label || archetype;
-    var prompt = "You are an expert in small business strategy and AI disruption.\n\nA US small business owner has provided this profile:\n- Industry: " + industryLabel + "\n- Stage: " + stageLabel + "\n- Business model: " + archetypeLabel + "\n- Value proposition clarity (0-10): " + sliderVP + "\n- Customer switching cost (0-10): " + sliderCS + "\n- Knowledge moat (0-10): " + sliderKM + "\n- Time horizon (0-10): " + sliderTH + "\n\nWrite a 3-4 sentence competitive landscape snapshot for this business. Be specific to their industry and model. Describe the AI threat they face right now, what is still defensible, and what is most at risk. Do not be generic.\n\nReturn ONLY valid JSON:\n{\"sentences\":[\"Sentence one.\",\"Sentence two.\",\"Sentence three.\",\"Sentence four.\"]}";
+    var prompt = "You are an expert in small business strategy and AI disruption.\n\nA US small business owner has provided this profile:\n- Industry: " + industryLabel + "\n- Stage: " + stageLabel + "\n- Business model: " + archetypeLabel + "\n- Value proposition clarity (0-10): " + sliderVP + "\n- Customer switching cost (0-10): " + sliderCS + "\n- Knowledge moat (0-10): " + sliderKM + "\n- Time horizon (0-10): " + sliderTH +
+      "\n- Business goal: " + _bizGoal +
+      "\n- Owner age bracket: " + _bizAge +
+      "\n- Location type: " + _bizLocation +
+      "\n- Customer acquisition channels: " +
+        (_bizChannels.join(", ") || "not provided") +
+        (_bizChannelOther ? " (" + _bizChannelOther + ")" : "") +
+      "\n- Tech adoption style: " + _bizTech +
+      "\n- Customer base spread: " + _bizCustomerSpread +
+      "\n- Primary differentiator: " + _bizDiff + "\n\nWrite a 3-4 sentence competitive landscape snapshot for this business. Be specific to their industry and model. Describe the AI threat they face right now, what is still defensible, and what is most at risk. Do not be generic.\n\nReturn ONLY valid JSON:\n{\"sentences\":[\"Sentence one.\",\"Sentence two.\",\"Sentence three.\",\"Sentence four.\"]}";
     try {
       var res = await fetch("/api/generate", {
         method: "POST",
@@ -464,6 +489,14 @@ export default function SmallBusiness(props) {
         sliderKM: sliderKM,
         sliderTH: sliderTH,
         snapshot: snapshot,
+        bizGoal: bizGoal,
+        bizAge: bizAge,
+        bizLocation: bizLocation,
+        bizChannels: bizChannels,
+        bizChannelOther: bizChannelOther,
+        bizTech: bizTech,
+        bizCustomerSpread: bizCustomerSpread,
+        bizDiff: bizDiff,
       }));
     } catch(e) {}
     setGateLoading(true);
@@ -507,6 +540,13 @@ export default function SmallBusiness(props) {
             sliderKM: _sliderKM,
             sliderTH: _sliderTH,
             snapshot: _snapshot,
+            bizGoal: _bizGoal,
+            bizAge: _bizAge,
+            bizLocation: _bizLocation,
+            bizChannels: _bizChannels,
+            bizTech: _bizTech,
+            bizCustomerSpread: _bizCustomerSpread,
+            bizDiff: _bizDiff,
           },
           report: reportData,
         }),
@@ -527,7 +567,17 @@ export default function SmallBusiness(props) {
     var flags = getDiagnosticFlags(_sliderVP, _sliderCS, _sliderKM, _sliderTH, _snapshot);
     var flagLabels = flags.map(function(f) { return f.label; }).join(", ");
     var snapshotText = _snapshot.filter(function(s) { return !s.wrong; }).map(function(s) { return s.text; }).join(" ");
-    var prompt = "You are a senior business strategist and AI disruption expert writing a premium paid diagnostic report for a US small business owner. This must read like advice from a trusted advisor who has deep knowledge of their specific industry. Every section must be specific to their exact business type, stage, and inputs. No generic advice. No filler. No platitudes.\n\nBUSINESS PROFILE:\n- Industry: " + _industry + "\n- Stage: " + _stageLabel + "\n- Business model: " + _archetypeLabel + "\n- Overall Defensibility Score: " + overallScore + "/100\n- Value Defensibility: " + subScores.valueD + "/100\n- Customer Defensibility: " + subScores.customerD + "/100\n- Operational Defensibility: " + subScores.operationalD + "/100\n- Diagnostic flags: " + (flagLabels || "none") + "\n- Owner time horizon (0=exiting soon, 10=10+ years): " + _sliderTH + "\n- Value proposition clarity (0-10): " + _sliderVP + "\n- Customer switching cost (0-10): " + _sliderCS + "\n- Knowledge moat (0-10): " + _sliderKM + "\n- Competitive landscape notes: " + (snapshotText || "not provided") + "\n\nGenerate a comprehensive 10-section Defensibility Report. Be brutally specific.\n\nSection 1 — Score in Context (2-3 sentences): What does this score mean for THIS specific business right now? What is the AI exposure and owner-dependence risk? Be direct and honest.\n\nSection 2 — Top 5 Risks (prioritized): Exactly 5 risks ranked most to least urgent. Each risk: title (5 words max), priority_rationale (one sentence on WHY this rank), action (2-3 sentences of specific actionable steps for this exact business model).\n\nSection 3 — Strongest Anchors (2-4 items): What is genuinely defensible right now. Each anchor: title and one honest sentence. If nothing is strongly defensible, say so.\n\nSection 4 — One Strategic Question: A single reframing question a great consultant would leave them with. Plus 2 sentence context explaining why this question matters for their specific situation.\n\nSection 5 — What to Do First (3 sentences): The single most important move given their score, flags, and time horizon. Make it land.\n\nSection 6 — AI Threat Timeline: What AI will be able to do to this specific business model in the next 12 months, 24 months, and 36 months that it cannot do today. Be specific to their industry and archetype. Not generic AI trends — specific threats to THIS business. Each period: 2-3 sentences.\n\nSection 7 — Competitive Analysis: A rigorous analysis of the competitive landscape for this specific business type. Cover: (a) who the main competitors are today — both traditional and AI-powered, (b) what competitive advantages are being eroded by AI right now, (c) what the 2-3 most defensible competitive positions look like in this industry. Use your knowledge of current market conditions. Be specific — name actual platforms, tools, and competitors where relevant.\n\nSection 8 — What a Buyer Would Say: If someone tried to acquire or succeed this business today, what would they pay a premium for and what would cause them to heavily discount the price. Two lists: premium_factors (2-3 items) and discount_factors (2-3 items). Each item is a title and one sentence.\n\nSection 9 — Owner Dependence Analysis: List exactly 3-4 specific ways this business currently depends on the owner personally. Be specific to their business model and inputs — not generic. Each dependency: a short name and one sentence describing the risk if the owner steps back or exits.\n\nSection 10 — Competitive Benchmark: How does a business like this typically score on defensibility, and what do the higher-scoring ones do differently. Give a typical score range for this industry and archetype, and list 2-3 specific things that separate high-scoring from low-scoring businesses in this category.\n\nReturn ONLY valid JSON — no markdown, no backticks, no preamble:\n{\"section1\":\"...\",\"section2\":[{\"title\":\"...\",\"priority_rationale\":\"...\",\"action\":\"...\"}],\"section3\":[{\"title\":\"...\",\"desc\":\"...\"}],\"section4\":{\"question\":\"...\",\"context\":\"...\"},\"section5\":\"...\",\"section6\":{\"months12\":\"...\",\"months24\":\"...\",\"months36\":\"...\"},\"section7\":{\"competitors\":\"...\",\"eroding\":\"...\",\"defensible\":\"...\"},\"section8\":{\"premium_factors\":[{\"title\":\"...\",\"desc\":\"...\"}],\"discount_factors\":[{\"title\":\"...\",\"desc\":\"...\"}]},\"section9\":[{\"name\":\"...\",\"risk\":\"...\"}],\"section10\":{\"typical_range\":\"...\",\"differentiators\":\"...\"}}";
+    var prompt = "You are a senior business strategist and AI disruption expert writing a premium paid diagnostic report for a US small business owner. This must read like advice from a trusted advisor who has deep knowledge of their specific industry. Every section must be specific to their exact business type, stage, and inputs. No generic advice. No filler. No platitudes.\n\nBUSINESS PROFILE:\n- Industry: " + _industry + "\n- Stage: " + _stageLabel + "\n- Business model: " + _archetypeLabel + "\n- Overall Defensibility Score: " + overallScore + "/100\n- Value Defensibility: " + subScores.valueD + "/100\n- Customer Defensibility: " + subScores.customerD + "/100\n- Operational Defensibility: " + subScores.operationalD + "/100\n- Diagnostic flags: " + (flagLabels || "none") + "\n- Owner time horizon (0=exiting soon, 10=10+ years): " + _sliderTH + "\n- Value proposition clarity (0-10): " + _sliderVP + "\n- Customer switching cost (0-10): " + _sliderCS + "\n- Knowledge moat (0-10): " + _sliderKM +
+      "\n- Business goal: " + _bizGoal +
+      "\n- Owner age bracket: " + _bizAge +
+      "\n- Location type: " + _bizLocation +
+      "\n- Customer acquisition channels: " +
+        (_bizChannels.join(", ") || "not provided") +
+        (_bizChannelOther ? " (" + _bizChannelOther + ")" : "") +
+      "\n- Tech adoption style: " + _bizTech +
+      "\n- Customer base spread: " + _bizCustomerSpread +
+      "\n- Primary differentiator: " + _bizDiff +
+      "\n- Competitive landscape notes: " + (snapshotText || "not provided") + "\n\nGenerate a comprehensive 10-section Defensibility Report. Be brutally specific.\n\nSection 1 — Score in Context (2-3 sentences): What does this score mean for THIS specific business right now? What is the AI exposure and owner-dependence risk? Be direct and honest.\n\nSection 2 — Top 5 Risks (prioritized): Exactly 5 risks ranked most to least urgent. Each risk: title (5 words max), priority_rationale (one sentence on WHY this rank), action (2-3 sentences of specific actionable steps for this exact business model).\n\nSection 3 — Strongest Anchors (2-4 items): What is genuinely defensible right now. Each anchor: title and one honest sentence. If nothing is strongly defensible, say so.\n\nSection 4 — One Strategic Question: A single reframing question a great consultant would leave them with. Plus 2 sentence context explaining why this question matters for their specific situation.\n\nSection 5 — What to Do First (3 sentences): The single most important move given their score, flags, and time horizon. Make it land.\n\nSection 6 — AI Threat Timeline: What AI will be able to do to this specific business model in the next 12 months, 24 months, and 36 months that it cannot do today. Be specific to their industry and archetype. Not generic AI trends — specific threats to THIS business. Each period: 2-3 sentences.\n\nSection 7 — Competitive Analysis: A rigorous analysis of the competitive landscape for this specific business type. Cover: (a) who the main competitors are today — both traditional and AI-powered, (b) what competitive advantages are being eroded by AI right now, (c) what the 2-3 most defensible competitive positions look like in this industry. Use your knowledge of current market conditions. Be specific — name actual platforms, tools, and competitors where relevant.\n\nSection 8 — What a Buyer Would Say: If someone tried to acquire or succeed this business today, what would they pay a premium for and what would cause them to heavily discount the price. Two lists: premium_factors (2-3 items) and discount_factors (2-3 items). Each item is a title and one sentence.\n\nSection 9 — Owner Dependence Analysis: List exactly 3-4 specific ways this business currently depends on the owner personally. Be specific to their business model and inputs — not generic. Each dependency: a short name and one sentence describing the risk if the owner steps back or exits.\n\nSection 10 — Competitive Benchmark: How does a business like this typically score on defensibility, and what do the higher-scoring ones do differently. Give a typical score range for this industry and archetype, and list 2-3 specific things that separate high-scoring from low-scoring businesses in this category.\n\nReturn ONLY valid JSON — no markdown, no backticks, no preamble:\n{\"section1\":\"...\",\"section2\":[{\"title\":\"...\",\"priority_rationale\":\"...\",\"action\":\"...\"}],\"section3\":[{\"title\":\"...\",\"desc\":\"...\"}],\"section4\":{\"question\":\"...\",\"context\":\"...\"},\"section5\":\"...\",\"section6\":{\"months12\":\"...\",\"months24\":\"...\",\"months36\":\"...\"},\"section7\":{\"competitors\":\"...\",\"eroding\":\"...\",\"defensible\":\"...\"},\"section8\":{\"premium_factors\":[{\"title\":\"...\",\"desc\":\"...\"}],\"discount_factors\":[{\"title\":\"...\",\"desc\":\"...\"}]},\"section9\":[{\"name\":\"...\",\"risk\":\"...\"}],\"section10\":{\"typical_range\":\"...\",\"differentiators\":\"...\"}}";
     try {
       var res = await fetch("/api/generate", {
         method: "POST",
@@ -628,6 +678,14 @@ export default function SmallBusiness(props) {
               if (typeof savedData.sliderKM === "number") setSliderKM(savedData.sliderKM);
               if (typeof savedData.sliderTH === "number") setSliderTH(savedData.sliderTH);
               if (Array.isArray(savedData.snapshot)) setSnapshot(savedData.snapshot);
+              if (savedData.bizGoal) setBizGoal(savedData.bizGoal);
+              if (savedData.bizAge) setBizAge(savedData.bizAge);
+              if (savedData.bizLocation) setBizLocation(savedData.bizLocation);
+              if (Array.isArray(savedData.bizChannels)) setBizChannels(savedData.bizChannels);
+              if (savedData.bizChannelOther) setBizChannelOther(savedData.bizChannelOther);
+              if (savedData.bizTech) setBizTech(savedData.bizTech);
+              if (savedData.bizCustomerSpread) setBizCustomerSpread(savedData.bizCustomerSpread);
+              if (savedData.bizDiff) setBizDiff(savedData.bizDiff);
             }
           } catch(e) {}
           setStep(8);
