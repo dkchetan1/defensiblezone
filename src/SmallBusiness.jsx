@@ -154,6 +154,63 @@ var SB_ARCHETYPES = {
 };
 
 var SB_PROMO_CODES = ["DZFRIEND", "DZPREVIEW", "DZTEST"];
+
+var BIZ_GOALS = [
+  { id: "stable", label: "Keep it stable and profitable", sub: "I'm not looking to grow — just run a good business" },
+  { id: "grow_steady", label: "Grow steadily", sub: "Expand over the next few years at a manageable pace" },
+  { id: "scale", label: "Scale aggressively", sub: "I want this to be significantly bigger" },
+  { id: "exit", label: "Prepare for exit or succession", sub: "Planning to sell, hand off, or wind down in 1–5 years" },
+  { id: "unsure", label: "Not sure yet", sub: "Still figuring out the direction" },
+];
+
+var BIZ_AGES = [
+  { id: "under35", label: "Under 35" },
+  { id: "35_44", label: "35–44" },
+  { id: "45_54", label: "45–54" },
+  { id: "55_64", label: "55–64" },
+  { id: "65plus", label: "65 or older" },
+];
+
+var BIZ_LOCATIONS = [
+  { id: "metro", label: "Major city or metro area" },
+  { id: "suburban", label: "Suburban area" },
+  { id: "rural", label: "Small town or rural area" },
+  { id: "online", label: "Primarily online — location doesn't matter" },
+];
+
+var BIZ_CHANNELS = [
+  { id: "referrals", label: "Word of mouth and referrals" },
+  { id: "social", label: "Social media" },
+  { id: "paid_ads", label: "Paid advertising" },
+  { id: "search", label: "Search / Google / online directories" },
+  { id: "foot_traffic", label: "Walk-in / foot traffic / location" },
+  { id: "repeat", label: "Repeat and returning customers" },
+  { id: "influencers", label: "Online influencers or content" },
+  { id: "other_channel", label: "Other — describe below" },
+];
+
+var BIZ_TECH = [
+  { id: "avoid", label: "I avoid new tools unless I have to", sub: "If it isn't broken, I don't fix it" },
+  { id: "trust", label: "I'll try something if someone I trust recommends it", sub: "Word of mouth drives my tech decisions" },
+  { id: "proven", label: "I adopt tools when they're proven and practical", sub: "I wait until something is reliable and worth it" },
+  { id: "early", label: "I actively look for new tools to stay competitive", sub: "I'm usually an early adopter" },
+];
+
+var BIZ_CUSTOMER_SPREAD = [
+  { id: "handful", label: "A handful of clients make up most of my income", sub: "Losing one would hurt significantly" },
+  { id: "mixed", label: "A mix — some regulars but no single one dominates", sub: "Balanced but not fully diversified" },
+  { id: "broad", label: "Broad customer base", sub: "Many customers — no single one matters too much" },
+  { id: "variable", label: "Highly variable — project by project or seasonal", sub: "Income concentration shifts constantly" },
+];
+
+var BIZ_DIFF = [
+  { id: "price", label: "Mostly price", sub: "I compete on cost — I'm usually the affordable option" },
+  { id: "convenience", label: "Convenience or location", sub: "I'm the easiest or most accessible option" },
+  { id: "relationships", label: "Personal relationships and trust", sub: "Customers stay because they know and trust me personally" },
+  { id: "expertise", label: "Specialized expertise or quality", sub: "Hard-to-find skills or quality that commands a premium" },
+  { id: "unique", label: "Something genuinely unique", sub: "Competitors can't easily replicate what I offer" },
+];
+
 var SB_SESSION_PROMO = "30FREE";
 
 function SBNavbar() {
@@ -269,6 +326,14 @@ export default function SmallBusiness(props) {
   var [promoUsed, setPromoUsed] = useState(false);
   var [sessionPromo, setSessionPromo] = useState(false);
   var [showPromo, setShowPromo] = useState(false);
+  var [bizGoal, setBizGoal] = useState("");
+  var [bizAge, setBizAge] = useState("");
+  var [bizLocation, setBizLocation] = useState("");
+  var [bizChannels, setBizChannels] = useState([]);
+  var [bizChannelOther, setBizChannelOther] = useState("");
+  var [bizTech, setBizTech] = useState("");
+  var [bizCustomerSpread, setBizCustomerSpread] = useState("");
+  var [bizDiff, setBizDiff] = useState("");
 
   var sessionBriefSentRef = useRef(false);
 
@@ -517,6 +582,9 @@ export default function SmallBusiness(props) {
     setGateLoading(false); setGateError(""); setShowResend(false);
     setReport(null); setReportLoading(false); setReportError("");
     setTier(0); setPromoCode(""); setPromoError(""); setPromoUsed(false); setSessionPromo(false); setShowPromo(false);
+    setBizGoal(""); setBizAge(""); setBizLocation("");
+    setBizChannels([]); setBizChannelOther("");
+    setBizTech(""); setBizCustomerSpread(""); setBizDiff("");
   }
 
   useEffect(function() {
@@ -1132,7 +1200,7 @@ export default function SmallBusiness(props) {
           ) : null}
 
           <button
-            onClick={function() { setStep(5); }}
+            onClick={function() { setStep(45); }}
             style={{
               background: S.accent,
               color: "#ffffff",
@@ -1157,6 +1225,40 @@ export default function SmallBusiness(props) {
             ← BACK
           </button>
 
+        </div>
+      </div>
+    );
+  }
+
+  if (step === 45) {
+    return (
+      <div style={{ background: S.bg, minHeight: "100vh",
+        fontFamily: S.font }}>
+        <SBNavbar />
+        <div style={{ maxWidth: 680, margin: "0 auto",
+          padding: "48px 24px", boxSizing: "border-box" }}>
+          <div style={{ fontFamily: S.mono, fontSize: 11,
+            color: S.dim, letterSpacing: "0.1em",
+            marginBottom: 10, fontWeight: 600 }}>
+            STEP 4.5 OF 8 — YOUR BUSINESS CONTEXT
+          </div>
+          <div style={{ height: 4, background: S.border,
+            borderRadius: 2, overflow: "hidden",
+            marginBottom: 32 }}>
+            <div style={{ height: "100%", width: "56%",
+              background: S.accent, borderRadius: 2 }} />
+          </div>
+          <p style={{ color: S.dim, fontFamily: S.mono,
+            fontSize: 14 }}>
+            Step 4.5 UI coming in next prompt
+          </p>
+          <button
+            onClick={function() { setStep(4); }}
+            style={{ marginTop: 16, background: "transparent",
+              border: "none", padding: 0, cursor: "pointer",
+              fontFamily: S.mono, fontSize: 12, color: S.dim }}>
+            ← BACK
+          </button>
         </div>
       </div>
     );
