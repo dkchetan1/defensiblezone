@@ -1084,10 +1084,46 @@ export default function SmallBusiness(props) {
                   <div style={{ fontFamily: S.mono, fontSize: 12, color: S.muted, letterSpacing: "0.06em", fontWeight: 600, marginBottom: 8 }}>
                     DESCRIBE YOUR BUSINESS MODEL
                   </div>
+                  <p style={{
+                    fontSize: 14,
+                    color: S.dim,
+                    lineHeight: 1.6,
+                    margin: "0 0 12px",
+                    fontStyle: "italic",
+                  }}>
+                    Even a few sentences helps. You don't need to write
+                    an essay — just describe what you do and who you
+                    serve in your own words.
+                  </p>
+                  <div style={{
+                    background: "#eff6ff",
+                    border: "1px solid #bfdbfe",
+                    borderRadius: 10,
+                    padding: "14px 16px",
+                    marginBottom: 12,
+                  }}>
+                    <div style={{
+                      fontFamily: S.mono,
+                      fontSize: 11,
+                      color: "#1e40af",
+                      letterSpacing: "0.08em",
+                      fontWeight: 700,
+                      marginBottom: 8,
+                    }}>
+                      THE MORE CONTEXT YOU PROVIDE, THE BETTER YOUR ANALYSIS.
+                    </div>
+                    <div style={{ fontSize: 13, color: "#1e3a5f", lineHeight: 1.7 }}>
+                      <div>• <strong>What you do and who you serve</strong> — your core service and customer type</div>
+                      <div>• <strong>How you make money</strong> — pricing model, how often customers pay</div>
+                      <div>• <strong>How customers find you</strong> — referrals, online, foot traffic, etc.</div>
+                      <div>• <strong>What makes you different</strong> — why customers choose you over alternatives</div>
+                      <div>• <strong>Your biggest challenge right now</strong> — what keeps you up at night</div>
+                    </div>
+                  </div>
                   <textarea
                     value={archetypeOther}
                     onChange={function(e) { setArchetypeOther(e.target.value); }}
-                    placeholder="e.g. We provide mobile notary services to real estate attorneys and title companies..."
+                    placeholder="e.g. I run a preschool with 10 enrolled students. I charge $1,800/month per full-time student. Most families find us through word of mouth in the neighborhood. My biggest challenge is filling enrollment back to capacity after losing students during COVID..."
                     rows={3}
                     style={{
                       width: "100%",
@@ -1103,6 +1139,21 @@ export default function SmallBusiness(props) {
                       background: S.card,
                     }}
                   />
+                  <div style={{
+                    fontFamily: S.mono,
+                    fontSize: 11,
+                    color: archetypeOther.length < 100 ? S.orange : S.green,
+                    marginTop: 6,
+                    letterSpacing: "0.04em",
+                  }}>
+                    {archetypeOther.length === 0 ?
+                      "Start typing — any context helps." :
+                      archetypeOther.length < 100 ?
+                      "Good start — a bit more detail will sharpen your results." :
+                      archetypeOther.length < 200 ?
+                      "Good — a little more if you can." :
+                      "✓ Great detail — your analysis will be highly specific."}
+                  </div>
                 </div>
               ) : null}
 
