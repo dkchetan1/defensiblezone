@@ -1,3 +1,4 @@
+import { DZNavBar, DZFooter } from "./SharedComponents";
 import { useState, useEffect, useRef } from "react";
 import PDFButton from "./PDFButton";
 
@@ -721,7 +722,9 @@ export default function Engineer() {
   // ── LOADING ───────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div style={{background:S.bg,minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center"}}>
+      <div style={{background:S.bg,minHeight:"100vh",display:"flex",flexDirection:"column",fontFamily:S.font,padding:"32px 20px",boxSizing:"border-box"}}>
+        <DZNavBar />
+        <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center"}}>
         <style dangerouslySetInnerHTML={{__html:"@keyframes spin{to{transform:rotate(360deg)}}"}} />
         <div style={{textAlign:"center",maxWidth:400,padding:"0 20px"}}>
           <div style={{width:52,height:52,border:"3px solid "+S.border,borderTop:"3px solid "+S.gold,borderRadius:"50%",margin:"0 auto 28px",animation:"spin 0.85s linear infinite"}} />
@@ -731,6 +734,8 @@ export default function Engineer() {
             {step===0?"READING YOUR ENGINEERING LANDSCAPE · GENERATING SKILL MAP":"SCORING AI REPLACEABILITY · CALIBRATING TO YOUR LEVEL"}
           </p>
         </div>
+        </div>
+        <div style={{maxWidth:680,margin:"0 auto",width:"100%"}}><DZFooter /></div>
       </div>
     );
   }
@@ -743,12 +748,13 @@ export default function Engineer() {
           minHeight: "100vh",
           fontFamily: S.font,
           display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
+          flexDirection: "column",
           padding: "32px 20px",
           boxSizing: "border-box",
         }}
       >
+        <DZNavBar />
+        <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
         <style
           dangerouslySetInnerHTML={{
             __html: "@keyframes dzEngineerGateDots{0%,100%{opacity:0.25}50%{opacity:1}}",
@@ -765,6 +771,8 @@ export default function Engineer() {
             <span style={{ animation: "dzEngineerGateDots 1s ease-in-out 0.4s infinite" }}>.</span>
           </div>
         </div>
+        </div>
+        <div style={{ maxWidth: 680, margin: "0 auto", width: "100%" }}><DZFooter /></div>
       </div>
     );
   }
@@ -779,6 +787,7 @@ export default function Engineer() {
 
     return (
      <div style={{background:S.bg,minHeight:"100vh",fontFamily:S.font,padding:"40px 20px"}}>
+  <DZNavBar />
   <style dangerouslySetInnerHTML={{__html:"@keyframes fadeSlide{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}} .reveal{animation:fadeSlide 0.25s ease-out both;}"}} />
   <div style={{padding:"0 0 8px"}}>
     <a href="/" style={{fontFamily:S.mono,fontSize:12,color:S.muted,textDecoration:"none",letterSpacing:"0.06em",fontWeight:600}}>← DEFENSIBLE ZONE™</a>
@@ -913,6 +922,7 @@ export default function Engineer() {
           )}
 
         </div>
+        <DZFooter />
       </div>
     );
   }
@@ -922,6 +932,7 @@ export default function Engineer() {
     var profile1 = buildProfile(devType, devTypeOther, seniority, workContexts, companyType);
     return (
       <div style={{background:S.bg,minHeight:"100vh",fontFamily:S.font,padding:"32px 20px"}}>
+        <DZNavBar />
         <div style={{maxWidth:680,margin:"0 auto"}}>
           <div style={{marginBottom:22}}>
             <div style={{fontFamily:S.mono,fontSize:12,color:S.gold,letterSpacing:"0.1em",marginBottom:6,fontWeight:600}}>STEP 1 OF 2 · {profile1.summary.toUpperCase()}</div>
@@ -977,6 +988,7 @@ export default function Engineer() {
               {skills.length===0?"ADD AT LEAST ONE SKILL":"NEXT: RATE AFFINITY & FLUENCY →"}
             </PrimaryBtn>
           </div>
+          <DZFooter />
         </div>
       </div>
     );
@@ -991,6 +1003,7 @@ export default function Engineer() {
     var dzSliderCSS = "input[type=range].dz-slider{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:3px;outline:none;cursor:pointer;border:none} input[type=range].dz-slider::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;border-radius:50%;border:3px solid white;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.18)} input[type=range].dz-slider::-moz-range-thumb{width:24px;height:24px;border-radius:50%;border:3px solid white;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.18)} input[type=range].conscience-sl::-webkit-slider-thumb{background:#7c3aed} input[type=range].conscience-sl::-moz-range-thumb{background:#7c3aed} input[type=range].pull-sl::-webkit-slider-thumb{background:#0891b2} input[type=range].pull-sl::-moz-range-thumb{background:#0891b2} input[type=range].fluency-sl::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:#d97706;border:2px solid white;cursor:pointer} input[type=range].fluency-sl::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:#d97706;border:2px solid white;cursor:pointer}";
     return (
       <div style={{background:S.bg,minHeight:"100vh",fontFamily:S.font,padding:"32px 20px"}}>
+        <DZNavBar />
         <style dangerouslySetInnerHTML={{__html:dzSliderCSS}} />
         <div style={{maxWidth:680,margin:"0 auto"}}>
           <div style={{marginBottom:24}}>
@@ -1159,6 +1172,7 @@ export default function Engineer() {
               setStep(3);
             }} disabled={skills.length===0} style={{flex:3}}>ANALYZE MY DEFENSIBLE ZONE™ →</PrimaryBtn>
           </div>
+          <DZFooter />
         </div>
       </div>
     );
@@ -1170,8 +1184,7 @@ export default function Engineer() {
       minHeight: "100vh",
       fontFamily: S.font,
       display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
+      flexDirection: "column",
       padding: "32px 20px",
       boxSizing: "border-box",
     };
@@ -1193,6 +1206,8 @@ export default function Engineer() {
     if (gateVerified) {
       return (
         <div style={fullScreenCenter}>
+          <DZNavBar />
+          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
           <style
             dangerouslySetInnerHTML={{
               __html: "@keyframes dzEngineerGateDots{0%,100%{opacity:0.25}50%{opacity:1}}",
@@ -1223,19 +1238,9 @@ export default function Engineer() {
               <span style={{ animation: "dzEngineerGateDots 1s ease-in-out 0.2s infinite" }}>.</span>
               <span style={{ animation: "dzEngineerGateDots 1s ease-in-out 0.4s infinite" }}>.</span>
             </div>
-            <div
-              style={{
-                fontSize: 10,
-                color: S.dim,
-                textAlign: "center",
-                marginTop: 32,
-                maxWidth: 480,
-                lineHeight: 1.5,
-              }}
-            >
-              DEFENSIBLE ZONE™ is a trademark of its creator. All rights reserved.
-            </div>
           </div>
+          </div>
+          <div style={{ maxWidth: 680, margin: "0 auto", width: "100%" }}><DZFooter /></div>
         </div>
       );
     }
@@ -1256,6 +1261,7 @@ export default function Engineer() {
     if (gateSent) {
       return (
         <div style={formShell}>
+          <DZNavBar />
           <div style={card}>
             <div
               style={{
@@ -1343,20 +1349,8 @@ export default function Engineer() {
             >
               Start over
             </div>
-
-            <div
-              style={{
-                fontSize: 10,
-                color: S.dim,
-                textAlign: "center",
-                marginTop: 32,
-                maxWidth: 480,
-                lineHeight: 1.5,
-              }}
-            >
-              DEFENSIBLE ZONE™ is a trademark of its creator. All rights reserved.
-            </div>
           </div>
+          <div style={{ maxWidth: 680, margin: "0 auto", width: "100%" }}><DZFooter /></div>
         </div>
       );
     }
@@ -1364,6 +1358,7 @@ export default function Engineer() {
     var showExpiredInvalid = gateError === "expired" || gateError === "invalid";
     return (
       <div style={formShell}>
+        <DZNavBar />
         <div style={card}>
           <div style={{ fontFamily: S.mono, fontSize: 12, color: S.gold, letterSpacing: "0.12em", marginBottom: 24, fontWeight: 600 }}>
             DEFENSIBLE ZONE™ · SOFTWARE ENGINEER EDITION
@@ -1435,20 +1430,8 @@ export default function Engineer() {
           >
             Send me my report
           </button>
-
-          <div
-            style={{
-              fontSize: 10,
-              color: S.dim,
-              textAlign: "center",
-              marginTop: 32,
-              maxWidth: 480,
-              lineHeight: 1.5,
-            }}
-          >
-            DEFENSIBLE ZONE™ is a trademark of its creator. All rights reserved.
-          </div>
         </div>
+        <div style={{ maxWidth: 680, margin: "0 auto", width: "100%" }}><DZFooter /></div>
       </div>
     );
   }
@@ -1494,6 +1477,7 @@ export default function Engineer() {
 
     return (
       <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font, padding: "32px 20px" }}>
+        <DZNavBar />
         <div style={{ maxWidth: 680, margin: "0 auto" }}>
           <div
             style={{
@@ -2367,22 +2351,7 @@ export default function Engineer() {
             </div>
           </div>
 
-          <div
-            style={{
-              borderTop: "1px solid " + S.border,
-              paddingTop: 20,
-              marginTop: 8,
-              textAlign: "center",
-            }}
-          >
-            <div style={{ fontFamily: S.mono, fontSize: 12, color: "#9ca3af", lineHeight: 1.7 }}>
-              DEFENSIBLE ZONE&#8482; is a trademark of its creator. All rights reserved.
-            </div>
-            <div style={{ fontFamily: S.mono, fontSize: 12, color: "#9ca3af", lineHeight: 1.7, marginTop: 6 }}>
-              This tool is for professional reflection and educational purposes only. It does not constitute employment advice or any professional assessment.
-            </div>
-            <div style={{ fontFamily: S.mono, fontSize: 12, color: "#9ca3af", marginTop: 6 }}>&copy; 2026</div>
-          </div>
+          <DZFooter />
         </div>
       </div>
     );
