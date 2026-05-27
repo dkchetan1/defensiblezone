@@ -1,3 +1,4 @@
+import { DZNavBar, DZFooter } from "./SharedComponents";
 import { useEffect, useRef, useState } from "react";
 import PDFButton from "./PDFButton";
 
@@ -1123,16 +1124,18 @@ export default function Finance(props) {
           minHeight: "100vh",
           fontFamily: S.font,
           display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
+          flexDirection: "column",
           padding: "32px 20px",
+          boxSizing: "border-box",
         }}
       >
+        <DZNavBar />
         <style
           dangerouslySetInnerHTML={{
             __html: "@keyframes dzFinanceDots{0%,100%{opacity:0.25}50%{opacity:1}}",
           }}
         />
+        <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
         <div style={{ textAlign: "center", maxWidth: 420 }}>
           <div style={{ fontFamily: S.mono, fontSize: 12, color: S.gold, letterSpacing: "0.12em", marginBottom: 24, fontWeight: 600 }}>
             DEFENSIBLE ZONE™ · FINANCE EDITION
@@ -1143,6 +1146,10 @@ export default function Finance(props) {
             <span style={{ animation: "dzFinanceDots 1s ease-in-out 0.2s infinite" }}>.</span>
             <span style={{ animation: "dzFinanceDots 1s ease-in-out 0.4s infinite" }}>.</span>
           </div>
+        </div>
+        </div>
+        <div style={{ maxWidth: 680, margin: "0 auto", width: "100%" }}>
+          <DZFooter />
         </div>
       </div>
     );
@@ -1172,12 +1179,13 @@ export default function Finance(props) {
             minHeight: "100vh",
             fontFamily: S.font,
             display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
+            flexDirection: "column",
             padding: "32px 20px",
             boxSizing: "border-box",
           }}
         >
+          <DZNavBar />
+          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
           <div style={{ textAlign: "center", maxWidth: 420 }}>
             <div style={{ color: S.red, fontSize: 15, margin: "0 0 20px", lineHeight: 1.5 }}>{msg}</div>
             {showResultsError ? (
@@ -1192,6 +1200,10 @@ export default function Finance(props) {
                 Try again
               </button>
             ) : null}
+          </div>
+          </div>
+          <div style={{ maxWidth: 680, margin: "0 auto", width: "100%" }}>
+            <DZFooter />
           </div>
         </div>
       );
@@ -1216,6 +1228,7 @@ export default function Finance(props) {
 
     return (
       <div style={{ background: S.bg, minHeight: "100vh", padding: "32px 20px", fontFamily: S.font, boxSizing: "border-box" }}>
+        <DZNavBar />
         <style
           dangerouslySetInnerHTML={{
             __html:
@@ -1694,20 +1707,7 @@ export default function Finance(props) {
               </div>
             )}
 
-            <div
-              style={{
-                marginTop: 48,
-                paddingTop: 24,
-                borderTop: "1px solid " + S.border,
-                fontFamily: S.mono,
-                fontSize: 11,
-                color: S.dim,
-                textAlign: "center",
-                lineHeight: 1.6,
-              }}
-            >
-              DEFENSIBLE ZONE™ is a product of Recursio Lab. All rights reserved.
-            </div>
+            <DZFooter />
           </div>
         </div>
       </div>
@@ -1722,11 +1722,13 @@ export default function Finance(props) {
           minHeight: "100vh",
           fontFamily: S.font,
           display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
+          flexDirection: "column",
           padding: "32px 20px",
+          boxSizing: "border-box",
         }}
       >
+        <DZNavBar />
+        <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
         <div style={{ textAlign: "center", maxWidth: 400 }}>
           <p style={{ color: S.red, fontSize: 15, margin: "0 0 20px", lineHeight: 1.5 }}>{error}</p>
           <button
@@ -1740,6 +1742,10 @@ export default function Finance(props) {
             Try again
           </button>
         </div>
+        </div>
+        <div style={{ maxWidth: 680, margin: "0 auto", width: "100%" }}>
+          <DZFooter />
+        </div>
       </div>
     );
   }
@@ -1752,16 +1758,18 @@ export default function Finance(props) {
           minHeight: "100vh",
           fontFamily: S.font,
           display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
+          flexDirection: "column",
           padding: "32px 20px",
+          boxSizing: "border-box",
         }}
       >
+        <DZNavBar />
         <style
           dangerouslySetInnerHTML={{
             __html: "@keyframes dzFinanceDots{0%,100%{opacity:0.25}50%{opacity:1}}",
           }}
         />
+        <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
         <div style={{ textAlign: "center", maxWidth: 420 }}>
           <div
             style={{
@@ -1793,6 +1801,10 @@ export default function Finance(props) {
             <span style={{ animation: "dzFinanceDots 1s ease-in-out 0.4s infinite" }}>.</span>
           </div>
         </div>
+        </div>
+        <div style={{ maxWidth: 680, margin: "0 auto", width: "100%" }}>
+          <DZFooter />
+        </div>
       </div>
     );
   }
@@ -1812,6 +1824,7 @@ export default function Finance(props) {
     var pullPct = (pull / 10) * 100;
     return (
       <div style={{ background: S.bg, minHeight: "100vh", padding: "32px 20px", fontFamily: S.font }}>
+        <DZNavBar />
         <style
           dangerouslySetInnerHTML={{
             __html:
@@ -2083,6 +2096,7 @@ export default function Finance(props) {
           >
             See My Results →
           </button>
+          <DZFooter />
         </div>
       </div>
     );
@@ -2094,8 +2108,7 @@ export default function Finance(props) {
       minHeight: "100vh",
       fontFamily: S.font,
       display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
+      flexDirection: "column",
       padding: "32px 20px",
       boxSizing: "border-box",
     };
@@ -2103,11 +2116,13 @@ export default function Finance(props) {
     if (gateLoading) {
       return (
         <div style={fullScreenCenter}>
+          <DZNavBar />
           <style
             dangerouslySetInnerHTML={{
               __html: "@keyframes dzFinanceDots{0%,100%{opacity:0.25}50%{opacity:1}}",
             }}
           />
+          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
           <div style={{ textAlign: "center", maxWidth: 420 }}>
             <div style={{ fontFamily: S.mono, fontSize: 12, color: S.gold, letterSpacing: "0.12em", marginBottom: 24, fontWeight: 600 }}>
               DEFENSIBLE ZONE™ · FINANCE EDITION
@@ -2119,6 +2134,10 @@ export default function Finance(props) {
               <span style={{ animation: "dzFinanceDots 1s ease-in-out 0.4s infinite" }}>.</span>
             </div>
           </div>
+          </div>
+          <div style={{ maxWidth: 680, margin: "0 auto", width: "100%" }}>
+            <DZFooter />
+          </div>
         </div>
       );
     }
@@ -2126,11 +2145,13 @@ export default function Finance(props) {
     if (gateVerified) {
       return (
         <div style={fullScreenCenter}>
+          <DZNavBar />
           <style
             dangerouslySetInnerHTML={{
               __html: "@keyframes dzFinanceDots{0%,100%{opacity:0.25}50%{opacity:1}}",
             }}
           />
+          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
           <div style={{ textAlign: "center", maxWidth: 420 }}>
             <div style={{ fontFamily: S.mono, fontSize: 12, color: S.gold, letterSpacing: "0.12em", marginBottom: 24, fontWeight: 600 }}>
               DEFENSIBLE ZONE™ · FINANCE EDITION
@@ -2157,6 +2178,10 @@ export default function Finance(props) {
               <span style={{ animation: "dzFinanceDots 1s ease-in-out 0.4s infinite" }}>.</span>
             </div>
           </div>
+          </div>
+          <div style={{ maxWidth: 680, margin: "0 auto", width: "100%" }}>
+            <DZFooter />
+          </div>
         </div>
       );
     }
@@ -2178,6 +2203,7 @@ export default function Finance(props) {
     if (gateSent) {
       return (
         <div style={formShell}>
+          <DZNavBar />
           <div style={card}>
             <div
               style={{
@@ -2266,6 +2292,9 @@ export default function Finance(props) {
               Start over
             </div>
           </div>
+          <div style={{ maxWidth: 680, margin: "0 auto", width: "100%" }}>
+            <DZFooter />
+          </div>
         </div>
       );
     }
@@ -2273,6 +2302,7 @@ export default function Finance(props) {
     var showExpiredInvalid = gateError === "expired" || gateError === "invalid";
     return (
       <div style={formShell}>
+        <DZNavBar />
         <div style={card}>
           <div style={{ fontFamily: S.mono, fontSize: 12, color: S.gold, letterSpacing: "0.12em", marginBottom: 24, fontWeight: 600 }}>
             DEFENSIBLE ZONE™ · FINANCE EDITION
@@ -2345,6 +2375,9 @@ export default function Finance(props) {
             Send me my results
           </button>
         </div>
+        <div style={{ maxWidth: 680, margin: "0 auto", width: "100%" }}>
+          <DZFooter />
+        </div>
       </div>
     );
   }
@@ -2353,6 +2386,7 @@ export default function Finance(props) {
     var canContinue1 = firmType !== "";
     return (
       <div style={containerOuter}>
+        <DZNavBar />
         <div style={containerInner}>
           <button type="button" onClick={() => setStep(0)} style={backBtnStyle}>
             ← back
@@ -2423,6 +2457,7 @@ export default function Finance(props) {
           >
             CONTINUE →
           </button>
+          <DZFooter />
         </div>
       </div>
     );
@@ -2433,6 +2468,7 @@ export default function Finance(props) {
     var canContinue2 = companySize !== "";
     return (
       <div style={containerOuter}>
+        <DZNavBar />
         <div style={containerInner}>
           <button type="button" onClick={() => setStep(1)} style={backBtnStyle}>
             ← back
@@ -2506,6 +2542,7 @@ export default function Finance(props) {
           >
             CONTINUE →
           </button>
+          <DZFooter />
         </div>
       </div>
     );
@@ -2532,6 +2569,7 @@ export default function Finance(props) {
     };
     return (
       <div style={containerOuter}>
+        <DZNavBar />
         <div style={containerInner}>
           <button type="button" onClick={() => setStep(2)} style={backBtnStyle}>
             ← back
@@ -2616,6 +2654,7 @@ export default function Finance(props) {
           >
             CONTINUE →
           </button>
+          <DZFooter />
         </div>
       </div>
     );
@@ -2625,6 +2664,7 @@ export default function Finance(props) {
 
   return (
     <div style={containerOuter}>
+      <DZNavBar />
       <div style={containerInner}>
         {gateOnDifferentDevice && step === 0 ? (
           <div
@@ -2854,6 +2894,7 @@ export default function Finance(props) {
             CONTINUE →
           </button>
         ) : null}
+        <DZFooter />
       </div>
     </div>
   );
