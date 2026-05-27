@@ -1,3 +1,4 @@
+import { DZNavBar, DZFooter } from "./SharedComponents";
 import { useState, useEffect, useRef } from "react";
 
 // ── UX ROLE TYPES ─────────────────────────────────────────────────────
@@ -624,39 +625,6 @@ function UXDisclaimer() {
       </div>
       <div style={{ fontFamily: S.mono, fontSize: 12, color: "#78350f", lineHeight: 1.7 }}>
         This tool is for professional reflection and educational purposes only. It does not constitute career advice or any professional assessment. Scores are estimates based on AI labor market research and model calibration — not a definitive evaluation of your skills or employability.
-      </div>
-    </div>
-  );
-}
-
-function UXFooter() {
-  return (
-    <div style={{ marginTop: 32, background: S.card2, borderTop: "1px solid " + S.border, padding: "20px 24px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
-        <div>
-          <div style={{ fontFamily: S.mono, fontSize: 10, color: S.muted, marginBottom: 4 }}>DEFENSIBLE ZONE™</div>
-          <a
-            href="https://defensiblezone.ai"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ fontFamily: S.mono, fontSize: 14, fontWeight: "bold", color: S.accent, textDecoration: "none" }}
-            onMouseEnter={function (e) { e.currentTarget.style.opacity = "0.75"; }}
-            onMouseLeave={function (e) { e.currentTarget.style.opacity = "1"; }}
-          >
-            defensiblezone.ai →
-          </a>
-        </div>
-        <div>
-          <div style={{ fontFamily: S.mono, fontSize: 10, color: S.muted, marginBottom: 4 }}>QUESTIONS &amp; FEEDBACK</div>
-          <a
-            href="mailto:support@recursiolab.com"
-            style={{ fontFamily: S.mono, fontSize: 14, fontWeight: "bold", color: S.purple, textDecoration: "none" }}
-            onMouseEnter={function (e) { e.currentTarget.style.opacity = "0.75"; }}
-            onMouseLeave={function (e) { e.currentTarget.style.opacity = "1"; }}
-          >
-            support@recursiolab.com →
-          </a>
-        </div>
       </div>
     </div>
   );
@@ -1462,6 +1430,7 @@ export default function UX() {
             boxSizing: "border-box",
           }}
         >
+          <DZNavBar />
           <div
             style={{
               width: 56,
@@ -1489,6 +1458,7 @@ export default function UX() {
             <span style={{ animation: "uxDots 1s ease-in-out 0.2s infinite" }}>.</span>
             <span style={{ animation: "uxDots 1s ease-in-out 0.4s infinite" }}>.</span>
           </div>
+          <DZFooter />
         </div>
       ) : error ? (
         <div
@@ -1501,6 +1471,7 @@ export default function UX() {
             boxSizing: "border-box",
           }}
         >
+          <DZNavBar />
           <Card style={{ maxWidth: 480, width: "100%", border: "1px solid " + S.red, textAlign: "center" }}>
             <p style={{ color: S.red, fontSize: 16, lineHeight: 1.6, margin: "0 0 20px" }}>{error}</p>
             <PrimaryBtn
@@ -1514,9 +1485,11 @@ export default function UX() {
               Try Again
             </PrimaryBtn>
           </Card>
+          <DZFooter />
         </div>
       ) : (
         <>
+          <DZNavBar />
           {step >= 1 && step <= 4 ? (
             <div style={{ padding: "0 20px", maxWidth: 720, margin: "0 auto" }}>
               <div style={{ height: 3, background: S.border, borderRadius: 2, overflow: "hidden", marginTop: 0 }}>
@@ -3057,7 +3030,7 @@ export default function UX() {
         </>
       )}
 
-      <UXFooter />
+      {!loading && !error ? <DZFooter /> : null}
     </div>
   );
 }
