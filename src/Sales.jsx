@@ -1526,5 +1526,520 @@ export default function Sales({ reportMode }) {
     );
   }
 
+  // ── STEP 4: FREE RESULTS ─────────────────────────────────────────────
+  if (step === 4 && results) {
+    var scoredSkills4 = Array.isArray(results.skills) ? results.skills : [];
+    var overallScore = computeOverallScore(scoredSkills4);
+    var overallColor4 = dzScoreColor(overallScore);
+    var phase1TeaserText =
+      results.phase1Teaser && results.phase1Teaser.trim()
+        ? results.phase1Teaser
+        : "Start with one concrete move this week that makes your strongest deal skill visible — to your manager, your accounts, or your pipeline.";
+    var unlockPrice4 = discountApplied ? "$39.50" : "$79";
+
+    return (
+      <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font, padding: "40px 20px", boxSizing: "border-box" }}>
+        <div style={{ maxWidth: 680, margin: "0 auto" }}>
+          <div style={{ marginBottom: 28 }}>
+            <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.1em", marginBottom: 10, fontWeight: 600 }}>
+              STEP 5 OF 6 — YOUR RESULTS
+            </div>
+            <div style={{ height: 4, background: S.border, borderRadius: 2, overflow: "hidden" }}>
+              <div style={{ height: "100%", width: resultsStepBarPct + "%", background: S.accent, borderRadius: 2, transition: "width 0.25s ease" }} />
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={resetAll}
+            style={{
+              background: "transparent",
+              border: "1px solid " + S.border,
+              color: S.dim,
+              borderRadius: 10,
+              padding: "10px 16px",
+              fontFamily: S.mono,
+              fontSize: 12,
+              fontWeight: 600,
+              cursor: "pointer",
+              letterSpacing: "0.06em",
+              marginBottom: 24,
+            }}
+          >
+            START OVER
+          </button>
+
+          <div style={{ fontFamily: S.mono, fontSize: 11, color: S.gold, letterSpacing: "0.12em", marginBottom: 20, fontWeight: 600 }}>
+            DEFENSIBLE ZONE™ · SALES EDITION
+          </div>
+
+          <h1 style={{ fontFamily: S.serif, fontSize: 32, color: S.text, margin: "0 0 8px", lineHeight: 1.2, fontWeight: 600 }}>
+            Your Defensible Zone™
+          </h1>
+
+          <p style={{ fontFamily: S.mono, fontSize: 12, color: S.muted, margin: "0 0 28px", lineHeight: 1.5, letterSpacing: "0.02em" }}>
+            {results.profile && results.profile.summary ? results.profile.summary : ""}
+          </p>
+
+          <div style={{ background: S.accent, borderRadius: 14, padding: 22, marginBottom: 24, position: "relative", overflow: "hidden" }}>
+            <div
+              style={{
+                position: "absolute",
+                top: 0,
+                right: 0,
+                width: 160,
+                height: 160,
+                background: "radial-gradient(circle,rgba(217,119,6,.15) 0%,transparent 70%)",
+                pointerEvents: "none",
+              }}
+            />
+            <div style={{ fontFamily: S.mono, fontSize: 12, color: "rgba(217,119,6,.85)", letterSpacing: "0.1em", marginBottom: 10, fontWeight: 600 }}>
+              YOUR AI LANDSCAPE
+            </div>
+            <p style={{ color: "#ffffff", fontSize: 16, lineHeight: 1.75, margin: 0, fontStyle: "italic" }}>{results.landscape}</p>
+          </div>
+
+          <Card style={{ marginBottom: 28, textAlign: "center" }}>
+            <div style={{ fontFamily: S.mono, fontSize: 12, color: S.dim, letterSpacing: "0.08em", marginBottom: 12, fontWeight: 600 }}>
+              YOUR DEFENSIBLE ZONE SCORE
+            </div>
+            <div style={{ fontFamily: S.mono, fontSize: 72, fontWeight: 700, color: overallColor4, lineHeight: 1, marginBottom: 12 }}>
+              {overallScore}
+            </div>
+            <p style={{ fontSize: 15, color: S.dim, lineHeight: 1.6, margin: 0, maxWidth: 480, marginLeft: "auto", marginRight: "auto" }}>
+              {getOverallSubLabel(overallScore)}
+            </p>
+          </Card>
+
+          <div style={{ fontFamily: S.mono, fontSize: 12, color: S.dim, letterSpacing: "0.08em", marginBottom: 14, fontWeight: 600 }}>
+            SKILL-BY-SKILL BREAKDOWN
+          </div>
+
+          {scoredSkills4.map(function (sk) {
+            var dz = typeof sk.dz === "number" ? sk.dz : 0;
+            var aiR = typeof sk.ai_replaceability === "number" ? sk.ai_replaceability : 5;
+            var mkt = typeof sk.market_demand === "number" ? sk.market_demand : 7;
+            var aff = typeof sk.affinity === "number" ? sk.affinity : 5;
+            var col = dzScoreColor(dz);
+            var skillName = sk.text || sk.name || "—";
+            return (
+              <div
+                key={sk.id || skillName}
+                style={{
+                  background: S.card,
+                  border: "1px solid " + S.border,
+                  borderRadius: 12,
+                  padding: "18px 20px",
+                  marginBottom: 10,
+                }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14, gap: 12 }}>
+                  <div style={{ fontSize: 16, fontWeight: 600, color: S.text, lineHeight: 1.35, flex: 1 }}>{skillName}</div>
+                  <div style={{ fontFamily: S.mono, fontSize: 28, fontWeight: 700, color: col, flexShrink: 0, lineHeight: 1 }}>{dz}</div>
+                </div>
+
+                <div style={{ marginBottom: 10 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                    <span style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.06em", fontWeight: 600 }}>AI EXPOSURE</span>
+                    <span style={{ fontFamily: S.mono, fontSize: 11, color: S.red, fontWeight: 700 }}>{aiR}/10</span>
+                  </div>
+                  <div style={{ height: 6, background: S.card2, borderRadius: 3, overflow: "hidden" }}>
+                    <div style={{ width: (aiR / 10) * 100 + "%", height: "100%", background: S.red, borderRadius: 3 }} />
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: 10 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                    <span style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.06em", fontWeight: 600 }}>MARKET VALUE</span>
+                    <span style={{ fontFamily: S.mono, fontSize: 11, color: S.green, fontWeight: 700 }}>{mkt}/10</span>
+                  </div>
+                  <div style={{ height: 6, background: S.card2, borderRadius: 3, overflow: "hidden" }}>
+                    <div style={{ width: (mkt / 10) * 100 + "%", height: "100%", background: S.green, borderRadius: 3 }} />
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: 10 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                    <span style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.06em", fontWeight: 600 }}>YOUR AFFINITY</span>
+                    <span style={{ fontFamily: S.mono, fontSize: 11, color: S.purple, fontWeight: 700 }}>{aff}/10</span>
+                  </div>
+                </div>
+
+                <p style={{ fontSize: 14, color: S.dim, lineHeight: 1.55, margin: 0, fontStyle: "italic" }}>
+                  {getSkillInterpretation(aiR, mkt, aff)}
+                </p>
+              </div>
+            );
+          })}
+
+          <div
+            style={{
+              background: S.card,
+              border: "2px solid " + S.gold,
+              borderRadius: 12,
+              padding: "20px 22px",
+              marginTop: 32,
+              marginBottom: 28,
+            }}
+          >
+            <div style={{ fontFamily: S.mono, fontSize: 11, color: S.gold, letterSpacing: "0.08em", marginBottom: 10, fontWeight: 700 }}>
+              PREVIEW — PHASE 1 ACTION
+            </div>
+            <p style={{ fontSize: 15, color: S.text, lineHeight: 1.65, margin: 0 }}>{phase1TeaserText}</p>
+          </div>
+
+          <div
+            style={{
+              background: S.card2,
+              border: "1px solid " + S.border,
+              borderRadius: 12,
+              padding: "14px 18px",
+              marginBottom: 28,
+              textAlign: "center",
+            }}
+          >
+            <p style={{ fontFamily: S.mono, fontSize: 12, color: S.dim, margin: 0, lineHeight: 1.6 }}>
+              A copy of these results has been sent to {gateEmail}
+            </p>
+          </div>
+
+          <div style={{ fontFamily: S.mono, fontSize: 12, color: S.dim, letterSpacing: "0.08em", marginBottom: 10, fontWeight: 600 }}>
+            HAVE A PROMO CODE?
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "stretch", marginBottom: 8 }}>
+            <input
+              type="text"
+              value={promoCode}
+              onChange={function (e) {
+                setPromoCode(e.target.value);
+                if (promoError) setPromoError("");
+              }}
+              placeholder="Enter code"
+              style={Object.assign({}, inputStyle, { flex: "1 1 160px", minWidth: 0, marginBottom: 0 })}
+            />
+            <button
+              type="button"
+              onClick={applyPromoCode}
+              style={{
+                padding: "12px 20px",
+                fontSize: 15,
+                fontFamily: S.mono,
+                fontWeight: 700,
+                letterSpacing: "0.06em",
+                background: S.card2,
+                color: S.text,
+                border: "1px solid " + S.border,
+                borderRadius: 10,
+                cursor: "pointer",
+              }}
+            >
+              APPLY
+            </button>
+          </div>
+          {promoError ? <div style={{ color: S.red, fontSize: 14, marginBottom: 12 }}>{promoError}</div> : null}
+          {discountApplied ? (
+            <div style={{ color: S.green, fontSize: 14, marginBottom: 20 }}>50% discount applied — your price is $39.50</div>
+          ) : null}
+
+          <PrimaryBtn
+            onClick={function () {
+              setStep(5);
+            }}
+            style={{ marginBottom: 28 }}
+          >
+            UNLOCK MY FULL PLAN — {unlockPrice4}
+          </PrimaryBtn>
+
+          <SalesDisclaimer />
+          <SalesFooter />
+        </div>
+      </div>
+    );
+  }
+
+  // ── STEP 5: PAYWALL ──────────────────────────────────────────────────
+  if (step === 5 && tier < 2 && !promoUsed) {
+    var unlockPrice5 = discountApplied ? "$39.50" : "$79";
+    return (
+      <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font, padding: "40px 20px", boxSizing: "border-box" }}>
+        <style dangerouslySetInnerHTML={{ __html: "@keyframes dzSalesCheckoutSpin{to{transform:rotate(360deg)}}" }} />
+        <div style={{ maxWidth: 680, margin: "0 auto" }}>
+          <div style={{ marginBottom: 28 }}>
+            <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.1em", marginBottom: 10, fontWeight: 600 }}>
+              STEP 6 OF 6 — UNLOCK YOUR PLAN
+            </div>
+            <div style={{ height: 4, background: S.border, borderRadius: 2, overflow: "hidden" }}>
+              <div style={{ height: "100%", width: unlockStepBarPct + "%", background: S.accent, borderRadius: 2 }} />
+            </div>
+          </div>
+
+          <div style={{ fontFamily: S.mono, fontSize: 11, color: S.gold, letterSpacing: "0.12em", marginBottom: 20, fontWeight: 600 }}>
+            UNLOCK YOUR 90-DAY PLAN
+          </div>
+
+          <h1 style={{ fontFamily: S.serif, fontSize: 32, color: S.text, margin: "0 0 12px", lineHeight: 1.2, fontWeight: 600 }}>
+            Your full plan is ready.
+          </h1>
+
+          <p style={{ color: S.dim, fontSize: 16, lineHeight: 1.7, margin: "0 0 28px" }}>
+            Unlock personalised actions for every skill — sequenced across three phases. We&apos;ll email the complete plan to{" "}
+            <span style={{ fontFamily: S.mono, fontSize: 14, color: S.muted, fontWeight: 600 }}>{gateEmail}</span>.
+          </p>
+
+          <div
+            style={{
+              background: S.accent,
+              borderRadius: 14,
+              padding: "28px 24px",
+              marginBottom: 24,
+              textAlign: "center",
+            }}
+          >
+            <div style={{ fontFamily: S.mono, fontSize: 28, fontWeight: 700, color: "#ffffff" }}>{unlockPrice5}</div>
+          </div>
+
+          {paymentCanceled ? (
+            <div style={{ color: "#d97706", fontSize: 14, marginBottom: 16, lineHeight: 1.5 }}>
+              Payment was cancelled — try again when you&apos;re ready.
+            </div>
+          ) : null}
+
+          {checkoutError ? (
+            <div style={{ color: S.red, fontSize: 14, marginBottom: 16, lineHeight: 1.5 }}>{checkoutError}</div>
+          ) : null}
+
+          <PrimaryBtn onClick={handleUnlockCheckout} disabled={checkoutLoading} style={{ marginBottom: 24 }}>
+            {checkoutLoading ? (
+              <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
+                <span
+                  style={{
+                    width: 18,
+                    height: 18,
+                    border: "2px solid rgba(255,255,255,0.35)",
+                    borderTop: "2px solid #ffffff",
+                    borderRadius: "50%",
+                    animation: "dzSalesCheckoutSpin 0.85s linear infinite",
+                    flexShrink: 0,
+                  }}
+                />
+                Starting checkout…
+              </span>
+            ) : (
+              "UNLOCK MY PLAN → " + unlockPrice5
+            )}
+          </PrimaryBtn>
+
+          <div style={{ fontFamily: S.mono, fontSize: 12, color: S.dim, letterSpacing: "0.08em", marginBottom: 10, fontWeight: 600 }}>
+            HAVE A PROMO CODE?
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "stretch", marginBottom: 8 }}>
+            <input
+              type="text"
+              value={promoCode}
+              onChange={function (e) {
+                setPromoCode(e.target.value);
+                if (promoError) setPromoError("");
+              }}
+              placeholder="Enter code"
+              style={Object.assign({}, inputStyle, { flex: "1 1 160px", minWidth: 0, marginBottom: 0 })}
+            />
+            <button
+              type="button"
+              onClick={applyPromoCode}
+              style={{
+                padding: "12px 20px",
+                fontSize: 15,
+                fontFamily: S.mono,
+                fontWeight: 700,
+                letterSpacing: "0.06em",
+                background: S.card2,
+                color: S.text,
+                border: "1px solid " + S.border,
+                borderRadius: 10,
+                cursor: "pointer",
+              }}
+            >
+              APPLY
+            </button>
+          </div>
+          {promoError ? <div style={{ color: S.red, fontSize: 14, marginBottom: 12 }}>{promoError}</div> : null}
+          {discountApplied ? (
+            <div style={{ color: S.green, fontSize: 14, marginBottom: 24 }}>50% discount applied — your price is $39.50</div>
+          ) : null}
+
+          <button
+            type="button"
+            onClick={function () {
+              setStep(4);
+              setPaymentCanceled(false);
+              setCheckoutError(null);
+            }}
+            style={{
+              background: "transparent",
+              border: "none",
+              padding: 0,
+              cursor: "pointer",
+              fontFamily: S.mono,
+              fontSize: 12,
+              color: S.dim,
+              letterSpacing: "0.06em",
+            }}
+          >
+            ← BACK TO RESULTS
+          </button>
+
+          <SalesFooter />
+        </div>
+      </div>
+    );
+  }
+
+  // ── STEP 6: 90-DAY PLAN ──────────────────────────────────────────────
+  if (step === 6 && (tier >= 2 || promoUsed)) {
+    var rawRecs6 = recommendations && Array.isArray(recommendations.recommendations) ? recommendations.recommendations.slice() : [];
+    var PHASE_HEADERS_6 = [
+      { phase: 1, label: "PHASE 1: WEEKS 1–4 — START NOW" },
+      { phase: 2, label: "PHASE 2: WEEKS 5–8 — BUILD ON IT" },
+      { phase: 3, label: "PHASE 3: WEEKS 9–12 — STRUCTURAL MOVES" },
+    ];
+
+    return (
+      <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font, padding: "40px 20px", boxSizing: "border-box" }}>
+        <div style={{ maxWidth: 680, margin: "0 auto" }}>
+          <div style={{ marginBottom: 28 }}>
+            <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.1em", marginBottom: 10, fontWeight: 600 }}>
+              COMPLETE — YOUR 90-DAY PLAN
+            </div>
+            <div style={{ height: 4, background: S.border, borderRadius: 2, overflow: "hidden" }}>
+              <div style={{ height: "100%", width: "100%", background: S.green, borderRadius: 2 }} />
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={resetAll}
+            style={{
+              background: "transparent",
+              border: "1px solid " + S.border,
+              color: S.dim,
+              borderRadius: 10,
+              padding: "10px 16px",
+              fontFamily: S.mono,
+              fontSize: 12,
+              fontWeight: 600,
+              cursor: "pointer",
+              letterSpacing: "0.06em",
+              marginBottom: 24,
+            }}
+          >
+            START OVER
+          </button>
+
+          <div style={{ fontFamily: S.mono, fontSize: 11, color: S.gold, letterSpacing: "0.12em", marginBottom: 12, fontWeight: 600 }}>
+            YOUR DEFENSIBLE ZONE PLAN
+          </div>
+          <h1 style={{ fontFamily: S.serif, fontSize: 32, color: S.text, margin: "0 0 10px", lineHeight: 1.2, fontWeight: 600 }}>
+            90 days to a stronger position.
+          </h1>
+          <p style={{ color: S.dim, fontSize: 16, lineHeight: 1.7, margin: "0 0 32px" }}>
+            Here is exactly what to do — sequenced by what you can start now.
+          </p>
+
+          {recsError ? (
+            <Card style={{ textAlign: "center", marginBottom: 28 }}>
+              <p style={{ color: S.red, fontSize: 15, margin: "0 0 20px", lineHeight: 1.5 }}>{recsError}</p>
+              <PrimaryBtn onClick={fetchRecommendations}>TRY AGAIN</PrimaryBtn>
+            </Card>
+          ) : null}
+
+          {!recsError && rawRecs6.length > 0
+            ? PHASE_HEADERS_6.map(function (ph) {
+                var phaseRecs = rawRecs6.filter(function (r) {
+                  return r.phase === ph.phase;
+                });
+                if (phaseRecs.length === 0) return null;
+                return (
+                  <div key={ph.phase} style={{ marginBottom: 32 }}>
+                    <div
+                      style={{
+                        fontFamily: S.mono,
+                        fontSize: 11,
+                        color: S.muted,
+                        letterSpacing: "0.1em",
+                        fontWeight: 700,
+                        marginBottom: 14,
+                      }}
+                    >
+                      {ph.label}
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                      {phaseRecs.map(function (rec, idx) {
+                        return (
+                          <div
+                            key={(rec.id || "rec") + "-" + idx}
+                            style={{
+                              background: S.card,
+                              border: "1px solid " + S.border,
+                              borderRadius: 12,
+                              padding: "20px 22px",
+                              position: "relative",
+                            }}
+                          >
+                            <div
+                              style={{
+                                position: "absolute",
+                                top: 14,
+                                right: 14,
+                                fontFamily: S.mono,
+                                fontSize: 10,
+                                fontWeight: 700,
+                                letterSpacing: "0.06em",
+                                color: S.gold,
+                                background: S.card2,
+                                border: "1px solid " + S.border,
+                                borderRadius: 6,
+                                padding: "4px 8px",
+                              }}
+                            >
+                              PHASE {rec.phase}
+                            </div>
+                            <div style={{ fontSize: 17, fontWeight: 700, color: S.text, lineHeight: 1.35, marginBottom: 10, paddingRight: 72 }}>
+                              {rec.headline || "—"}
+                            </div>
+                            <div style={{ fontSize: 15, color: S.dim, lineHeight: 1.65, marginBottom: 10 }}>{rec.action || ""}</div>
+                            <div style={{ fontSize: 13, color: S.muted, fontStyle: "italic", lineHeight: 1.55 }}>{rec.why || ""}</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })
+            : null}
+
+          {!recsError && rawRecs6.length > 0 ? (
+            <div
+              style={{
+                background: S.card2,
+                border: "1px solid " + S.border,
+                borderRadius: 12,
+                padding: "14px 18px",
+                marginBottom: 28,
+                textAlign: "center",
+              }}
+            >
+              <p style={{ fontFamily: S.mono, fontSize: 12, color: S.dim, margin: 0, lineHeight: 1.6 }}>
+                A copy of this plan has been sent to {gateEmail}
+              </p>
+            </div>
+          ) : null}
+
+          <SalesDisclaimer />
+          <SalesFooter />
+        </div>
+      </div>
+    );
+  }
+
   return null;
 }
