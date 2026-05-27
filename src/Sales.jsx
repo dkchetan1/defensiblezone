@@ -301,6 +301,31 @@ function SalesDisclaimer() {
   );
 }
 
+function SalesNavBar() {
+  return (
+    <div style={{ background: S.card2, borderBottom: "1px solid " + S.border, padding: "12px 24px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16 }}>
+      <a
+        href="https://defensiblezone.ai"
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{ fontFamily: S.mono, fontSize: 14, fontWeight: "bold", color: S.accent, textDecoration: "none" }}
+        onMouseEnter={function(e) { e.currentTarget.style.opacity = "0.75"; }}
+        onMouseLeave={function(e) { e.currentTarget.style.opacity = "1"; }}
+      >
+        defensiblezone.ai →
+      </a>
+      <a
+        href="mailto:support@recursiolab.com"
+        style={{ fontFamily: S.mono, fontSize: 14, fontWeight: "bold", color: S.purple, textDecoration: "none" }}
+        onMouseEnter={function(e) { e.currentTarget.style.opacity = "0.75"; }}
+        onMouseLeave={function(e) { e.currentTarget.style.opacity = "1"; }}
+      >
+        Questions &amp; Feedback →
+      </a>
+    </div>
+  );
+}
+
 function SalesFooter() {
   return (
     <div style={{ marginTop: 32, background: S.card2, borderTop: "1px solid " + S.border, padding: "20px 24px" }}>
@@ -327,6 +352,19 @@ function SalesFooter() {
             onMouseLeave={function(e) { e.currentTarget.style.opacity = "1"; }}
           >
             support@recursiolab.com →
+          </a>
+        </div>
+        <div>
+          <div style={{ fontFamily: S.mono, fontSize: 12, color: S.muted, marginBottom: 4 }}>LEGAL</div>
+          <a
+            href="https://defensiblezone.ai/privacy-policy"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ fontFamily: S.mono, fontSize: 18, fontWeight: "bold", color: S.dim, textDecoration: "none" }}
+            onMouseEnter={function(e) { e.currentTarget.style.opacity = "0.75"; }}
+            onMouseLeave={function(e) { e.currentTarget.style.opacity = "1"; }}
+          >
+            Privacy Policy
           </a>
         </div>
       </div>
@@ -1091,6 +1129,7 @@ export default function Sales({ reportMode }) {
   if (gateLoading) {
     return (
       <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font, display: "flex", flexDirection: "column", padding: "32px 20px", boxSizing: "border-box" }}>
+        <SalesNavBar />
         <style dangerouslySetInnerHTML={{ __html: "@keyframes dzSalesGateDots{0%,100%{opacity:0.25}50%{opacity:1}}" }} />
         <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
           <div style={{ textAlign: "center", maxWidth: 420 }}>
@@ -1111,6 +1150,7 @@ export default function Sales({ reportMode }) {
   if (recsLoading) {
     return (
       <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font, padding: "40px 20px", boxSizing: "border-box" }}>
+        <SalesNavBar />
         <style dangerouslySetInnerHTML={{ __html: "@keyframes dzSalesLoadDots{0%,100%{opacity:0.25}50%{opacity:1}}" }} />
         <div style={{ maxWidth: 680, margin: "0 auto" }}>
           <div style={{ marginBottom: 28 }}>
@@ -1141,6 +1181,7 @@ export default function Sales({ reportMode }) {
     var loadingBarPct = step === 3 ? scoreStepBarPct : skillStepBarPct;
     return (
       <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font, padding: "40px 20px", boxSizing: "border-box" }}>
+        <SalesNavBar />
         <style dangerouslySetInnerHTML={{ __html: "@keyframes dzSalesLoadDots{0%,100%{opacity:0.25}50%{opacity:1}}" }} />
         <div style={{ maxWidth: 680, margin: "0 auto" }}>
           <div style={{ marginBottom: 28 }}>
@@ -1171,6 +1212,7 @@ export default function Sales({ reportMode }) {
     var errBarPct = step === 3 ? scoreStepBarPct : skillStepBarPct;
     return (
       <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font, padding: "40px 20px", boxSizing: "border-box" }}>
+        <SalesNavBar />
         <div style={{ maxWidth: 680, margin: "0 auto" }}>
           <div style={{ marginBottom: 28 }}>
             <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.1em", marginBottom: 10, fontWeight: 600 }}>{errStepLabel}</div>
@@ -1192,6 +1234,7 @@ export default function Sales({ reportMode }) {
   if (step === 0) {
     return (
       <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font, padding: "40px 20px", boxSizing: "border-box" }}>
+        <SalesNavBar />
         <style dangerouslySetInnerHTML={{ __html: "@media(max-width:520px){.sales-sel-grid{grid-template-columns:1fr!important}.sales-track-grid{grid-template-columns:1fr!important}} .sales-sel-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px} .sales-track-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}" }} />
         <div style={{ maxWidth: 680, margin: "0 auto" }}>
           <div style={{ marginBottom: 28 }}>
@@ -1318,6 +1361,7 @@ export default function Sales({ reportMode }) {
     var gateTryAgainBtn = { width: "100%", marginTop: 16, background: S.accent, color: "#ffffff", border: "none", borderRadius: 10, padding: 16, fontSize: 16, fontWeight: 600, fontFamily: S.mono, letterSpacing: "0.06em", cursor: "pointer" };
     return (
       <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font, padding: "40px 20px", boxSizing: "border-box" }}>
+        <SalesNavBar />
         <style dangerouslySetInnerHTML={{ __html: "@keyframes dzSalesGateSpin{to{transform:rotate(360deg)}}" }} />
         <div style={{ maxWidth: 680, margin: "0 auto" }}>
           <div style={{ marginBottom: 28 }}>
@@ -1387,6 +1431,7 @@ export default function Sales({ reportMode }) {
     if (!showCalibration) {
       return (
         <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font, padding: "40px 20px", boxSizing: "border-box" }}>
+          <SalesNavBar />
           <div style={{ maxWidth: 680, margin: "0 auto" }}>
             <div style={{ marginBottom: 28 }}>
               <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.1em", marginBottom: 10, fontWeight: 600 }}>STEP 3 OF 6 — REVIEW YOUR SKILLS</div>
@@ -1439,6 +1484,7 @@ export default function Sales({ reportMode }) {
 
     return (
       <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font, padding: "40px 20px", boxSizing: "border-box" }}>
+        <SalesNavBar />
         <style dangerouslySetInnerHTML={{ __html: dzSliderCSS }} />
         <div style={{ maxWidth: 680, margin: "0 auto" }}>
           <div style={{ marginBottom: 28 }}>
@@ -1541,6 +1587,7 @@ export default function Sales({ reportMode }) {
 
     return (
       <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font, padding: "40px 20px", boxSizing: "border-box" }}>
+        <SalesNavBar />
         <div style={{ maxWidth: 680, margin: "0 auto" }}>
           <div style={{ marginBottom: 28 }}>
             <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.1em", marginBottom: 10, fontWeight: 600 }}>
@@ -1764,6 +1811,7 @@ export default function Sales({ reportMode }) {
     var unlockPrice5 = discountApplied ? "$39.50" : "$79";
     return (
       <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font, padding: "40px 20px", boxSizing: "border-box" }}>
+        <SalesNavBar />
         <style dangerouslySetInnerHTML={{ __html: "@keyframes dzSalesCheckoutSpin{to{transform:rotate(360deg)}}" }} />
         <div style={{ maxWidth: 680, margin: "0 auto" }}>
           <div style={{ marginBottom: 28 }}>
@@ -1907,6 +1955,7 @@ export default function Sales({ reportMode }) {
 
     return (
       <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font, padding: "40px 20px", boxSizing: "border-box" }}>
+        <SalesNavBar />
         <div style={{ maxWidth: 680, margin: "0 auto" }}>
           <div style={{ marginBottom: 28 }}>
             <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.1em", marginBottom: 10, fontWeight: 600 }}>
