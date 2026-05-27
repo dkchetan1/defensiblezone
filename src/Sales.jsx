@@ -1200,7 +1200,7 @@ export default function Sales({ reportMode }) {
           </div>
           <div style={{ marginBottom: 32 }}>
             <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.1em", marginBottom: 12, fontWeight: 600 }}>DEFENSIBLE ZONE™ — SALES EDITION</div>
-            <h1 style={{ fontFamily: S.serif, fontSize: 32, color: S.text, margin: "0 0 12px", lineHeight: 1.2, fontWeight: 600 }}>Your number is your career — but for how long?</h1>
+            <h1 style={{ fontFamily: S.serif, fontSize: 32, color: S.text, margin: "0 0 12px", lineHeight: 1.2, fontWeight: 600 }}>Find out how defensible your sales career really is.</h1>
             <p style={{ color: S.dim, fontSize: 16, lineHeight: 1.7, margin: 0 }}>AI is reshaping B2B sales faster than most sellers realize. This assessment maps exactly where you&apos;re exposed — and where you&apos;re protected.</p>
           </div>
           <Card style={{ marginBottom: 12 }}>
