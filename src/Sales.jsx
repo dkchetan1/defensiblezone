@@ -2097,7 +2097,7 @@ export default function Sales({ reportMode }) {
                       fontWeight: 800,
                       letterSpacing: "0.06em",
                       background: S.accent,
-                      color: "#0d1117",
+                      color: "#ffffff",
                       textDecoration: "none",
                     }}
                   >
@@ -2123,7 +2123,7 @@ export default function Sales({ reportMode }) {
                       fontWeight: 800,
                       letterSpacing: "0.06em",
                       background: S.accent,
-                      color: "#0d1117",
+                      color: "#ffffff",
                       textDecoration: "none",
                     }}
                   >
