@@ -633,6 +633,8 @@ export default function Finance(props) {
     fontFamily: S.font,
     boxSizing: "border-box",
     display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
     justifyContent: "center",
   };
 
