@@ -36,6 +36,11 @@ const PRODUCT_CONFIG = {
     subject: "Your Defensible Zone™ Product Manager report is ready",
     productName: "Defensible Zone Product Manager Edition",
   },
+  sales: {
+    path: "/sales",
+    subject: "Your Defensible Zone™ Sales Assessment is ready",
+    productName: "Defensible Zone Sales Edition",
+  },
   smallbusiness: {
     path: "/smallbusiness",
     subject: "Your Defensible Zone™ Business Owner assessment is ready",
