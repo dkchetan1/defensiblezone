@@ -955,9 +955,6 @@ export default function DefensibleZoneMedical({ reportMode = false }){
       <div style={{minHeight:"100vh",background:T.bg,padding:"40px 24px",fontFamily:T.font,color:T.txt}}>
         <DZNavBar />
         <style>{GCSS}</style>
-        <div style={{marginBottom:16}}>
-  <a href="/" style={{fontFamily:T.mono,fontSize:12,color:T.mut,textDecoration:"none",letterSpacing:"0.06em",fontWeight:600}}>← DEFENSIBLE ZONE&#8482;</a>
-</div>
         <div style={{maxWidth:520,margin:"0 auto"}}>
           <div style={{marginBottom:40}}>
             <MMono style={{color:T.amb,letterSpacing:".14em",display:"block",marginBottom:14}}>DEFENSIBLE ZONE&#8482; · MEDICAL EDITION</MMono>
