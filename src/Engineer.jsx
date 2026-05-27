@@ -789,9 +789,6 @@ export default function Engineer() {
      <div style={{background:S.bg,minHeight:"100vh",fontFamily:S.font,padding:"40px 20px"}}>
   <DZNavBar />
   <style dangerouslySetInnerHTML={{__html:"@keyframes fadeSlide{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}} .reveal{animation:fadeSlide 0.25s ease-out both;}"}} />
-  <div style={{padding:"0 0 8px"}}>
-    <a href="/" style={{fontFamily:S.mono,fontSize:12,color:S.muted,textDecoration:"none",letterSpacing:"0.06em",fontWeight:600}}>← DEFENSIBLE ZONE™</a>
-  </div>
   <div style={{maxWidth:740,margin:"0 auto"}}>
 
           <div style={{marginBottom:32}}>
