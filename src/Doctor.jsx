@@ -1,3 +1,4 @@
+import { DZNavBar, DZFooter } from "./SharedComponents";
 import React, { useState, useEffect, useRef } from "react";
 import PDFButton from "./PDFButton";
 
@@ -952,6 +953,7 @@ export default function DefensibleZoneMedical({ reportMode = false }){
   if(step===0){
     return(
       <div style={{minHeight:"100vh",background:T.bg,padding:"40px 24px",fontFamily:T.font,color:T.txt}}>
+        <DZNavBar />
         <style>{GCSS}</style>
         <div style={{marginBottom:16}}>
   <a href="/" style={{fontFamily:T.mono,fontSize:12,color:T.mut,textDecoration:"none",letterSpacing:"0.06em",fontWeight:600}}>← DEFENSIBLE ZONE&#8482;</a>
@@ -989,6 +991,7 @@ export default function DefensibleZoneMedical({ reportMode = false }){
             <MBtn onClick={()=>setStep(1)} disabled={!degree||!level} style={{width:"100%"}}>Select Specialty</MBtn>
           </MCard>
         </div>
+        <DZFooter />
       </div>
     );
   }
@@ -997,6 +1000,7 @@ export default function DefensibleZoneMedical({ reportMode = false }){
   if(step===1){
     return(
       <div style={{minHeight:"100vh",background:T.bg,padding:"40px 24px",fontFamily:T.font,color:T.txt}}>
+        <DZNavBar />
         <style>{GCSS}</style>
         <div style={{maxWidth:620,margin:"0 auto"}}>
           <button onClick={()=>setStep(0)} style={{fontFamily:T.mono,fontSize:12,color:T.dim,background:"none",border:"none",cursor:"pointer",marginBottom:18}}>back</button>
@@ -1037,6 +1041,7 @@ export default function DefensibleZoneMedical({ reportMode = false }){
           )}
           <MBtn onClick={()=>{loadSkills(specialty);setStep(2);}} disabled={!specialty} style={{width:"100%"}}>Rate My Skills</MBtn>
         </div>
+        <DZFooter />
       </div>
     );
   }
@@ -1048,6 +1053,7 @@ export default function DefensibleZoneMedical({ reportMode = false }){
     const pullLabelTexts = ["Almost never","Occasionally","Sometimes","Regularly","Constantly"];
     return(
       <div style={{minHeight:"100vh",background:T.bg,padding:"40px 24px",fontFamily:T.font,color:T.txt}}>
+        <DZNavBar />
         <style>{GCSS}</style>
         <div style={{maxWidth:680,margin:"0 auto"}}>
           <button onClick={()=>setStep(1)} style={{fontFamily:T.mono,fontSize:12,color:T.dim,background:"none",border:"none",cursor:"pointer",marginBottom:18}}>back to specialty</button>
@@ -1196,6 +1202,7 @@ export default function DefensibleZoneMedical({ reportMode = false }){
           </div>
           <MBtn onClick={()=>setStep(2.5)} disabled={skills.length===0} style={{width:"100%",marginTop:32}}>See My Defensible Zone&#8482;</MBtn>
         </div>
+        <DZFooter />
       </div>
     );
   }
@@ -1203,7 +1210,8 @@ export default function DefensibleZoneMedical({ reportMode = false }){
   // ── Step 2.5: EMAIL CAPTURE ─────────────────────────────────────────────
   if(step===2.5){
     return (
-      <div style={{background:T.bg,minHeight:"100vh",fontFamily:T.sans,display:"flex",alignItems:"center",justifyContent:"center",padding:"24px"}}>
+      <div style={{background:T.bg,minHeight:"100vh",fontFamily:T.sans,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"24px"}}>
+        <DZNavBar />
         <div style={{maxWidth:480,width:"100%",background:T.surf,border:"1px solid "+T.bdr,borderRadius:16,padding:"40px 36px",textAlign:"center"}}>
           <MMono style={{color:T.amb,fontSize:11,letterSpacing:"0.14em",fontWeight:600,display:"block",marginBottom:16}}>ONE LAST THING</MMono>
           <h2 style={{fontFamily:T.serif,fontSize:26,color:T.txt,margin:"0 0 12px",lineHeight:1.2}}>Want to save your results?</h2>
@@ -1219,6 +1227,7 @@ export default function DefensibleZoneMedical({ reportMode = false }){
             {emailSubmitting ? "SENDING…" : "GET MY RESULTS →"}
           </MBtn>
         </div>
+        <DZFooter />
       </div>
     );
   }
@@ -1347,6 +1356,7 @@ export default function DefensibleZoneMedical({ reportMode = false }){
 
     return(
       <div style={{ background: "#f8f9fc", minHeight: "100vh", padding: "32px 20px", fontFamily: T.font, color: T.txt }}>
+        <DZNavBar />
         <style>{GCSS}</style>
         <div style={{ maxWidth: 680, margin: "0 auto" }}>
           <div style={{ fontFamily: T.mono, fontSize: 12, color: T.amb, letterSpacing: "0.12em", marginBottom: 20, fontWeight: 600 }}>DEFENSIBLE ZONE&#8482; · MEDICAL EDITION</div>
@@ -1501,14 +1511,7 @@ export default function DefensibleZoneMedical({ reportMode = false }){
             </div>
           </div>
 
-          <div style={{paddingTop:14,textAlign:"center"}}>
-            <MMono style={{color:T.dim,display:"block",marginBottom:4,fontSize:11}}>
-              DEFENSIBLE ZONE&#8482; is a trademark of its creator. All rights reserved.
-            </MMono>
-            <MMono style={{color:T.dim,display:"block",fontSize:11}}>
-              &copy; 2026 &nbsp;&middot;&nbsp; Grounded in ACGME Milestones 2.0, CanMEDS 2015, and peer-reviewed clinical AI literature.
-            </MMono>
-          </div>
+          <DZFooter />
         </div>
       </div>
     );
