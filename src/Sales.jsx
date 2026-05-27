@@ -303,70 +303,63 @@ function SalesDisclaimer() {
 
 function SalesNavBar() {
   return (
-    <div style={{ background: S.card2, borderBottom: "1px solid " + S.border, padding: "12px 24px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16 }}>
-      <a
-        href="https://defensiblezone.ai"
-        target="_blank"
-        rel="noopener noreferrer"
-        style={{ fontFamily: S.mono, fontSize: 14, fontWeight: "bold", color: S.accent, textDecoration: "none" }}
-        onMouseEnter={function(e) { e.currentTarget.style.opacity = "0.75"; }}
-        onMouseLeave={function(e) { e.currentTarget.style.opacity = "1"; }}
-      >
-        defensiblezone.ai →
-      </a>
-      <a
-        href="mailto:support@recursiolab.com"
-        style={{ fontFamily: S.mono, fontSize: 14, fontWeight: "bold", color: S.purple, textDecoration: "none" }}
-        onMouseEnter={function(e) { e.currentTarget.style.opacity = "0.75"; }}
-        onMouseLeave={function(e) { e.currentTarget.style.opacity = "1"; }}
-      >
-        Questions &amp; Feedback →
-      </a>
+    <div style={{ background: S.card2, borderBottom: "1px solid " + S.border, padding: "10px 24px", width: "100%", boxSizing: "border-box" }}>
+      <div style={{ display: "flex", flexDirection: "row", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16, maxWidth: 1200, margin: "0 auto", width: "100%" }}>
+        <a
+          href="https://defensiblezone.ai"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ fontFamily: S.mono, fontSize: 13, fontWeight: "bold", color: S.accent, textDecoration: "none" }}
+          onMouseEnter={function(e) { e.currentTarget.style.opacity = "0.75"; }}
+          onMouseLeave={function(e) { e.currentTarget.style.opacity = "1"; }}
+        >
+          defensiblezone.ai →
+        </a>
+        <a
+          href="mailto:support@recursiolab.com"
+          style={{ fontFamily: S.mono, fontSize: 13, fontWeight: "bold", color: S.purple, textDecoration: "none" }}
+          onMouseEnter={function(e) { e.currentTarget.style.opacity = "0.75"; }}
+          onMouseLeave={function(e) { e.currentTarget.style.opacity = "1"; }}
+        >
+          Questions &amp; Feedback →
+        </a>
+      </div>
     </div>
   );
 }
 
 function SalesFooter() {
   return (
-    <div style={{ marginTop: 32, background: S.card2, borderTop: "1px solid " + S.border, padding: "20px 24px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
-        <div>
-          <div style={{ fontFamily: S.mono, fontSize: 12, color: S.muted, marginBottom: 4 }}>DEFENSIBLE ZONE™</div>
-          <a
-            href="https://defensiblezone.ai"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ fontFamily: S.mono, fontSize: 18, fontWeight: "bold", color: S.accent, textDecoration: "none" }}
-            onMouseEnter={function(e) { e.currentTarget.style.opacity = "0.75"; }}
-            onMouseLeave={function(e) { e.currentTarget.style.opacity = "1"; }}
-          >
-            defensiblezone.ai →
-          </a>
-        </div>
-        <div>
-          <div style={{ fontFamily: S.mono, fontSize: 12, color: S.muted, marginBottom: 4 }}>QUESTIONS &amp; FEEDBACK</div>
-          <a
-            href="mailto:support@recursiolab.com"
-            style={{ fontFamily: S.mono, fontSize: 18, fontWeight: "bold", color: S.purple, textDecoration: "none" }}
-            onMouseEnter={function(e) { e.currentTarget.style.opacity = "0.75"; }}
-            onMouseLeave={function(e) { e.currentTarget.style.opacity = "1"; }}
-          >
-            support@recursiolab.com →
-          </a>
-        </div>
-        <div>
-          <div style={{ fontFamily: S.mono, fontSize: 12, color: S.muted, marginBottom: 4 }}>LEGAL</div>
-          <a
-            href="https://defensiblezone.ai/privacy-policy"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ fontFamily: S.mono, fontSize: 18, fontWeight: "bold", color: S.dim, textDecoration: "none" }}
-            onMouseEnter={function(e) { e.currentTarget.style.opacity = "0.75"; }}
-            onMouseLeave={function(e) { e.currentTarget.style.opacity = "1"; }}
-          >
-            Privacy Policy
-          </a>
-        </div>
+    <div style={{ background: S.card2, borderTop: "1px solid " + S.border, padding: "20px 24px", marginTop: 32 }}>
+      <div style={{ display: "flex", flexDirection: "row", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 24 }}>
+        <a
+          href="https://defensiblezone.ai"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ fontFamily: S.mono, fontSize: 14, fontWeight: "bold", color: S.accent, textDecoration: "none" }}
+          onMouseEnter={function(e) { e.currentTarget.style.opacity = "0.75"; }}
+          onMouseLeave={function(e) { e.currentTarget.style.opacity = "1"; }}
+        >
+          defensiblezone.ai →
+        </a>
+        <a
+          href="mailto:support@recursiolab.com"
+          style={{ fontFamily: S.mono, fontSize: 14, fontWeight: "bold", color: S.purple, textDecoration: "none" }}
+          onMouseEnter={function(e) { e.currentTarget.style.opacity = "0.75"; }}
+          onMouseLeave={function(e) { e.currentTarget.style.opacity = "1"; }}
+        >
+          Questions &amp; Feedback →
+        </a>
+        <a
+          href="https://defensiblezone.ai/privacy-policy"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ fontFamily: S.mono, fontSize: 14, fontWeight: "bold", color: S.dim, textDecoration: "none" }}
+          onMouseEnter={function(e) { e.currentTarget.style.opacity = "0.75"; }}
+          onMouseLeave={function(e) { e.currentTarget.style.opacity = "1"; }}
+        >
+          Privacy Policy →
+        </a>
       </div>
     </div>
   );
