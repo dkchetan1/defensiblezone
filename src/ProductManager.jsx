@@ -1,3 +1,4 @@
+import { DZNavBar, DZFooter } from "./SharedComponents";
 import { useState, useEffect, useRef } from "react";
 
 // ── PM TYPES ────────────────────────────────────────────────────────
@@ -230,39 +231,6 @@ function PMDisclaimer() {
         IMPORTANT — PLEASE READ
       </div>
       <div style={{ fontFamily: S.mono, fontSize: 12, color: "#78350f", lineHeight: 1.7 }}>{PM_DISCLAIMER}</div>
-    </div>
-  );
-}
-
-function PMFooter() {
-  return (
-    <div style={{ marginTop: 32, background: S.card2, borderTop: "1px solid " + S.border, padding: "20px 24px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
-        <div>
-          <div style={{ fontFamily: S.mono, fontSize: 10, color: S.muted, marginBottom: 4 }}>DEFENSIBLE ZONE™</div>
-          <a
-            href="https://defensiblezone.ai"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ fontFamily: S.mono, fontSize: 14, fontWeight: "bold", color: S.accent, textDecoration: "none" }}
-            onMouseEnter={function(e) { e.currentTarget.style.opacity = "0.75"; }}
-            onMouseLeave={function(e) { e.currentTarget.style.opacity = "1"; }}
-          >
-            defensiblezone.ai →
-          </a>
-        </div>
-        <div>
-          <div style={{ fontFamily: S.mono, fontSize: 10, color: S.muted, marginBottom: 4 }}>QUESTIONS &amp; FEEDBACK</div>
-          <a
-            href="mailto:support@recursiolab.com"
-            style={{ fontFamily: S.mono, fontSize: 14, fontWeight: "bold", color: S.purple, textDecoration: "none" }}
-            onMouseEnter={function(e) { e.currentTarget.style.opacity = "0.75"; }}
-            onMouseLeave={function(e) { e.currentTarget.style.opacity = "1"; }}
-          >
-            support@recursiolab.com →
-          </a>
-        </div>
-      </div>
     </div>
   );
 }
@@ -1144,6 +1112,7 @@ export default function ProductManager() {
           boxSizing: "border-box",
         }}
       >
+        <DZNavBar />
         <style
           dangerouslySetInnerHTML={{
             __html: "@keyframes dzPMGateDots{0%,100%{opacity:0.25}50%{opacity:1}}",
@@ -1163,7 +1132,7 @@ export default function ProductManager() {
           </div>
         </div>
         <div style={{ maxWidth: 680, margin: "0 auto", width: "100%" }}>
-          <PMFooter />
+          <DZFooter />
         </div>
       </div>
     );
@@ -1184,6 +1153,7 @@ export default function ProductManager() {
           boxSizing: "border-box",
         }}
       >
+        <DZNavBar />
         <style
           dangerouslySetInnerHTML={{
             __html: "@keyframes dzPMLoadDots{0%,100%{opacity:0.25}50%{opacity:1}}",
@@ -1211,7 +1181,7 @@ export default function ProductManager() {
               </div>
             </div>
           </div>
-          <PMFooter />
+          <DZFooter />
         </div>
       </div>
     );
@@ -1230,6 +1200,7 @@ export default function ProductManager() {
           boxSizing: "border-box",
         }}
       >
+        <DZNavBar />
         <style
           dangerouslySetInnerHTML={{
             __html: "@keyframes dzPMLoadDots{0%,100%{opacity:0.25}50%{opacity:1}}",
@@ -1283,7 +1254,7 @@ export default function ProductManager() {
               </div>
             </div>
           </div>
-          <PMFooter />
+          <DZFooter />
         </div>
       </div>
     );
@@ -1302,6 +1273,7 @@ export default function ProductManager() {
           boxSizing: "border-box",
         }}
       >
+        <DZNavBar />
         <div style={{ maxWidth: 680, margin: "0 auto" }}>
           <div style={{ marginBottom: 28 }}>
             <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.1em", marginBottom: 10, fontWeight: 600 }}>
@@ -1343,7 +1315,7 @@ export default function ProductManager() {
           >
             START OVER
           </button>
-          <PMFooter />
+          <DZFooter />
         </div>
       </div>
     );
@@ -1352,6 +1324,7 @@ export default function ProductManager() {
   if (step === 0) {
     return (
       <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font, padding: "40px 20px", boxSizing: "border-box" }}>
+        <DZNavBar />
         <style
           dangerouslySetInnerHTML={{
             __html:
@@ -1448,7 +1421,7 @@ export default function ProductManager() {
             ANALYSE MY PROFILE →
           </PrimaryBtn>
 
-          <PMFooter />
+          <DZFooter />
         </div>
       </div>
     );
@@ -1473,6 +1446,7 @@ export default function ProductManager() {
 
     return (
       <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font, padding: "40px 20px", boxSizing: "border-box" }}>
+        <DZNavBar />
         <style
           dangerouslySetInnerHTML={{
             __html: "@keyframes dzPMGateSpin{to{transform:rotate(360deg)}}",
@@ -1704,7 +1678,7 @@ export default function ProductManager() {
             ← BACK
           </button>
 
-          <PMFooter />
+          <DZFooter />
         </div>
       </div>
     );
@@ -1720,6 +1694,7 @@ export default function ProductManager() {
     var landscapeSummary = profile3.seniorityLabel + " " + profile3.pmLabel;
     return (
       <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font, padding: "40px 20px", boxSizing: "border-box" }}>
+        <DZNavBar />
         <style dangerouslySetInnerHTML={{ __html: dzSliderCSS }} />
         <div style={{ maxWidth: 680, margin: "0 auto" }}>
           <div style={{ marginBottom: 28 }}>
@@ -2076,7 +2051,7 @@ export default function ProductManager() {
             CALCULATE MY DEFENSIBLE ZONE →
           </PrimaryBtn>
 
-          <PMFooter />
+          <DZFooter />
         </div>
       </div>
     );
@@ -2148,6 +2123,7 @@ export default function ProductManager() {
 
     return (
       <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font, padding: "40px 20px", boxSizing: "border-box" }}>
+        <DZNavBar />
         <div style={{ maxWidth: 680, margin: "0 auto" }}>
           <div style={{ marginBottom: 28 }}>
             <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.1em", marginBottom: 10, fontWeight: 600 }}>
@@ -2486,7 +2462,7 @@ export default function ProductManager() {
 
           <PMDisclaimer />
 
-          <PMFooter />
+          <DZFooter />
         </div>
       </div>
     );
@@ -2497,6 +2473,7 @@ export default function ProductManager() {
     var unlockPriceLabel = discountApplied ? "$39.50" : "$79";
     return (
       <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font, padding: "40px 20px", boxSizing: "border-box" }}>
+        <DZNavBar />
         <style
           dangerouslySetInnerHTML={{
             __html: "@keyframes dzPMCheckoutSpin{to{transform:rotate(360deg)}}",
@@ -2634,7 +2611,7 @@ export default function ProductManager() {
             ← BACK TO RESULTS
           </button>
 
-          <PMFooter />
+          <DZFooter />
         </div>
       </div>
     );
@@ -2645,6 +2622,7 @@ export default function ProductManager() {
     if (recsError) {
       return (
         <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font, padding: "40px 20px", boxSizing: "border-box" }}>
+          <DZNavBar />
           <div style={{ maxWidth: 680, margin: "0 auto" }}>
             <div style={{ marginBottom: 28 }}>
               <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.1em", marginBottom: 10, fontWeight: 600 }}>
@@ -2661,7 +2639,7 @@ export default function ProductManager() {
             <button type="button" onClick={resetAll} style={{ marginTop: 20, background: "transparent", border: "1px solid " + S.border, color: S.dim, borderRadius: 10, padding: "10px 16px", fontFamily: S.mono, fontSize: 12, fontWeight: 600, cursor: "pointer", letterSpacing: "0.06em", width: "100%" }}>
               START OVER
             </button>
-            <PMFooter />
+            <DZFooter />
           </div>
         </div>
       );
@@ -2680,6 +2658,7 @@ export default function ProductManager() {
 
     return (
       <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font, padding: "40px 20px", boxSizing: "border-box" }}>
+        <DZNavBar />
         <div style={{ maxWidth: 680, margin: "0 auto" }}>
           <div style={{ marginBottom: 28 }}>
             <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.1em", marginBottom: 10, fontWeight: 600 }}>
@@ -2800,7 +2779,7 @@ export default function ProductManager() {
 
           <PMDisclaimer />
 
-          <PMFooter />
+          <DZFooter />
         </div>
       </div>
     );
