@@ -30,7 +30,8 @@ const PRICE_TIER_MAP = {
 };
 
 // Fallback: if Price ID isn't mapped, infer tier from amount
-function tierFromAmount(amountTotal) {
+function tierFromAmount(amountTotal, product) {
+  if (product === "sales" && amountTotal >= 7900) return 2; // $79.00 (Sales Edition)
   if (amountTotal <= 2900) return 2; // $29.00
   if (amountTotal <= 3400) return 3; // $34.00
   if (amountTotal <= 5900) return 2; // $59.00 (Finance Edition)
@@ -50,7 +51,7 @@ export default async function handler(req, res) {
   }
 
   // Validate product is one of the known tools
-  const knownProducts = ["engineer", "doctor", "designer", "finance", "pm"];
+  const knownProducts = ["engineer", "doctor", "designer", "finance", "pm", "sales"];
   const safeProduct = knownProducts.includes(product) ? product : "engineer";
 
   if (!process.env.STRIPE_SECRET_KEY) {
@@ -83,10 +84,10 @@ export default async function handler(req, res) {
       if (priceId && PRICE_TIER_MAP[priceId] !== undefined) {
         tier = PRICE_TIER_MAP[priceId];
       } else {
-        tier = tierFromAmount(session.amount_total);
+        tier = tierFromAmount(session.amount_total, safeProduct);
       }
     } else {
-      tier = tierFromAmount(session.amount_total);
+      tier = tierFromAmount(session.amount_total, safeProduct);
     }
 
     // Issue a JWT — 10-year expiry (one-time purchase = permanent access)

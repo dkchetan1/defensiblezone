@@ -22,6 +22,7 @@ const PRODUCT_PATHS = {
   designer: "/designer",
   finance: "/finance",
   ux: "/ux",
+  sales: "/sales",
 };
 
 function getOrigin(req) {
@@ -78,7 +79,13 @@ export default async function handler(req, res) {
   }
 
   const price = Number(body?.price);
-  if (!Number.isFinite(price) || price < 100 || price > 50000) {
+  let priceId;
+  if (product === "sales") {
+    priceId =
+      body?.discount === true
+        ? process.env.STRIPE_PRICE_SALES_3950
+        : process.env.STRIPE_PRICE_SALES_79;
+  } else if (!Number.isFinite(price) || price < 100 || price > 50000) {
     return res.status(400).json({ error: "Invalid price" });
   }
 
@@ -93,6 +100,7 @@ export default async function handler(req, res) {
     designer: "Defensible Zone UX Professional Edition",
     finance: "Defensible Zone Finance Edition",
     ux: "Defensible Zone UX Professional Edition — 90-Day Plan",
+    sales: "Defensible Zone™ Sales Edition — 90-Day Plan",
   };
 
   try {
@@ -100,28 +108,38 @@ export default async function handler(req, res) {
       apiVersion: "2023-10-16",
     });
 
-    const session = await stripe.checkout.sessions.create({
-      mode: "payment",
-      customer_email: email.trim(),
-      line_items: [
-        {
-          price_data: {
-            currency: "usd",
-            unit_amount: Math.round(price),
-            product_data: {
-              name: productNames[product] || "Defensible Zone",
+    const session =
+      product === "sales"
+        ? await stripe.checkout.sessions.create({
+            mode: "payment",
+            customer_email: email.trim(),
+            line_items: [{ price: priceId, quantity: 1 }],
+            success_url: successUrl,
+            cancel_url: cancelUrl,
+            metadata: { product, email: email.trim() },
+          })
+        : await stripe.checkout.sessions.create({
+            mode: "payment",
+            customer_email: email.trim(),
+            line_items: [
+              {
+                price_data: {
+                  currency: "usd",
+                  unit_amount: Math.round(price),
+                  product_data: {
+                    name: productNames[product] || "Defensible Zone",
+                  },
+                },
+                quantity: 1,
+              },
+            ],
+            success_url: successUrl,
+            cancel_url: cancelUrl,
+            metadata: {
+              product,
+              email: email.trim(),
             },
-          },
-          quantity: 1,
-        },
-      ],
-      success_url: successUrl,
-      cancel_url: cancelUrl,
-      metadata: {
-        product,
-        email: email.trim(),
-      },
-    });
+          });
 
     if (!session.url) {
       return res.status(500).json({ error: "Could not create checkout session" });
