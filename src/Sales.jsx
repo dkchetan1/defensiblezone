@@ -303,7 +303,7 @@ function SalesDisclaimer() {
 
 function SalesNavBar() {
   return (
-    <div style={{ background: S.card2, borderBottom: "1px solid " + S.border, padding: "10px 24px", width: "100%", boxSizing: "border-box" }}>
+    <div style={{ background: S.card2, borderBottom: "1px solid " + S.border, padding: "14px 24px", marginBottom: 16, width: "100%", boxSizing: "border-box" }}>
       <div style={{ display: "flex", flexDirection: "row", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16, maxWidth: 1200, margin: "0 auto", width: "100%" }}>
         <a
           href="https://defensiblezone.ai"
