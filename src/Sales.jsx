@@ -301,15 +301,15 @@ function SalesDisclaimer() {
 
 function SalesFooter() {
   return (
-    <div style={{ background: S.card2, borderTop: "1px solid " + S.border, padding: "20px 24px" }}>
+    <div style={{ marginTop: 32, background: S.card2, borderTop: "1px solid " + S.border, padding: "20px 24px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
         <div>
-          <div style={{ fontFamily: S.mono, fontSize: 10, color: S.muted, marginBottom: 4 }}>DEFENSIBLE ZONE™</div>
+          <div style={{ fontFamily: S.mono, fontSize: 12, color: S.muted, marginBottom: 4 }}>DEFENSIBLE ZONE™</div>
           <a
             href="https://defensiblezone.ai"
             target="_blank"
             rel="noopener noreferrer"
-            style={{ fontFamily: S.mono, fontSize: 14, fontWeight: "bold", color: S.accent, textDecoration: "none" }}
+            style={{ fontFamily: S.mono, fontSize: 18, fontWeight: "bold", color: S.accent, textDecoration: "none" }}
             onMouseEnter={function(e) { e.currentTarget.style.opacity = "0.75"; }}
             onMouseLeave={function(e) { e.currentTarget.style.opacity = "1"; }}
           >
@@ -317,10 +317,10 @@ function SalesFooter() {
           </a>
         </div>
         <div>
-          <div style={{ fontFamily: S.mono, fontSize: 10, color: S.muted, marginBottom: 4 }}>QUESTIONS &amp; FEEDBACK</div>
+          <div style={{ fontFamily: S.mono, fontSize: 12, color: S.muted, marginBottom: 4 }}>QUESTIONS &amp; FEEDBACK</div>
           <a
             href="mailto:support@recursiolab.com"
-            style={{ fontFamily: S.mono, fontSize: 14, fontWeight: "bold", color: S.purple, textDecoration: "none" }}
+            style={{ fontFamily: S.mono, fontSize: 18, fontWeight: "bold", color: S.purple, textDecoration: "none" }}
             onMouseEnter={function(e) { e.currentTarget.style.opacity = "0.75"; }}
             onMouseLeave={function(e) { e.currentTarget.style.opacity = "1"; }}
           >
@@ -330,4 +330,1201 @@ function SalesFooter() {
       </div>
     </div>
   );
+}
+
+// ── MAIN APP ────────────────────────────────────────────────────────
+export default function Sales({ reportMode }) {
+  var [salesType, setSalesType] = useState("");
+  var [roleTrack, setRoleTrack] = useState("");
+  var [seniority, setSeniority] = useState("");
+  var [companyType, setCompanyType] = useState("");
+  var [industryVertical, setIndustryVertical] = useState("");
+  var [workContexts, setWorkContexts] = useState([]);
+  var [showAllCtx, setShowAllCtx] = useState(false);
+  var [landscape, setLandscape] = useState("");
+  var [skills, setSkills] = useState([]);
+  var [conscience, setConscience] = useState(5);
+  var [pull, setPull] = useState(5);
+  var [fluencies, setFluencies] = useState({});
+  var [customSkill, setCustomSkill] = useState("");
+  var [adjustedSkills, setAdjustedSkills] = useState(function () { return new Set(); });
+  var adjustedSkillsRef = useRef(new Set());
+  var freeEmailSentRef = useRef(false);
+  var paidEmailSentRef = useRef(false);
+  var [results, setResults] = useState(null);
+  var [recommendations, setRecommendations] = useState(null);
+  var [recsLoading, setRecsLoading] = useState(false);
+  var [recsError, setRecsError] = useState(null);
+  var [step, setStep] = useState(0);
+  var [loading, setLoading] = useState(false);
+  var [loadingMsg, setLoadingMsg] = useState("");
+  var [error, setError] = useState(null);
+  var [tier, setTier] = useState(0);
+  var [promoCode, setPromoCode] = useState("");
+  var [promoError, setPromoError] = useState("");
+  var [promoUsed, setPromoUsed] = useState(false);
+  var [discountApplied, setDiscountApplied] = useState(false);
+  var [checkoutLoading, setCheckoutLoading] = useState(false);
+  var [checkoutError, setCheckoutError] = useState(null);
+  var [paymentCanceled, setPaymentCanceled] = useState(false);
+  var [gateEmail, setGateEmail] = useState("");
+  var [gateSent, setGateSent] = useState(false);
+  var [gateVerified, setGateVerified] = useState(false);
+  var [gateError, setGateError] = useState("");
+  var [gateLoading, setGateLoading] = useState(false);
+  var [showResend, setShowResend] = useState(false);
+  var [gateOnDifferentDevice, setGateOnDifferentDevice] = useState(false);
+  var [gateInputFocused, setGateInputFocused] = useState(false);
+  var [showCalibration, setShowCalibration] = useState(false);
+
+  var SALES_LOADING_MSGS = ["Mapping your sales landscape…", "Identifying your exposure points…", "Calibrating skill defensibility…", "Almost ready…"];
+  var SALES_SCORING_MSGS = ["Scoring your skills…", "Calculating AI exposure…", "Building your defensible zone…", "Almost there…"];
+  var SALES_RECS_MSGS = ["Mapping your 90-day plan…", "Sequencing your actions…", "Personalising to your sales profile…", "Almost ready…"];
+
+  var salesGroups = ["Acquisition / Front-of-Funnel", "Closing Roles", "Post-Sale & Specialist", "Operations & Leadership"];
+
+  function markAdjusted(skillId) {
+    adjustedSkillsRef.current.add(skillId);
+    setAdjustedSkills(new Set(adjustedSkillsRef.current));
+  }
+
+  useEffect(function () {
+    setFluencies(function (prev) {
+      var next = Object.assign({}, prev);
+      skills.forEach(function (s) {
+        if (!adjustedSkillsRef.current.has(s.id)) {
+          next[s.id] = getSeed(conscience, pull);
+        }
+      });
+      return next;
+    });
+  }, [conscience, pull, skills]);
+
+  useEffect(
+    function () {
+      if (!loading && !recsLoading) return;
+      var msgs = recsLoading ? SALES_RECS_MSGS : step === 3 ? SALES_SCORING_MSGS : SALES_LOADING_MSGS;
+      var i = 0;
+      setLoadingMsg(msgs[0]);
+      var t = setInterval(function () {
+        i = (i + 1) % msgs.length;
+        setLoadingMsg(msgs[i]);
+      }, 2000);
+      return function () {
+        clearInterval(t);
+      };
+    },
+    [loading, recsLoading, step]
+  );
+
+  useEffect(function () {
+    window.scrollTo(0, 0);
+  }, [step]);
+
+  useEffect(
+    function () {
+      if (!gateVerified) return;
+      if (skills.length > 0 || loading) return;
+      fetchLandscapeAndSkills();
+    },
+    [gateVerified]
+  );
+
+  useEffect(function () {
+    if (!salesType) return;
+    var allowed = CONTEXT_MAP[salesType];
+    if (!allowed) return;
+    setWorkContexts(function (prev) {
+      return prev.filter(function (id) { return allowed.indexOf(id) !== -1; });
+    });
+    setShowAllCtx(false);
+  }, [salesType]);
+
+  useEffect(function () {
+    setSeniority("");
+  }, [roleTrack]);
+
+  function restoreSavedReport() {
+    try {
+      var savedRaw = localStorage.getItem("dz_saved_report_sales");
+      if (!savedRaw) return false;
+      var s = JSON.parse(savedRaw);
+      if (s.salesType) setSalesType(s.salesType);
+      if (s.roleTrack) setRoleTrack(s.roleTrack);
+      if (s.seniority) setSeniority(s.seniority);
+      if (s.companyType) setCompanyType(s.companyType);
+      if (s.industryVertical) setIndustryVertical(s.industryVertical);
+      if (s.workContexts) setWorkContexts(s.workContexts);
+      if (s.conscience !== undefined) setConscience(s.conscience);
+      if (s.pull !== undefined) setPull(s.pull);
+      if (s.gateEmail) setGateEmail(s.gateEmail);
+      if (s.landscape) setLandscape(s.landscape);
+      if (s.skills) setSkills(s.skills);
+      if (s.fluencies) setFluencies(s.fluencies);
+      if (s.results) setResults(s.results);
+      if (s.tier !== undefined) setTier(s.tier);
+      if (s.promoUsed) setPromoUsed(s.promoUsed);
+      if (s.discountApplied) setDiscountApplied(s.discountApplied);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function saveStateForReturn() {
+    try {
+      localStorage.setItem(
+        "dz_saved_report_sales",
+        JSON.stringify({
+          salesType: salesType,
+          roleTrack: roleTrack,
+          seniority: seniority,
+          companyType: companyType,
+          industryVertical: industryVertical,
+          workContexts: workContexts,
+          conscience: conscience,
+          pull: pull,
+          gateEmail: gateEmail,
+          landscape: landscape,
+          skills: skills,
+          fluencies: fluencies,
+          results: results,
+          tier: tier,
+          promoUsed: promoUsed,
+          discountApplied: discountApplied,
+        })
+      );
+    } catch (_e) {}
+  }
+
+  useEffect(function () {
+    var params = new URLSearchParams(window.location.search);
+    if (params.get("success") === "true") {
+      window.history.replaceState({}, "", window.location.pathname);
+      restoreSavedReport();
+      setTier(2);
+      setPaymentCanceled(false);
+      setCheckoutError(null);
+      setStep(6);
+      return;
+    }
+    if (params.get("canceled") === "true") {
+      window.history.replaceState({}, "", window.location.pathname);
+      restoreSavedReport();
+      setStep(5);
+      setPaymentCanceled(true);
+      return;
+    }
+  }, []);
+
+  useEffect(
+    function () {
+      if (step === 5 && (tier >= 2 || promoUsed)) {
+        setStep(6);
+      }
+    },
+    [step, tier, promoUsed]
+  );
+
+  useEffect(
+    function () {
+      if (step !== 6) return;
+      if (!(tier >= 2 || promoUsed)) return;
+      if (!results) return;
+      if (recommendations || recsLoading) return;
+      fetchRecommendations();
+    },
+    [step, tier, promoUsed, results]
+  );
+
+  useEffect(function () {
+    var params = new URLSearchParams(window.location.search);
+    var gateToken = params.get("gate_token");
+    if (!gateToken) return;
+    window.history.replaceState({}, "", window.location.pathname);
+    setGateLoading(true);
+    (async function () {
+      try {
+        var res = await fetch("/api/verify-gate-token", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token: gateToken }),
+        });
+        var data = await res.json();
+        if (data && data.valid === true) {
+          var savedRaw = null;
+          try {
+            savedRaw = localStorage.getItem("dz_saved_report_sales");
+          } catch (e) {}
+          if (savedRaw) {
+            try {
+              var s = JSON.parse(savedRaw);
+              if (s.salesType) setSalesType(s.salesType);
+              if (s.roleTrack) setRoleTrack(s.roleTrack);
+              if (s.seniority) setSeniority(s.seniority);
+              if (s.companyType) setCompanyType(s.companyType);
+              if (s.industryVertical) setIndustryVertical(s.industryVertical);
+              if (s.workContexts) setWorkContexts(s.workContexts);
+              if (s.conscience !== undefined) setConscience(s.conscience);
+              if (s.pull !== undefined) setPull(s.pull);
+              if (s.gateEmail) setGateEmail(s.gateEmail);
+            } catch (e) {}
+            if (data.email) setGateEmail(data.email);
+            setGateVerified(true);
+            setStep(2);
+          } else {
+            setGateOnDifferentDevice(true);
+            setStep(1);
+          }
+          setGateLoading(false);
+          return;
+        }
+        if (data && data.valid === false && data.reason === "expired") {
+          setGateError("expired");
+        } else {
+          setGateError("invalid");
+        }
+        setStep(1);
+        setGateLoading(false);
+      } catch (e) {
+        setGateError("invalid");
+        setStep(1);
+        setGateLoading(false);
+      }
+    })();
+  }, []);
+
+  useEffect(
+    function () {
+      if (!gateSent) {
+        setShowResend(false);
+        return;
+      }
+      setShowResend(false);
+      var t = setTimeout(function () {
+        setShowResend(true);
+      }, 30000);
+      return function () {
+        clearTimeout(t);
+      };
+    },
+    [gateSent]
+  );
+
+  useEffect(
+    function () {
+      if (step !== 1) return;
+      try {
+        localStorage.setItem(
+          "dz_saved_report_sales",
+          JSON.stringify({
+            salesType: salesType,
+            roleTrack: roleTrack,
+            seniority: seniority,
+            companyType: companyType,
+            industryVertical: industryVertical,
+            workContexts: workContexts,
+            conscience: conscience,
+            pull: pull,
+            gateEmail: gateEmail,
+          })
+        );
+      } catch (_e) {}
+    },
+    [step, salesType, roleTrack, seniority, companyType, industryVertical, workContexts, conscience, pull, gateEmail]
+  );
+
+  useEffect(
+    function () {
+      if (step !== 4 || !results) return;
+      if (freeEmailSentRef.current) return;
+      if (!gateEmail.trim()) return;
+      freeEmailSentRef.current = true;
+      var skillsList = Array.isArray(results.skills) ? results.skills : [];
+      fetch("/api/send-results-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: gateEmail,
+          product: "sales",
+          type: "free",
+          results: {
+            profile: results.profile,
+            landscape: results.landscape,
+            skills: skillsList,
+            overallScore: computeOverallScore(skillsList),
+          },
+        }),
+      }).catch(function () {});
+    },
+    [step, results]
+  );
+
+  useEffect(
+    function () {
+      if (!recommendations || tier < 2) return;
+      if (!results) return;
+      if (paidEmailSentRef.current) return;
+      if (!gateEmail.trim()) return;
+      paidEmailSentRef.current = true;
+      var skillsList = Array.isArray(results.skills) ? results.skills : [];
+      fetch("/api/send-results-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: gateEmail,
+          product: "sales",
+          type: "paid",
+          results: {
+            profile: results.profile,
+            landscape: results.landscape,
+            skills: skillsList,
+            overallScore: computeOverallScore(skillsList),
+            recommendations: recommendations,
+          },
+        }),
+      }).catch(function () {});
+    },
+    [recommendations, tier]
+  );
+
+  function isValidEmail(email) {
+    var at = email.indexOf("@");
+    if (at === -1) return false;
+    return email.indexOf(".", at + 1) !== -1;
+  }
+
+  function computeOverallScore(skillsArr) {
+    if (!Array.isArray(skillsArr) || skillsArr.length === 0) return 0;
+    return Math.round(
+      skillsArr.reduce(function (sum, s) {
+        return sum + (typeof s.dz === "number" ? s.dz : 0);
+      }, 0) / skillsArr.length
+    );
+  }
+
+  function getVisibleContexts() {
+    if (!salesType || showAllCtx) return WORK_CONTEXTS;
+    var allowed = CONTEXT_MAP[salesType] || [];
+    return WORK_CONTEXTS.filter(function (wc) { return allowed.indexOf(wc.id) !== -1; });
+  }
+
+  function toggleCtx(id) {
+    setWorkContexts(function (prev) {
+      return prev.indexOf(id) !== -1 ? prev.filter(function (x) { return x !== id; }) : prev.concat([id]);
+    });
+  }
+
+  function startEditing(id) {
+    setSkills(function (p) { return p.map(function (s) { return s.id === id ? Object.assign({}, s, { editing: true }) : s; }); });
+  }
+  function updateText(id, text) {
+    setSkills(function (p) { return p.map(function (s) { return s.id === id ? Object.assign({}, s, { text: text }) : s; }); });
+  }
+  function commitEdit(id) {
+    setSkills(function (p) { return p.map(function (s) { return s.id === id ? Object.assign({}, s, { editing: false }) : s; }); });
+  }
+  function removeSkill(id) {
+    setSkills(function (p) { return p.filter(function (s) { return s.id !== id; }); });
+    setFluencies(function (p) { var n = Object.assign({}, p); delete n[id]; return n; });
+    adjustedSkillsRef.current.delete(id);
+    setAdjustedSkills(new Set(adjustedSkillsRef.current));
+  }
+  function addSkill() {
+    var t = customSkill.trim();
+    if (!t) return;
+    var id = "s" + Date.now();
+    setSkills(function (p) { return p.concat([{ id: id, text: t, editing: false }]); });
+    setCustomSkill("");
+  }
+
+  function resetAll() {
+    setSalesType(""); setRoleTrack(""); setSeniority(""); setCompanyType(""); setIndustryVertical("");
+    setWorkContexts([]); setShowAllCtx(false);
+    setLandscape(""); setSkills([]);
+    setConscience(5); setPull(5); setFluencies({}); setCustomSkill("");
+    setAdjustedSkills(new Set());
+    adjustedSkillsRef.current = new Set();
+    setResults(null); setRecommendations(null); setRecsLoading(false); setRecsError(null);
+    setStep(0); setLoading(false); setLoadingMsg(""); setError(null);
+    setTier(0); setPromoCode(""); setPromoError(""); setPromoUsed(false); setDiscountApplied(false);
+    setGateEmail(""); setGateSent(false); setGateVerified(false); setGateError("");
+    setGateLoading(false); setShowResend(false); setGateOnDifferentDevice(false); setGateInputFocused(false);
+    setCheckoutLoading(false); setCheckoutError(null); setPaymentCanceled(false);
+    setShowCalibration(false);
+    freeEmailSentRef.current = false;
+    paidEmailSentRef.current = false;
+  }
+
+  async function handleGateSubmit() {
+    var trimmed = gateEmail.trim();
+    if (!isValidEmail(trimmed)) {
+      setGateError("Please enter a valid email address.");
+      return;
+    }
+    setGateError("");
+    setGateLoading(true);
+    try {
+      var res = await fetch("/api/send-gate-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: trimmed, product: "sales" }),
+      });
+      var data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Request failed");
+      setGateEmail(trimmed);
+      setGateSent(true);
+    } catch (e) {
+      setGateError("Something went wrong. Please try again.");
+    } finally {
+      setGateLoading(false);
+    }
+  }
+
+  function applyPromoCode() {
+    var v = (promoCode || "").trim();
+    var isFree = PROMO_CODES.some(function (c) { return c.toLowerCase() === v.toLowerCase(); });
+    var isDiscount = DISCOUNT_CODES.some(function (c) { return c.toLowerCase() === v.toLowerCase(); });
+    if (isFree) {
+      setTier(2);
+      setPromoUsed(true);
+      setPromoError("");
+      setPaymentCanceled(false);
+      setStep(6);
+    } else if (isDiscount) {
+      setDiscountApplied(true);
+      setPromoError("");
+    } else {
+      setPromoError("That code isn't valid.");
+    }
+  }
+
+  async function handleUnlockCheckout() {
+    if (!gateEmail.trim()) {
+      setCheckoutError("Please verify your email before checkout.");
+      return;
+    }
+    setCheckoutLoading(true);
+    setCheckoutError(null);
+    setPaymentCanceled(false);
+    saveStateForReturn();
+    var priceCents = discountApplied ? 3950 : 7900;
+    try {
+      var res = await fetch("/api/create-checkout-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          product: "sales",
+          email: gateEmail.trim(),
+          price: priceCents,
+          discount: discountApplied,
+        }),
+      });
+      var data = await res.json();
+      if (!res.ok || !data.url) throw new Error(data.error || "Could not start checkout");
+      window.location.href = data.url;
+    } catch (e) {
+      setCheckoutError(e.message || "Could not start checkout. Please try again.");
+      setCheckoutLoading(false);
+    }
+  }
+
+  async function fetchLandscapeAndSkills() {
+    setLoading(true);
+    setError(null);
+    var profile = buildProfile(salesType, roleTrack, seniority, workContexts, companyType, industryVertical);
+    var wcStr = profile.workContextLabels.join(", ");
+    var prompt =
+      "You are a senior sales career strategist with deep knowledge of the 2026 AI labor market.\n\nSELLER PROFILE:\n- Sales role: " +
+      profile.seniorityLabel +
+      " " +
+      profile.salesTypeLabel +
+      "\n- Role track: " +
+      profile.roleTrackLabel +
+      "\n- Work contexts: " +
+      wcStr +
+      "\n- Company: " +
+      (profile.companyLabel || "not specified") +
+      "\n- Selling into: " +
+      (profile.industryVerticalLabel || "horizontal / various industries") +
+      "\n\nWrite a 3–4 sentence 'AI Landscape' narrative for this seller. Be specific about how AI is affecting this exact role at this kind of company in this vertical. Name specific tools where relevant (Gong, Apollo, Clay, Outreach, Salesforce Einstein, etc.). Be direct, not alarmist. Speak in the second person ('You...').\n\nThen, identify 7–10 specific skills this seller likely uses. Be SPECIFIC to their role — do not produce generic 'communication' or 'negotiation' entries. A good skill is 'Multi-thread stakeholder mapping in 6–18 month enterprise cycles,' not 'Stakeholder management.'\n\nFor SDRs/BDRs: skills should be activity-oriented and outbound.\nFor Enterprise AEs: skills should center on complex deal mechanics.\nFor CSMs: skills should center on adoption, value realization, expansion.\nFor Sales Engineers: skills should be technical-presales focused.\nFor Managers (any track): include team-leadership skills.\n\nReturn ONLY valid JSON:\n{\"landscape\":\"...\",\"skills\":[\"...\",\"...\"]}";
+    try {
+      var res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 800, messages: [{ role: "user", content: prompt }] }),
+      });
+      var data = await res.json();
+      if (!data.content) throw new Error(data.error || data.error_description || "API error");
+      var raw = data.content.map(function (b) { return b.text || ""; }).join("");
+      var m = raw.match(/\{[\s\S]*\}/);
+      if (!m) throw new Error("No JSON in response");
+      var parsed = JSON.parse(m[0]);
+      var loaded = parsed.skills.map(function (text, i) { return { id: "s" + i, text: text, editing: false }; });
+      setLandscape(parsed.landscape);
+      setSkills(loaded);
+      setFluencies({});
+      setAdjustedSkills(new Set());
+      adjustedSkillsRef.current = new Set();
+      setStep(3);
+    } catch (e) {
+      if (e.message && e.message.indexOf("overloaded") !== -1) {
+        await new Promise(function (r) { setTimeout(r, 2000); });
+        try {
+          var res2 = await fetch("/api/generate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 800, messages: [{ role: "user", content: prompt }] }),
+          });
+          var data2 = await res2.json();
+          if (!data2.content) throw new Error(data2.error || "API error");
+          var raw2 = data2.content.map(function (b) { return b.text || ""; }).join("");
+          var m2 = raw2.match(/\{[\s\S]*\}/);
+          if (!m2) throw new Error("No JSON in response");
+          var parsed2 = JSON.parse(m2[0]);
+          var loaded2 = parsed2.skills.map(function (text, i) { return { id: "s" + i, text: text, editing: false }; });
+          setLandscape(parsed2.landscape);
+          setSkills(loaded2);
+          setFluencies({});
+          setAdjustedSkills(new Set());
+          adjustedSkillsRef.current = new Set();
+          setStep(3);
+        } catch (e2) {
+          setError("Something went wrong — please try again in a moment.");
+        }
+      } else {
+        setError("Something went wrong — please try again in a moment.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function fetchScores() {
+    if (skills.length === 0) return;
+    setLoading(true);
+    setError(null);
+    var profile = buildProfile(salesType, roleTrack, seniority, workContexts, companyType, industryVertical);
+    var skillLines = skills
+      .map(function (s, i) {
+        var fluencyVal = fluencies[s.id] !== undefined ? fluencies[s.id] : getSeed(conscience, pull);
+        var aff = compAff(conscience, pull, fluencyVal);
+        return i + 1 + ". " + s.text + " (fluency: " + fluencyVal + "/10, affinity: " + aff + "/10)";
+      })
+      .join("\n");
+    var prompt =
+      "You are a senior sales career strategist with deep knowledge of the 2026 AI labor market.\n\nSELLER PROFILE:\n- Sales role: " +
+      profile.seniorityLabel +
+      " " +
+      profile.salesTypeLabel +
+      "\n- Role track: " +
+      profile.roleTrackLabel +
+      "\n- Work contexts: " +
+      profile.workContextLabels.join(", ") +
+      "\n- Company: " +
+      (profile.companyLabel || "not specified") +
+      "\n- Selling into: " +
+      (profile.industryVerticalLabel || "horizontal / various industries") +
+      "\n\nSkills to score:\n" +
+      skillLines +
+      "\n\nFor each skill return:\n- ai_replaceability: 1-10 (10=AI doing this already, 1=deeply human)\n- market_demand: 1-10 (10=extremely high demand, 1=declining)\n\nSCORING GUARDRAILS:\n- Activity-based work (volume calls, sequences, list building) → high AI risk (7–10)\n- Outcome-based work (closing complex deals, expanding accounts) → lower AI risk (2–5)\n- Cycle complexity matters: $5K SMB sale is 90% AI-replaceable; 18-month $5M enterprise deal is 15%\n- Vertical specialization gives defensibility — adjust aiR down 1–2 points where domain knowledge matters\n- Manager-track skills: AI augments forecasting/coaching but cannot replace people leadership\n- AI-first companies: stable-to-rising demand. PLG sales-assist: declining. Enterprise AE: stable. SDR: declining.\n\nAlso return phase1_teaser: one specific Phase 1 action this seller can start this week (2–3 sentences, very specific to their role and vertical).\n\nBe honest. Do not default to middle values.\n\nReturn ONLY valid JSON:\n{\"scores\":[{\"id\":\"s0\",\"name\":\"skill name\",\"ai_replaceability\":N,\"market_demand\":N}],\"phase1_teaser\":\"...\"}";
+    try {
+      var res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, messages: [{ role: "user", content: prompt }] }),
+      });
+      var data = await res.json();
+      if (!data.content) throw new Error(data.error || "API error");
+      var raw = data.content.map(function (b) { return b.text || ""; }).join("");
+      var m = raw.match(/\{[\s\S]*\}/);
+      if (!m) throw new Error("No JSON in response");
+      var parsed = JSON.parse(m[0]);
+      if (!parsed.scores || !Array.isArray(parsed.scores)) throw new Error("No scores");
+      var enriched = parsed.scores.map(function (scored, i) {
+        var found =
+          skills.find(function (s) { return s.id === scored.id; }) ||
+          skills.find(function (s) { return scored.name === s.text; }) ||
+          skills.find(function (s) { return scored.name && scored.name.indexOf(s.text.slice(0, 20)) !== -1; });
+        var id = found ? found.id : scored.id || "s" + i;
+        var fluencyVal = fluencies[id] !== undefined ? fluencies[id] : getSeed(conscience, pull);
+        var aff = compAff(conscience, pull, fluencyVal);
+        var aiR = typeof scored.ai_replaceability === "number" ? scored.ai_replaceability : 5;
+        var mkt = typeof scored.market_demand === "number" ? scored.market_demand : 7;
+        return {
+          id: id,
+          text: found ? found.text : scored.name,
+          name: found ? found.text : scored.name,
+          fluency: fluencyVal,
+          affinity: aff,
+          ai_replaceability: aiR,
+          market_demand: mkt,
+          dz: calcDZ(aff, aiR, mkt),
+        };
+      });
+      setResults({ skills: enriched, profile: profile, landscape: landscape, phase1Teaser: parsed.phase1_teaser });
+      setStep(4);
+    } catch (e) {
+      if (e.message && e.message.indexOf("overloaded") !== -1) {
+        await new Promise(function (r) { setTimeout(r, 2000); });
+        try {
+          var res2 = await fetch("/api/generate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, messages: [{ role: "user", content: prompt }] }),
+          });
+          var data2 = await res2.json();
+          if (!data2.content) throw new Error(data2.error || "API error");
+          var raw2 = data2.content.map(function (b) { return b.text || ""; }).join("");
+          var m2 = raw2.match(/\{[\s\S]*\}/);
+          if (!m2) throw new Error("No JSON");
+          var parsed2 = JSON.parse(m2[0]);
+          var enriched2 = parsed2.scores.map(function (scored, i) {
+            var found2 =
+              skills.find(function (s) { return s.id === scored.id; }) ||
+              skills.find(function (s) { return scored.name === s.text; }) ||
+              skills.find(function (s) { return scored.name && scored.name.indexOf(s.text.slice(0, 20)) !== -1; });
+            var id2 = found2 ? found2.id : scored.id || "s" + i;
+            var fluencyVal2 = fluencies[id2] !== undefined ? fluencies[id2] : getSeed(conscience, pull);
+            var aff2 = compAff(conscience, pull, fluencyVal2);
+            var aiR2 = typeof scored.ai_replaceability === "number" ? scored.ai_replaceability : 5;
+            var mkt2 = typeof scored.market_demand === "number" ? scored.market_demand : 7;
+            return {
+              id: id2,
+              text: found2 ? found2.text : scored.name,
+              name: found2 ? found2.text : scored.name,
+              fluency: fluencyVal2,
+              affinity: aff2,
+              ai_replaceability: aiR2,
+              market_demand: mkt2,
+              dz: calcDZ(aff2, aiR2, mkt2),
+            };
+          });
+          setResults({ skills: enriched2, profile: profile, landscape: landscape, phase1Teaser: parsed2.phase1_teaser });
+          setStep(4);
+        } catch (e2) {
+          setError("Something went wrong — please try again in a moment.");
+        }
+      } else {
+        setError("Something went wrong — please try again in a moment.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function fetchRecommendations() {
+    if (!results || !Array.isArray(results.skills) || results.skills.length === 0) return;
+    setRecsLoading(true);
+    setRecsError(null);
+    var profile = results.profile || buildProfile(salesType, roleTrack, seniority, workContexts, companyType, industryVertical);
+    var skillSummary = results.skills
+      .map(function (sk, i) {
+        var aiR = typeof sk.ai_replaceability === "number" ? sk.ai_replaceability : 5;
+        var mkt = typeof sk.market_demand === "number" ? sk.market_demand : 7;
+        var name = sk.text || sk.name || "Skill " + (i + 1);
+        return i + 1 + ". " + name + " (AI Risk: " + aiR + "/10, Market: " + mkt + "/10)";
+      })
+      .join("\n");
+    var prompt =
+      "You are a senior sales career strategist. A " +
+      profile.seniorityLabel +
+      " " +
+      profile.salesTypeLabel +
+      " (role track: " +
+      profile.roleTrackLabel +
+      ") at " +
+      (profile.companyLabel || "not specified") +
+      " selling into " +
+      (profile.industryVerticalLabel || "horizontal / various industries") +
+      ", focused on " +
+      profile.workContextLabels.join(", ") +
+      ", just completed a Defensible Zone assessment.\n\nFor each skill below, write a short personalised recommendation. Be specific to their sales role, seniority, and selling motion. Use plain English. Do not use the word 'threat'. Be direct and practical. Sound like a sales coach, not a career counselor.\n\nAssign a phase (1, 2, or 3):\n- Phase 1 (Weeks 1–4): actions the seller can begin immediately — no org setup needed\n- Phase 2 (Weeks 5–8): actions requiring coordination with manager/SE/CSM/RevOps\n- Phase 3 (Weeks 9–12): structural moves — vertical positioning, LinkedIn POV, internal mobility\n\nDistribute: aim for 3 in Phase 1, 3 in Phase 2, 2 in Phase 3. Max 4 per phase.\n\nROLE-TRACK GUARDRAILS:\n- ICs: recommendations about THEIR deals, pipeline, personal brand\n- Player-Coach: 60% own deals, 40% team coaching and visibility\n- People Managers: team defensibility, hiring, coaching, own positioning. Do NOT recommend personal prospecting to a VP Sales.\n\nSDR GUARDRAIL: If salesType is sdr or ldr, at least one Phase 3 recommendation must be a transition move toward AE, CSM, or RevOps.\n\nSkills:\n" +
+      skillSummary +
+      "\n\nReturn ONLY valid JSON:\n{\"recommendations\":[{\"id\":\"s0\",\"headline\":\"5-7 word action headline\",\"action\":\"One specific thing to do.\",\"why\":\"One sentence on why this matters.\",\"phase\":1}]}";
+    try {
+      var res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 2000, messages: [{ role: "user", content: prompt }] }),
+      });
+      var data = await res.json();
+      if (!data.content) throw new Error(data.error || "API error");
+      var raw = data.content.map(function (b) { return b.text || ""; }).join("");
+      var m = raw.match(/\{[\s\S]*\}/);
+      if (!m) throw new Error("No JSON in response");
+      setRecommendations(JSON.parse(m[0]));
+    } catch (e) {
+      setRecsError("Could not load your plan. Please try again.");
+    } finally {
+      setRecsLoading(false);
+    }
+  }
+
+  var canProceed = salesType !== "" && roleTrack !== "" && seniority !== "" && workContexts.length > 0;
+  var visibleCtx = getVisibleContexts();
+  var hiddenCount = WORK_CONTEXTS.length - visibleCtx.length;
+  var currentSeniorityOptions = SENIORITY_BY_TRACK[roleTrack] || [];
+  var progressPct = ((step + 1) / 6) * 100;
+  var skillStepBarPct = (3 / 6) * 100;
+  var scoreStepBarPct = (4 / 6) * 100;
+  var resultsStepBarPct = (5 / 6) * 100;
+  var unlockStepBarPct = 100;
+  var dzSliderCSS =
+    "input[type=range].dz-slider{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:3px;outline:none;cursor:pointer;border:none} input[type=range].dz-slider::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;border-radius:50%;border:3px solid white;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.18)} input[type=range].dz-slider::-moz-range-thumb{width:24px;height:24px;border-radius:50%;border:3px solid white;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.18)} input[type=range].conscience-sl::-webkit-slider-thumb{background:#7c3aed} input[type=range].conscience-sl::-moz-range-thumb{background:#7c3aed} input[type=range].pull-sl::-webkit-slider-thumb{background:#0891b2} input[type=range].pull-sl::-moz-range-thumb{background:#0891b2} input[type=range].fluency-sl::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:#d97706;border:2px solid white;cursor:pointer} input[type=range].fluency-sl::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:#d97706;border:2px solid white;cursor:pointer}";
+
+  var inputStyle = {
+    width: "100%",
+    padding: "12px 14px",
+    fontSize: 16,
+    fontFamily: S.font,
+    border: "1px solid " + S.border,
+    borderRadius: 10,
+    outline: "none",
+    boxSizing: "border-box",
+    background: "#ffffff",
+    color: S.text,
+  };
+
+  if (gateLoading) {
+    return (
+      <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font, display: "flex", flexDirection: "column", padding: "32px 20px", boxSizing: "border-box" }}>
+        <style dangerouslySetInnerHTML={{ __html: "@keyframes dzSalesGateDots{0%,100%{opacity:0.25}50%{opacity:1}}" }} />
+        <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ textAlign: "center", maxWidth: 420 }}>
+            <div style={{ fontFamily: S.mono, fontSize: 12, color: S.gold, letterSpacing: "0.12em", marginBottom: 24, fontWeight: 600 }}>DEFENSIBLE ZONE™ · SALES EDITION</div>
+            <div style={{ fontFamily: S.serif, fontSize: 24, fontStyle: "italic", color: S.text, lineHeight: 1.45 }}>Verifying your link…</div>
+            <div style={{ display: "flex", justifyContent: "center", gap: 6, marginTop: 18, fontFamily: S.mono, fontSize: 22, color: S.dim, lineHeight: 1 }}>
+              <span style={{ animation: "dzSalesGateDots 1s ease-in-out infinite" }}>.</span>
+              <span style={{ animation: "dzSalesGateDots 1s ease-in-out 0.2s infinite" }}>.</span>
+              <span style={{ animation: "dzSalesGateDots 1s ease-in-out 0.4s infinite" }}>.</span>
+            </div>
+          </div>
+        </div>
+        <div style={{ maxWidth: 680, margin: "0 auto", width: "100%" }}><SalesFooter /></div>
+      </div>
+    );
+  }
+
+  if (recsLoading) {
+    return (
+      <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font, padding: "40px 20px", boxSizing: "border-box" }}>
+        <style dangerouslySetInnerHTML={{ __html: "@keyframes dzSalesLoadDots{0%,100%{opacity:0.25}50%{opacity:1}}" }} />
+        <div style={{ maxWidth: 680, margin: "0 auto" }}>
+          <div style={{ marginBottom: 28 }}>
+            <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.1em", marginBottom: 10, fontWeight: 600 }}>COMPLETE — YOUR 90-DAY PLAN</div>
+            <div style={{ height: 4, background: S.border, borderRadius: 2, overflow: "hidden" }}>
+              <div style={{ height: "100%", width: unlockStepBarPct + "%", background: S.accent, borderRadius: 2 }} />
+            </div>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "50vh" }}>
+            <div style={{ textAlign: "center", maxWidth: 420 }}>
+              <div style={{ fontFamily: S.mono, fontSize: 12, color: S.gold, letterSpacing: "0.12em", marginBottom: 24, fontWeight: 600 }}>DEFENSIBLE ZONE™ · SALES EDITION</div>
+              <div style={{ fontFamily: S.serif, fontSize: 24, fontStyle: "italic", color: S.text, lineHeight: 1.45 }}>{loadingMsg}</div>
+              <div style={{ display: "flex", justifyContent: "center", gap: 6, marginTop: 18, fontFamily: S.mono, fontSize: 22, color: S.dim, lineHeight: 1 }}>
+                <span style={{ animation: "dzSalesLoadDots 1s ease-in-out infinite" }}>.</span>
+                <span style={{ animation: "dzSalesLoadDots 1s ease-in-out 0.2s infinite" }}>.</span>
+                <span style={{ animation: "dzSalesLoadDots 1s ease-in-out 0.4s infinite" }}>.</span>
+              </div>
+            </div>
+          </div>
+          <SalesFooter />
+        </div>
+      </div>
+    );
+  }
+
+  if (loading) {
+    var loadingStepLabel = step === 3 ? "STEP 4 OF 6 — CALCULATING YOUR ZONE" : "STEP 3 OF 6 — READING YOUR LANDSCAPE";
+    var loadingBarPct = step === 3 ? scoreStepBarPct : skillStepBarPct;
+    return (
+      <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font, padding: "40px 20px", boxSizing: "border-box" }}>
+        <style dangerouslySetInnerHTML={{ __html: "@keyframes dzSalesLoadDots{0%,100%{opacity:0.25}50%{opacity:1}}" }} />
+        <div style={{ maxWidth: 680, margin: "0 auto" }}>
+          <div style={{ marginBottom: 28 }}>
+            <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.1em", marginBottom: 10, fontWeight: 600 }}>{loadingStepLabel}</div>
+            <div style={{ height: 4, background: S.border, borderRadius: 2, overflow: "hidden" }}>
+              <div style={{ height: "100%", width: loadingBarPct + "%", background: S.accent, borderRadius: 2, transition: "width 0.25s ease" }} />
+            </div>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "50vh" }}>
+            <div style={{ textAlign: "center", maxWidth: 420 }}>
+              <div style={{ fontFamily: S.mono, fontSize: 12, color: S.gold, letterSpacing: "0.12em", marginBottom: 24, fontWeight: 600 }}>DEFENSIBLE ZONE™ · SALES EDITION</div>
+              <div style={{ fontFamily: S.serif, fontSize: 24, fontStyle: "italic", color: S.text, lineHeight: 1.45 }}>{loadingMsg}</div>
+              <div style={{ display: "flex", justifyContent: "center", gap: 6, marginTop: 18, fontFamily: S.mono, fontSize: 22, color: S.dim, lineHeight: 1 }}>
+                <span style={{ animation: "dzSalesLoadDots 1s ease-in-out infinite" }}>.</span>
+                <span style={{ animation: "dzSalesLoadDots 1s ease-in-out 0.2s infinite" }}>.</span>
+                <span style={{ animation: "dzSalesLoadDots 1s ease-in-out 0.4s infinite" }}>.</span>
+              </div>
+            </div>
+          </div>
+          <SalesFooter />
+        </div>
+      </div>
+    );
+  }
+
+  if (error && (step === 2 || step === 3)) {
+    var errStepLabel = step === 3 ? "STEP 4 OF 6 — CALCULATING YOUR ZONE" : "STEP 3 OF 6 — READING YOUR LANDSCAPE";
+    var errBarPct = step === 3 ? scoreStepBarPct : skillStepBarPct;
+    return (
+      <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font, padding: "40px 20px", boxSizing: "border-box" }}>
+        <div style={{ maxWidth: 680, margin: "0 auto" }}>
+          <div style={{ marginBottom: 28 }}>
+            <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.1em", marginBottom: 10, fontWeight: 600 }}>{errStepLabel}</div>
+            <div style={{ height: 4, background: S.border, borderRadius: 2, overflow: "hidden" }}>
+              <div style={{ height: "100%", width: errBarPct + "%", background: S.accent, borderRadius: 2 }} />
+            </div>
+          </div>
+          <Card style={{ textAlign: "center" }}>
+            <p style={{ color: S.red, fontSize: 15, margin: "0 0 20px", lineHeight: 1.5 }}>{error}</p>
+            <PrimaryBtn onClick={function () { setError(null); if (step === 3) fetchScores(); else fetchLandscapeAndSkills(); }}>TRY AGAIN</PrimaryBtn>
+          </Card>
+          <button type="button" onClick={resetAll} style={{ marginTop: 20, background: "transparent", border: "1px solid " + S.border, color: S.dim, borderRadius: 10, padding: "10px 16px", fontFamily: S.mono, fontSize: 12, fontWeight: 600, cursor: "pointer", letterSpacing: "0.06em", width: "100%" }}>START OVER</button>
+          <SalesFooter />
+        </div>
+      </div>
+    );
+  }
+
+  if (step === 0) {
+    return (
+      <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font, padding: "40px 20px", boxSizing: "border-box" }}>
+        <style dangerouslySetInnerHTML={{ __html: "@media(max-width:520px){.sales-sel-grid{grid-template-columns:1fr!important}.sales-track-grid{grid-template-columns:1fr!important}} .sales-sel-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px} .sales-track-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}" }} />
+        <div style={{ maxWidth: 680, margin: "0 auto" }}>
+          <div style={{ marginBottom: 28 }}>
+            <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.1em", marginBottom: 10, fontWeight: 600 }}>STEP 1 OF 6 — YOUR PROFILE</div>
+            <div style={{ height: 4, background: S.border, borderRadius: 2, overflow: "hidden" }}>
+              <div style={{ height: "100%", width: progressPct + "%", background: S.accent, borderRadius: 2, transition: "width 0.25s ease" }} />
+            </div>
+          </div>
+          <div style={{ marginBottom: 32 }}>
+            <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.1em", marginBottom: 12, fontWeight: 600 }}>DEFENSIBLE ZONE™ — SALES EDITION</div>
+            <h1 style={{ fontFamily: S.serif, fontSize: 32, color: S.text, margin: "0 0 12px", lineHeight: 1.2, fontWeight: 600 }}>Your number is your career — but for how long?</h1>
+            <p style={{ color: S.dim, fontSize: 16, lineHeight: 1.7, margin: 0 }}>AI is reshaping B2B sales faster than most sellers realize. This assessment maps exactly where you&apos;re exposed — and where you&apos;re protected.</p>
+          </div>
+          <Card style={{ marginBottom: 12 }}>
+            <Label>YOUR SALES ROLE</Label>
+            {salesGroups.map(function (groupName) {
+              var typesInGroup = SALES_TYPES.filter(function (t) { return t.group === groupName; });
+              return (
+                <div key={groupName} style={{ marginBottom: 16 }}>
+                  <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.08em", marginBottom: 8, fontWeight: 600 }}>{groupName.toUpperCase()}</div>
+                  <div className="sales-sel-grid">
+                    {typesInGroup.map(function (st) {
+                      var active = salesType === st.id;
+                      return (
+                        <SelBtn key={st.id} active={active} onClick={function () { setSalesType(st.id); }}>
+                          <div style={{ fontWeight: 700, fontSize: 16 }}>{st.label}</div>
+                          <div style={{ fontSize: 13, color: active ? "rgba(255,255,255,0.75)" : S.dim, marginTop: 4, lineHeight: 1.4 }}>{st.desc}</div>
+                        </SelBtn>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </Card>
+          <Card style={{ marginBottom: 12 }}>
+            <Label>YOUR ROLE TRACK</Label>
+            <div className="sales-track-grid">
+              {ROLE_TRACKS.map(function (rt) {
+                var active = roleTrack === rt.id;
+                return (
+                  <SelBtn key={rt.id} active={active} onClick={function () { setRoleTrack(rt.id); }}>
+                    <div style={{ fontWeight: 700, fontSize: 15 }}>{rt.label}</div>
+                    <div style={{ fontSize: 12, color: active ? "rgba(255,255,255,0.75)" : S.dim, marginTop: 4, lineHeight: 1.35 }}>{rt.desc}</div>
+                  </SelBtn>
+                );
+              })}
+            </div>
+          </Card>
+          {roleTrack ? (
+            <Card style={{ marginBottom: 12 }}>
+              <Label>YOUR SENIORITY</Label>
+              <div className="sales-sel-grid">
+                {currentSeniorityOptions.map(function (sl) {
+                  var active = seniority === sl.id;
+                  return (
+                    <SelBtn key={sl.id} active={active} onClick={function () { setSeniority(sl.id); }}>
+                      <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 2 }}>{sl.label}</div>
+                      <div style={{ fontSize: 12, color: active ? "rgba(255,255,255,0.6)" : S.dim, marginTop: 3, lineHeight: 1.35 }}>{sl.note}</div>
+                    </SelBtn>
+                  );
+                })}
+              </div>
+            </Card>
+          ) : null}
+          <Card style={{ marginBottom: 12 }}>
+            <Label>YOUR WORK CONTEXTS <span style={{ color: S.red }}>*</span></Label>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 10 }}>
+              {visibleCtx.map(function (wc) {
+                return <Chip key={wc.id} label={wc.label} active={workContexts.indexOf(wc.id) !== -1} onClick={function () { toggleCtx(wc.id); }} />;
+              })}
+            </div>
+            {salesType && !showAllCtx && hiddenCount > 0 ? (
+              <button type="button" onClick={function () { setShowAllCtx(true); }} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: S.mono, fontSize: 12, color: S.blue, textDecoration: "underline", marginBottom: 10 }}>
+                Show {hiddenCount} more contexts
+              </button>
+            ) : null}
+          </Card>
+          <div style={{ display: "flex", alignItems: "center", gap: 16, margin: "24px 0" }}>
+            <div style={{ flex: 1, height: 1, background: S.border }} />
+            <span style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.06em", whiteSpace: "nowrap" }}>TELL US MORE — IMPROVES YOUR ASSESSMENT</span>
+            <div style={{ flex: 1, height: 1, background: S.border }} />
+          </div>
+          <Card style={{ marginBottom: 12 }}>
+            <Label>YOUR COMPANY TYPE (optional)</Label>
+            <div className="sales-sel-grid">
+              {COMPANY_TYPES.map(function (ct) {
+                var active = companyType === ct.id;
+                return (
+                  <SelBtn key={ct.id} active={active} onClick={function () { setCompanyType(companyType === ct.id ? "" : ct.id); }}>
+                    <div style={{ fontWeight: 700, fontSize: 16 }}>{ct.label}</div>
+                    <div style={{ fontSize: 13, color: active ? "rgba(255,255,255,0.75)" : S.dim, marginTop: 4 }}>{ct.sub}</div>
+                  </SelBtn>
+                );
+              })}
+            </div>
+          </Card>
+          <Card style={{ marginBottom: 20 }}>
+            <Label>WHO DO YOU SELL TO? (optional)</Label>
+            <div className="sales-sel-grid">
+              {INDUSTRY_VERTICALS.map(function (iv) {
+                var active = industryVertical === iv.id;
+                return (
+                  <SelBtn key={iv.id} active={active} onClick={function () { setIndustryVertical(industryVertical === iv.id ? "" : iv.id); }}>
+                    <div style={{ fontWeight: 700, fontSize: 16 }}>{iv.label}</div>
+                  </SelBtn>
+                );
+              })}
+            </div>
+          </Card>
+          <PrimaryBtn onClick={function () { setStep(1); }} disabled={!canProceed}>ANALYSE MY PROFILE →</PrimaryBtn>
+          {!canProceed ? (
+            <p style={{ color: S.dim, fontSize: 14, fontFamily: S.mono, textAlign: "center", marginTop: 12, lineHeight: 1.6 }}>Select your sales role, role track, seniority, and at least one work context to continue.</p>
+          ) : null}
+          <SalesDisclaimer />
+          <SalesFooter />
+        </div>
+      </div>
+    );
+  }
+
+  if (step === 1) {
+    var showExpiredInvalid = gateError === "expired" || gateError === "invalid";
+    var gateTryAgainBtn = { width: "100%", marginTop: 16, background: S.accent, color: "#ffffff", border: "none", borderRadius: 10, padding: 16, fontSize: 16, fontWeight: 600, fontFamily: S.mono, letterSpacing: "0.06em", cursor: "pointer" };
+    return (
+      <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font, padding: "40px 20px", boxSizing: "border-box" }}>
+        <style dangerouslySetInnerHTML={{ __html: "@keyframes dzSalesGateSpin{to{transform:rotate(360deg)}}" }} />
+        <div style={{ maxWidth: 680, margin: "0 auto" }}>
+          <div style={{ marginBottom: 28 }}>
+            <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.1em", marginBottom: 10, fontWeight: 600 }}>STEP 2 OF 6 — VERIFY YOUR EMAIL</div>
+            <div style={{ height: 4, background: S.border, borderRadius: 2, overflow: "hidden" }}>
+              <div style={{ height: "100%", width: "33%", background: S.accent, borderRadius: 2 }} />
+            </div>
+          </div>
+          {gateOnDifferentDevice ? (
+            <Card style={{ marginBottom: 20, textAlign: "center" }}>
+              <Label style={{ color: S.gold, marginBottom: 16 }}>DIFFERENT DEVICE DETECTED</Label>
+              <p style={{ fontSize: 16, color: S.text, lineHeight: 1.7, margin: "0 0 20px" }}>It looks like you opened the link on a different device. Please start again on this device.</p>
+              <button type="button" onClick={resetAll} style={gateTryAgainBtn}>BEGIN ON THIS DEVICE</button>
+            </Card>
+          ) : gateSent ? (
+            <Card style={{ textAlign: "center" }}>
+              <Label style={{ color: S.gold, marginBottom: 16 }}>CHECK YOUR INBOX</Label>
+              <h2 style={{ fontFamily: S.serif, fontSize: 28, color: S.text, margin: "0 0 12px", lineHeight: 1.2, fontWeight: 600 }}>Almost there.</h2>
+              <p style={{ fontSize: 16, color: S.dim, lineHeight: 1.75, margin: "0 0 20px" }}>
+                We sent a link to <span style={{ fontFamily: S.mono, fontSize: 14, color: S.muted, fontWeight: 600 }}>{gateEmail}</span>. Click it to continue your assessment.
+              </p>
+              {showResend ? (
+                <button type="button" onClick={function () { setShowResend(false); handleGateSubmit(); }} style={{ background: "transparent", border: "1px solid " + S.border, borderRadius: 10, padding: "10px 20px", fontFamily: S.mono, fontSize: 12, color: S.muted, cursor: "pointer", marginBottom: 8 }}>Resend the link</button>
+              ) : null}
+              <div style={{ marginTop: 20 }}>
+                <button type="button" onClick={function () { setGateSent(false); setShowResend(false); setGateError(""); }} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: S.mono, fontSize: 12, color: S.blue, textDecoration: "underline" }}>Use a different email</button>
+              </div>
+            </Card>
+          ) : (
+            <Card>
+              <Label>ONE QUICK STEP</Label>
+              <h2 style={{ fontFamily: S.serif, fontSize: 28, color: S.text, margin: "0 0 12px", lineHeight: 1.2, fontWeight: 600 }}>Where should we send your results?</h2>
+              <p style={{ color: S.dim, fontSize: 16, lineHeight: 1.7, margin: "0 0 24px" }}>Enter your email to start the assessment. Your free results will be emailed to you as a PDF when you&apos;re done.</p>
+              {gateError === "expired" ? <div style={{ color: S.red, fontSize: 14, marginBottom: 12, lineHeight: 1.5 }}>That link has expired. Please request a new one.</div> : null}
+              {gateError === "invalid" ? <div style={{ color: S.red, fontSize: 14, marginBottom: 12, lineHeight: 1.5 }}>That link isn&apos;t valid. Please try again.</div> : null}
+              <input
+                type="email"
+                placeholder="your@email.com"
+                value={gateEmail}
+                disabled={gateLoading}
+                onFocus={function () { setGateInputFocused(true); }}
+                onBlur={function () { setGateInputFocused(false); }}
+                onChange={function (e) { setGateEmail(e.target.value); if (showExpiredInvalid) setGateError(""); }}
+                style={{ width: "100%", padding: "14px 16px", fontSize: 16, fontFamily: S.font, border: gateInputFocused ? "1px solid " + S.gold : "1px solid " + S.border, borderRadius: 10, outline: "none", boxSizing: "border-box", background: "#ffffff", color: S.text }}
+              />
+              {gateError && !showExpiredInvalid ? <div style={{ color: S.red, fontSize: 13, marginTop: 8 }}>{gateError}</div> : null}
+              <button type="button" onClick={handleGateSubmit} disabled={gateLoading} style={{ width: "100%", padding: 14, fontSize: 16, fontWeight: 600, fontFamily: S.mono, letterSpacing: "0.06em", background: gateLoading ? "#e5a820" : S.gold, color: "#ffffff", border: "none", borderRadius: 10, cursor: gateLoading ? "not-allowed" : "pointer", marginTop: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
+                {gateLoading ? <span style={{ width: 18, height: 18, border: "2px solid rgba(255,255,255,0.35)", borderTop: "2px solid #ffffff", borderRadius: "50%", animation: "dzSalesGateSpin 0.85s linear infinite", flexShrink: 0 }} /> : null}
+                {gateLoading ? "Sending…" : "SEND ME THE LINK →"}
+              </button>
+            </Card>
+          )}
+          <button type="button" onClick={function () { setStep(0); }} style={{ marginTop: 20, background: "transparent", border: "none", padding: 0, cursor: "pointer", fontFamily: S.mono, fontSize: 12, color: S.dim, letterSpacing: "0.06em" }}>← BACK</button>
+          <SalesFooter />
+        </div>
+      </div>
+    );
+  }
+
+  if (step === 3) {
+    var profile3 = buildProfile(salesType, roleTrack, seniority, workContexts, companyType, industryVertical);
+    var landscapeSummary = profile3.seniorityLabel + " " + profile3.salesTypeLabel;
+    var affinityStops = [0, 3, 5, 7, 10];
+    var conscienceLabelTexts = ["Move on easily", "Slightly bothered", "Unsettled", "Want to fix it", "Can't let it go"];
+    var pullLabelTexts = ["Almost never", "Occasionally", "Sometimes", "Regularly", "Constantly"];
+
+    if (!showCalibration) {
+      return (
+        <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font, padding: "40px 20px", boxSizing: "border-box" }}>
+          <div style={{ maxWidth: 680, margin: "0 auto" }}>
+            <div style={{ marginBottom: 28 }}>
+              <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.1em", marginBottom: 10, fontWeight: 600 }}>STEP 3 OF 6 — REVIEW YOUR SKILLS</div>
+              <div style={{ height: 4, background: S.border, borderRadius: 2, overflow: "hidden" }}>
+                <div style={{ height: "100%", width: skillStepBarPct + "%", background: S.accent, borderRadius: 2, transition: "width 0.25s ease" }} />
+              </div>
+            </div>
+            <button type="button" onClick={resetAll} style={{ background: "transparent", border: "1px solid " + S.border, color: S.dim, borderRadius: 10, padding: "10px 16px", fontFamily: S.mono, fontSize: 12, fontWeight: 600, cursor: "pointer", letterSpacing: "0.06em", marginBottom: 24 }}>START OVER</button>
+            <div style={{ background: S.accent, borderRadius: 14, padding: 22, marginBottom: 24, position: "relative", overflow: "hidden" }}>
+              <div style={{ position: "absolute", top: 0, right: 0, width: 160, height: 160, background: "radial-gradient(circle,rgba(217,119,6,.15) 0%,transparent 70%)", pointerEvents: "none" }} />
+              <div style={{ fontFamily: S.mono, fontSize: 12, color: "rgba(217,119,6,.85)", letterSpacing: "0.1em", marginBottom: 10, fontWeight: 600 }}>YOUR AI LANDSCAPE — {landscapeSummary.toUpperCase()}</div>
+              <p style={{ color: "#ffffff", fontSize: 16, lineHeight: 1.75, margin: 0, fontStyle: "italic" }}>{landscape}</p>
+            </div>
+            <Card style={{ marginBottom: 20 }}>
+              <Label>YOUR SKILLS TO ASSESS</Label>
+              <p style={{ color: S.dim, fontSize: 15, lineHeight: 1.6, margin: "0 0 16px" }}>Generated for your exact profile. Edit any skill to be more specific — specificity improves your scores.</p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {skills.map(function (s) {
+                  return (
+                    <div key={s.id} style={{ display: "flex", alignItems: "flex-start", gap: 10, flexWrap: "wrap" }}>
+                      <div style={{ flex: 1, minWidth: 200 }}>
+                        {s.editing ? (
+                          <input autoFocus value={s.text} onChange={function (e) { updateText(s.id, e.target.value); }} onBlur={function () { commitEdit(s.id); }} onKeyDown={function (e) { if (e.key === "Enter" || e.key === "Escape") commitEdit(s.id); }} style={inputStyle} />
+                        ) : (
+                          <div onClick={function () { startEditing(s.id); }} style={{ display: "flex", alignItems: "center", background: "#f2f4f8", border: "1px solid " + S.border, borderRadius: 10, padding: "10px 14px", gap: 10, minHeight: 46, cursor: "pointer" }}>
+                            <span style={{ color: S.text, fontSize: 16, flex: 1, fontWeight: 500, lineHeight: 1.4 }}>{s.text}</span>
+                            <button type="button" onClick={function (ev) { ev.stopPropagation(); startEditing(s.id); }} style={{ background: "none", border: "1px solid " + S.border, color: S.muted, cursor: "pointer", fontSize: 12, padding: "4px 9px", borderRadius: 6, fontFamily: S.mono }}>EDIT</button>
+                            <button type="button" onClick={function (ev) { ev.stopPropagation(); removeSkill(s.id); }} style={{ background: "none", border: "none", color: S.dim, cursor: "pointer", fontSize: 20, lineHeight: 1, padding: 0 }}>×</button>
+                          </div>
+                        )}
+                      </div>
+                      <span style={{ fontSize: 12, padding: "2px 8px", borderRadius: 10, fontFamily: S.mono, background: adjustedSkills.has(s.id) ? "rgba(217,119,6,0.12)" : "rgba(5,150,105,0.10)", color: adjustedSkills.has(s.id) ? "#d97706" : "#059669" }}>{adjustedSkills.has(s.id) ? "adjusted" : "pre-seeded"}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </Card>
+            <Card style={{ marginBottom: 20 }}>
+              <div style={{ display: "flex", gap: 10 }}>
+                <input type="text" placeholder="Add a custom skill…" value={customSkill} onChange={function (e) { setCustomSkill(e.target.value); }} onKeyDown={function (e) { if (e.key === "Enter") addSkill(); }} style={Object.assign({}, inputStyle, { flex: 1, marginBottom: 0 })} />
+                <button type="button" onClick={addSkill} disabled={!customSkill.trim()} style={{ background: customSkill.trim() ? S.accent : S.card2, color: customSkill.trim() ? "white" : S.dim, border: "1px solid " + S.border, borderRadius: 10, padding: "12px 18px", fontFamily: S.mono, fontSize: 13, fontWeight: 700, cursor: customSkill.trim() ? "pointer" : "not-allowed" }}>ADD</button>
+              </div>
+            </Card>
+            <PrimaryBtn onClick={function () { setShowCalibration(true); }} disabled={skills.length === 0}>CALIBRATE MY SKILLS →</PrimaryBtn>
+            <SalesFooter />
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font, padding: "40px 20px", boxSizing: "border-box" }}>
+        <style dangerouslySetInnerHTML={{ __html: dzSliderCSS }} />
+        <div style={{ maxWidth: 680, margin: "0 auto" }}>
+          <div style={{ marginBottom: 28 }}>
+            <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.1em", marginBottom: 10, fontWeight: 600 }}>STEP 4 OF 6 — CALIBRATE YOUR SKILLS</div>
+            <div style={{ height: 4, background: S.border, borderRadius: 2, overflow: "hidden" }}>
+              <div style={{ height: "100%", width: scoreStepBarPct + "%", background: S.accent, borderRadius: 2, transition: "width 0.25s ease" }} />
+            </div>
+          </div>
+          <button type="button" onClick={resetAll} style={{ background: "transparent", border: "1px solid " + S.border, color: S.dim, borderRadius: 10, padding: "10px 16px", fontFamily: S.mono, fontSize: 12, fontWeight: 600, cursor: "pointer", letterSpacing: "0.06em", marginBottom: 24 }}>START OVER</button>
+          <div style={{ fontFamily: S.mono, fontSize: 12, textTransform: "uppercase", color: "#7a88a8", marginBottom: 6 }}>PART 1 — ABOUT YOU IN GENERAL</div>
+          <div style={{ background: S.card, border: "1px solid #d0d7e8", borderRadius: 14, padding: "24px 28px", marginBottom: 16 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+              <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#7c3aed", flexShrink: 0 }} />
+              <span style={{ fontFamily: S.mono, fontSize: 12, fontWeight: 700, color: "#7c3aed", letterSpacing: "0.08em" }}>SALES CONSCIENCE</span>
+            </div>
+            <p style={{ fontSize: 16, fontStyle: "italic", color: "#3d4a6b", lineHeight: 1.6, marginBottom: 20, marginTop: 0 }}>When you lose a deal you know you should have won — because you cut corners on discovery or skipped a stakeholder — how does that sit with you?</p>
+            <input className="dz-slider conscience-sl" type="range" min={0} max={10} step={1} value={conscience} onChange={function (e) { setConscience(snapToStop(Number(e.target.value))); }} style={{ background: "linear-gradient(to right, #7c3aed " + (conscience / 10) * 100 + "%, #d0d7e8 " + (conscience / 10) * 100 + "%)" }} />
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10 }}>
+              {affinityStops.map(function (stopValue, idx) {
+                return <div key={stopValue} style={{ width: "20%", textAlign: "center", fontSize: 12, color: "#7c3aed", opacity: Math.abs(conscience - stopValue) <= 1 ? 1 : 0.25, fontWeight: Math.abs(conscience - stopValue) <= 1 ? 700 : 400 }}>{conscienceLabelTexts[idx]}</div>;
+              })}
+            </div>
+          </div>
+          <div style={{ background: S.card, border: "1px solid #d0d7e8", borderRadius: 14, padding: "24px 28px", marginBottom: 24 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+              <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#0891b2", flexShrink: 0 }} />
+              <span style={{ fontFamily: S.mono, fontSize: 12, fontWeight: 700, color: "#0891b2", letterSpacing: "0.08em" }}>MARKET PULL</span>
+            </div>
+            <p style={{ fontSize: 16, fontStyle: "italic", color: "#3d4a6b", lineHeight: 1.6, marginBottom: 20, marginTop: 0 }}>Outside of work — do you find yourself thinking about your accounts, your pipeline, or how to sharpen your approach?</p>
+            <input className="dz-slider pull-sl" type="range" min={0} max={10} step={1} value={pull} onChange={function (e) { setPull(snapToStop(Number(e.target.value))); }} style={{ background: "linear-gradient(to right, #0891b2 " + (pull / 10) * 100 + "%, #d0d7e8 " + (pull / 10) * 100 + "%)" }} />
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10 }}>
+              {affinityStops.map(function (stopValue, idx) {
+                return <div key={stopValue} style={{ width: "20%", textAlign: "center", fontSize: 12, color: "#0891b2", opacity: Math.abs(pull - stopValue) <= 1 ? 1 : 0.25, fontWeight: Math.abs(pull - stopValue) <= 1 ? 700 : 400 }}>{pullLabelTexts[idx]}</div>;
+              })}
+            </div>
+          </div>
+          <div style={{ fontFamily: S.mono, fontSize: 12, textTransform: "uppercase", color: "#7a88a8", marginBottom: 16 }}>PART 2 — YOUR SKILLS</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 16 }}>
+            {skills.map(function (s) {
+              var fluencyVal = fluencies[s.id] !== undefined ? fluencies[s.id] : getSeed(conscience, pull);
+              var affinityScore = compAff(conscience, pull, fluencyVal);
+              var affinityColor = affinityScore >= 7 ? S.green : affinityScore >= 5 ? S.gold : S.red;
+              return (
+                <div key={s.id} style={{ background: S.card, border: "1px solid #d0d7e8", borderRadius: 12, padding: "18px 22px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
+                    <div style={{ flex: 1, paddingRight: 12 }}>
+                      {s.editing ? (
+                        <input autoFocus value={s.text} onChange={function (e) { updateText(s.id, e.target.value); }} onBlur={function () { commitEdit(s.id); }} onKeyDown={function (e) { if (e.key === "Enter" || e.key === "Escape") commitEdit(s.id); }} style={inputStyle} />
+                      ) : (
+                        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                          <span style={{ fontSize: 16, fontWeight: 600, color: S.text, flex: 1, lineHeight: 1.4 }}>{s.text}</span>
+                          <button type="button" onClick={function () { startEditing(s.id); }} style={{ background: "none", border: "1px solid " + S.border, color: S.muted, cursor: "pointer", fontSize: 12, padding: "4px 9px", borderRadius: 6, fontFamily: S.mono }}>EDIT</button>
+                          <button type="button" onClick={function () { removeSkill(s.id); }} style={{ background: "none", border: "none", color: S.dim, cursor: "pointer", fontSize: 20, lineHeight: 1, padding: 0 }}>×</button>
+                        </div>
+                      )}
+                    </div>
+                    <span style={{ fontSize: 12, padding: "2px 8px", borderRadius: 10, fontFamily: S.mono, background: adjustedSkills.has(s.id) ? "rgba(217,119,6,0.12)" : "rgba(5,150,105,0.10)", color: adjustedSkills.has(s.id) ? "#d97706" : "#059669" }}>{adjustedSkills.has(s.id) ? "adjusted" : "pre-seeded"}</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                    <span style={{ fontFamily: S.mono, fontSize: 12, color: "#7a88a8" }}>FELT FLUENCY</span>
+                    <span style={{ fontFamily: S.mono, fontSize: 12, fontWeight: 700, color: "#d97706" }}>{fluencyVal}/10</span>
+                  </div>
+                  <input className="dz-slider fluency-sl" type="range" min={0} max={10} step={1} value={fluencyVal} onChange={function (e) { var val = Number(e.target.value); setFluencies(function (prev) { return Object.assign({}, prev, { [s.id]: val }); }); markAdjusted(s.id); }} style={{ background: "linear-gradient(to right, #d97706 " + (fluencyVal / 10) * 100 + "%, #d0d7e8 " + (fluencyVal / 10) * 100 + "%)" }} />
+                  <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}>
+                    <span style={{ fontSize: 12, color: "#9ca3af" }}>Effortful</span>
+                    <span style={{ fontSize: 12, color: "#9ca3af" }}>Frictionless</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 14, paddingTop: 12, borderTop: "1px solid #f0f0f0" }}>
+                    <span style={{ fontFamily: S.mono, fontSize: 12, color: "#7a88a8" }}>AFFINITY SCORE</span>
+                    <span style={{ fontSize: 22, fontWeight: 700, color: affinityColor }}>{affinityScore}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <Card style={{ marginBottom: 20 }}>
+            <div style={{ display: "flex", gap: 10 }}>
+              <input type="text" placeholder="Add a custom skill…" value={customSkill} onChange={function (e) { setCustomSkill(e.target.value); }} onKeyDown={function (e) { if (e.key === "Enter") addSkill(); }} style={Object.assign({}, inputStyle, { flex: 1, marginBottom: 0 })} />
+              <button type="button" onClick={addSkill} disabled={!customSkill.trim()} style={{ background: customSkill.trim() ? S.accent : S.card2, color: customSkill.trim() ? "white" : S.dim, border: "1px solid " + S.border, borderRadius: 10, padding: "12px 18px", fontFamily: S.mono, fontSize: 13, fontWeight: 700, cursor: customSkill.trim() ? "pointer" : "not-allowed" }}>ADD</button>
+            </div>
+          </Card>
+          <button type="button" onClick={function () { setShowCalibration(false); }} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: S.mono, fontSize: 12, color: S.blue, textDecoration: "underline", marginBottom: 20 }}>← BACK TO SKILLS</button>
+          <PrimaryBtn onClick={fetchScores} disabled={skills.length === 0}>SEE MY RESULTS →</PrimaryBtn>
+          <SalesFooter />
+        </div>
+      </div>
+    );
+  }
+
+  return null;
 }
