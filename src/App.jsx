@@ -8,6 +8,7 @@ import About from "./About.jsx";
 import Confirmed from "./Confirmed.jsx";
 import UX from "./UX.jsx";
 import SmallBusiness from "./SmallBusiness.jsx";
+import Sales from "./Sales.jsx";
 
 export default function App() {
   var [path, setPath] = useState(window.location.pathname);
@@ -38,5 +39,7 @@ export default function App() {
   if (path === "/ux" || path === "/ux/") return <UX />;
   if (path === "/smallbusiness" || path === "/smallbusiness/") return <SmallBusiness />;
   if (path === "/smallbusiness/report" || path === "/smallbusiness/report/") return <SmallBusiness reportMode={true} />;
+  if (path === "/sales" || path === "/sales/") return <Sales />;
+  if (path === "/sales/report" || path === "/sales/report/") return <Sales reportMode={true} />;
   return <Landing />;
 }
