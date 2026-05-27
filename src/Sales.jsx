@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 
 // ── SALES TYPES ─────────────────────────────────────────────────────
+var OFFER_FREE_SESSION = true;
+
 var SALES_TYPES = [
   // Group: Acquisition / Front-of-Funnel
   { id:"sdr",         group:"Acquisition / Front-of-Funnel",  label:"SDR / BDR (Outbound)",            desc:"Top-of-funnel prospecting — cold outreach, meeting setting" },
@@ -2033,6 +2035,108 @@ export default function Sales({ reportMode }) {
               </p>
             </div>
           ) : null}
+
+          <div style={{ margin: "8px 0 28px" }}>
+            <div style={{ background: S.card, border: "1px solid " + S.border, borderRadius: 14, padding: "22px 22px" }}>
+              <div style={{ fontFamily: S.mono, fontSize: 11, color: S.gold, letterSpacing: "0.12em", marginBottom: 12, fontWeight: 700 }}>
+                YOUR NEXT STEP
+              </div>
+              <div style={{ fontFamily: S.serif, fontSize: 24, color: S.text, margin: "0 0 10px", lineHeight: 1.25, fontWeight: 600 }}>
+                Work through this with me.
+              </div>
+              <div style={{ color: S.dim, fontSize: 15, lineHeight: 1.65, marginBottom: 18 }}>
+                Book a session to walk through your results together and build a concrete plan.
+              </div>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                {OFFER_FREE_SESSION === true ? (
+                  <div style={{ background: S.accent, borderRadius: 14, padding: "18px 18px" }}>
+                    <div style={{ fontFamily: S.mono, fontSize: 11, color: S.gold, letterSpacing: "0.12em", marginBottom: 10, fontWeight: 700 }}>
+                      COMPLIMENTARY
+                    </div>
+                    <div style={{ fontFamily: S.serif, fontSize: 20, color: "#ffffff", margin: "0 0 12px", lineHeight: 1.25, fontWeight: 600 }}>
+                      Book your free 30-min session
+                    </div>
+                    <a
+                      href="https://cal.com/dkchetan/dz-individual-free"
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{
+                        display: "inline-block",
+                        padding: "10px 14px",
+                        borderRadius: 10,
+                        fontFamily: S.mono,
+                        fontSize: 13,
+                        fontWeight: 800,
+                        letterSpacing: "0.06em",
+                        background: S.gold,
+                        color: "#0d1117",
+                        textDecoration: "none",
+                      }}
+                    >
+                      BOOK NOW →
+                    </a>
+                  </div>
+                ) : null}
+
+                <div style={{ background: S.card, border: "1px solid " + S.accent, borderRadius: 14, padding: "18px 18px" }}>
+                  <div style={{ fontFamily: S.mono, fontSize: 24, fontWeight: 800, color: S.accent, lineHeight: 1, marginBottom: 10 }}>$99</div>
+                  <div style={{ fontFamily: S.serif, fontSize: 18, color: S.text, margin: "0 0 10px", lineHeight: 1.25, fontWeight: 600 }}>
+                    30-min Strategy Session — $99
+                  </div>
+                  <a
+                    href="https://cal.com/dkchetan/individual-strategy"
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{
+                      display: "inline-block",
+                      padding: "10px 14px",
+                      borderRadius: 10,
+                      fontFamily: S.mono,
+                      fontSize: 13,
+                      fontWeight: 800,
+                      letterSpacing: "0.06em",
+                      background: S.accent,
+                      color: "#0d1117",
+                      textDecoration: "none",
+                    }}
+                  >
+                    Book now →
+                  </a>
+                </div>
+
+                <div style={{ background: S.card, border: "1px solid " + S.accent, borderRadius: 14, padding: "18px 18px" }}>
+                  <div style={{ fontFamily: S.mono, fontSize: 24, fontWeight: 800, color: S.accent, lineHeight: 1, marginBottom: 10 }}>$199</div>
+                  <div style={{ fontFamily: S.serif, fontSize: 18, color: S.text, margin: "0 0 10px", lineHeight: 1.25, fontWeight: 600 }}>
+                    60-min Deep Dive — $199
+                  </div>
+                  <a
+                    href="https://cal.com/dkchetan/individual-roadmap"
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{
+                      display: "inline-block",
+                      padding: "10px 14px",
+                      borderRadius: 10,
+                      fontFamily: S.mono,
+                      fontSize: 13,
+                      fontWeight: 800,
+                      letterSpacing: "0.06em",
+                      background: S.accent,
+                      color: "#0d1117",
+                      textDecoration: "none",
+                    }}
+                  >
+                    Book now →
+                  </a>
+                </div>
+              </div>
+
+              <div style={{ fontSize: 15, color: S.dim, textAlign: "center", marginTop: 16, fontFamily: S.font }}>
+                Full refund if cancelled up to 2 business days before the session.
+              </div>
+            </div>
+          </div>
 
           <SalesDisclaimer />
           <SalesFooter />

@@ -22,6 +22,14 @@ const PRODUCT_CONFIG = {
       paid: "Your Defensible Zone™ Product Manager 90-day plan",
     },
   },
+  sales: {
+    path: "/sales",
+    productName: "Defensible Zone Sales Edition",
+    subjects: {
+      free: "Your Defensible Zone™ Sales results",
+      paid: "Your Defensible Zone™ Sales 90-day plan",
+    },
+  },
   ux: {
     path: "/ux",
     productName: "Defensible Zone UX Professional Edition",
@@ -215,6 +223,87 @@ function buildResultsHtml({ productCfg, type, results }) {
   ).trim();
 }
 
+function buildLeadCardHtml({ productCfg, trimmedEmail, results }) {
+  const profile = results && results.profile && typeof results.profile === "object" ? results.profile : {};
+  const skills = results && results.skills;
+  const recommendations = results && results.recommendations;
+  const landscape = results && typeof results.landscape === "string" ? results.landscape : "";
+
+  const workContexts = Array.isArray(profile.workContextLabels) ? profile.workContextLabels.filter(Boolean) : [];
+
+  const profileRows = [
+    ["Sales type", profile.salesTypeLabel],
+    ["Role track", profile.roleTrackLabel],
+    ["Seniority", profile.seniorityLabel],
+    ["Company", profile.companyLabel],
+    ["Industry vertical", profile.industryVerticalLabel],
+    ["Work context", workContexts.join(", ")],
+  ]
+    .filter(function (row) {
+      return row[1] != null && String(row[1]).trim();
+    })
+    .map(function (row) {
+      return (
+        "<tr>" +
+        "<td style='padding:8px 12px;border-bottom:1px solid #e5e7eb;color:#6b7280;font-size:12px;letter-spacing:0.06em;text-transform:uppercase;width:180px;'>" +
+        escapeHtml(row[0]) +
+        "</td>" +
+        "<td style='padding:8px 12px;border-bottom:1px solid #e5e7eb;color:#0d1117;font-size:14px;font-weight:600;'>" +
+        escapeHtml(row[1]) +
+        "</td>" +
+        "</tr>"
+      );
+    })
+    .join("");
+
+  const profileBlock = profileRows
+    ? "<h2 style='font-size:16px;color:#0d1117;margin:24px 0 12px;'>Profile summary</h2>" +
+      "<table style='width:100%;border-collapse:collapse;background:#ffffff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;'>" +
+      "<tbody>" +
+      profileRows +
+      "</tbody></table>"
+    : "";
+
+  const skillsBlock =
+    "<h2 style='font-size:16px;color:#0d1117;margin:24px 0 12px;'>Skill breakdown</h2>" +
+    buildSkillsHtml(skills);
+
+  const recsBlock =
+    "<h2 style='font-size:18px;color:#0d1117;margin:32px 0 16px;'>90-day plan</h2>" +
+    buildRecommendationsHtml(recommendations);
+
+  const landscapeBlock = landscape
+    ? "<h2 style='font-size:16px;color:#0d1117;margin:32px 0 12px;'>AI landscape narrative</h2>" +
+      "<div style='padding:16px;background:#f8f9fc;border-left:4px solid #d97706;border-radius:6px;'>" +
+      "<p style='margin:0;font-size:14px;color:#4a5568;line-height:1.6;white-space:pre-wrap;'>" +
+      escapeHtml(landscape) +
+      "</p></div>"
+    : "";
+
+  return (
+    "<div style='font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Arial,sans-serif;line-height:1.5;color:#0d1117;max-width:720px;'>" +
+    "<div style='padding:18px 18px 0;'>" +
+    "<div style='font-size:12px;color:#6b7280;letter-spacing:0.08em;font-weight:700;'>LEAD CARD</div>" +
+    "<h1 style='margin:8px 0 8px;font-size:22px;'>" +
+    escapeHtml("New paid completion — " + productCfg.productName) +
+    "</h1>" +
+    "<div style='margin:0 0 18px;padding:14px 16px;background:#0d1117;border-radius:12px;'>" +
+    "<div style='color:#f9fafb;font-size:14px;letter-spacing:0.06em;font-weight:700;margin-bottom:6px;'>USER EMAIL</div>" +
+    "<div style='color:#ffffff;font-size:18px;font-weight:800;'>" +
+    escapeHtml(trimmedEmail) +
+    "</div>" +
+    "</div>" +
+    profileBlock +
+    skillsBlock +
+    recsBlock +
+    landscapeBlock +
+    "<p style='margin:32px 0 0;font-size:12px;color:#9ca3af;text-align:center;'>" +
+    "Sent automatically by Defensible Zone™" +
+    "</p>" +
+    "</div></div>"
+  ).trim();
+}
+
 export default async function handler(req, res) {
   setCors(res);
   if (req.method === "OPTIONS") return res.status(200).end();
@@ -282,6 +371,34 @@ export default async function handler(req, res) {
         return res.status(502).json({ error: "Failed to send email" });
       }
       console.log("send-results-email: sent", type, "email to:", trimmedEmail, "product:", productKey);
+
+      if (type === "paid") {
+        try {
+          const leadHtml = buildLeadCardHtml({ productCfg, trimmedEmail, results });
+          const leadSubject = "[Lead Card] " + productCfg.productName + " — " + trimmedEmail;
+          const leadResponse = await fetch("https://api.resend.com/emails", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${resendKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              from: "noreply@defensiblezone.ai",
+              to: ["dilip@recursiolab.com"],
+              subject: leadSubject,
+              html: leadHtml,
+            }),
+          });
+          if (!leadResponse.ok) {
+            const text = await leadResponse.text().catch(() => "");
+            console.error("send-results-email: lead card Resend error:", leadResponse.status, text);
+          } else {
+            console.log("send-results-email: lead card sent to dilip@recursiolab.com for:", trimmedEmail, "product:", productKey);
+          }
+        } catch (err) {
+          console.error("send-results-email: lead card unexpected error:", err?.message ?? err);
+        }
+      }
     }
   } catch (err) {
     console.error("send-results-email: unexpected resend error:", err?.message ?? err);
