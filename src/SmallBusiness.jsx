@@ -321,6 +321,8 @@ export default function SmallBusiness(props) {
   var [reportLoading, setReportLoading] = useState(false);
   var [reportError, setReportError] = useState("");
   var [tier, setTier] = useState(0);
+  var [checkoutLoading, setCheckoutLoading] = useState(false);
+  var [checkoutError, setCheckoutError] = useState(null);
   var [promoCode, setPromoCode] = useState("");
   var [promoError, setPromoError] = useState("");
   var [promoUsed, setPromoUsed] = useState(false);
@@ -514,6 +516,38 @@ export default function SmallBusiness(props) {
       setGateError("Something went wrong. Please try again.");
     } finally {
       setGateLoading(false);
+    }
+  }
+
+  async function handleUnlockCheckout(tier) {
+    if (!gateEmail || !gateEmail.trim()) {
+      setCheckoutError("Please verify your email before checkout.");
+      return;
+    }
+    setCheckoutLoading(tier);
+    setCheckoutError(null);
+    try {
+      var res = await fetch("/api/create-checkout-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          product: "smallbusiness",
+          email: gateEmail.trim(),
+          tier: tier,
+        }),
+      });
+      var data = await res.json();
+      if (!res.ok || !data.url) throw new Error(data.error || "Could not start checkout");
+      try {
+        localStorage.setItem("dz_saved_report_sb", JSON.stringify({
+          tier: tier,
+          gateEmail: gateEmail,
+        }));
+      } catch(_e) {}
+      window.location.href = data.url;
+    } catch(e) {
+      setCheckoutError(e.message || "Could not start checkout. Please try again.");
+      setCheckoutLoading(false);
     }
   }
 
@@ -2327,8 +2361,10 @@ export default function SmallBusiness(props) {
                               cursor: "pointer",
                               letterSpacing: "0.06em",
                               width: "100%",
-                            }}>
-                              UNLOCK REPORT → $99
+                            }}
+                            onClick={function() { handleUnlockCheckout(1); }}
+                            disabled={checkoutLoading !== false}>
+                              {checkoutLoading === 1 ? "Starting checkout…" : "UNLOCK REPORT → $99"}
                             </button>
                           </div>
 
@@ -2382,8 +2418,10 @@ export default function SmallBusiness(props) {
                               cursor: "pointer",
                               letterSpacing: "0.06em",
                               width: "100%",
-                            }}>
-                              UNLOCK + BOOK SESSION → $199
+                            }}
+                            onClick={function() { handleUnlockCheckout(2); }}
+                            disabled={checkoutLoading !== false}>
+                              {checkoutLoading === 2 ? "Starting checkout…" : "UNLOCK + BOOK SESSION → $199"}
                             </button>
                           </div>
 
@@ -2419,8 +2457,10 @@ export default function SmallBusiness(props) {
                               cursor: "pointer",
                               letterSpacing: "0.06em",
                               width: "100%",
-                            }}>
-                              UNLOCK FULL ROADMAP → $349
+                            }}
+                            onClick={function() { handleUnlockCheckout(3); }}
+                            disabled={checkoutLoading !== false}>
+                              {checkoutLoading === 3 ? "Starting checkout…" : "UNLOCK FULL ROADMAP → $349"}
                             </button>
                           </div>
                         </div>
@@ -2481,6 +2521,9 @@ export default function SmallBusiness(props) {
                           ) : null}
                           {promoError ? (
                             <p style={{ fontSize: 13, color: S.red, marginTop: 8, marginBottom: 0 }}>{promoError}</p>
+                          ) : null}
+                          {checkoutError ? (
+                            <p style={{ fontSize: 13, color: "#dc2626", marginTop: 8, textAlign: "center" }}>{checkoutError}</p>
                           ) : null}
                         </div>
                       </div>
