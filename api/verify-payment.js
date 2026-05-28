@@ -36,6 +36,9 @@ function tierFromAmount(amountTotal, product) {
   if (amountTotal <= 3400) return 3; // $34.00
   if (amountTotal <= 5900) return 2; // $59.00 (Finance Edition)
   if (amountTotal <= 6400) return 3; // $64.00 (Finance Edition)
+  if (product === "smallbusiness" && amountTotal >= 34900) return 3; // $349
+  if (product === "smallbusiness" && amountTotal >= 19900) return 2; // $199
+  if (product === "smallbusiness" && amountTotal >= 9900) return 1;  // $99
   return 2; // default to tier 2
 }
 
@@ -51,7 +54,7 @@ export default async function handler(req, res) {
   }
 
   // Validate product is one of the known tools
-  const knownProducts = ["engineer", "doctor", "designer", "finance", "pm", "sales"];
+  const knownProducts = ["engineer", "doctor", "designer", "finance", "pm", "sales", "smallbusiness"];
   const safeProduct = knownProducts.includes(product) ? product : "engineer";
 
   if (!process.env.STRIPE_SECRET_KEY) {
@@ -81,7 +84,13 @@ export default async function handler(req, res) {
     const lineItems = session.line_items?.data || [];
     if (lineItems.length > 0) {
       const priceId = lineItems[0].price?.id;
-      if (priceId && PRICE_TIER_MAP[priceId] !== undefined) {
+      if (priceId === process.env.STRIPE_PRICE_SB_349) {
+        tier = 3;
+      } else if (priceId === process.env.STRIPE_PRICE_SB_199) {
+        tier = 2;
+      } else if (priceId === process.env.STRIPE_PRICE_SB_99) {
+        tier = 1;
+      } else if (priceId && PRICE_TIER_MAP[priceId] !== undefined) {
         tier = PRICE_TIER_MAP[priceId];
       } else {
         tier = tierFromAmount(session.amount_total, safeProduct);
