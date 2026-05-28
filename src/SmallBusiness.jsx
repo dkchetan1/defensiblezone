@@ -764,7 +764,12 @@ export default function SmallBusiness(props) {
           });
           var data = await res.json();
           if (!res.ok) throw new Error((data && data.error) || "verify-payment failed");
+          if (data.token) {
+            try { localStorage.setItem("dz_token_smallbusiness", data.token); } catch(_e) {}
+          }
           setTier(data.tier);
+          setGateVerified(true);
+          setStep(8);
           setCheckoutError(null);
         } catch(e) {
           setCheckoutError("Payment verification failed. Please contact support@recursiolab.com");
@@ -795,6 +800,20 @@ export default function SmallBusiness(props) {
     var t = setTimeout(function() { setShowResend(true); }, 30000);
     return function() { clearTimeout(t); };
   }, [gateSent]);
+
+  useEffect(function() {
+    try {
+      var stored = localStorage.getItem("dz_token_smallbusiness");
+      if (!stored) return;
+      var payload = stored.split(".")[1];
+      var base64 = payload.replace(/-/g, "+").replace(/_/g, "/");
+      var decoded = JSON.parse(atob(base64));
+      if (!decoded) return;
+      if (decoded.exp && Date.now() / 1000 > decoded.exp) return;
+      if (decoded.product && decoded.product !== "smallbusiness") return;
+      if (decoded.tier >= 1) setTier(decoded.tier);
+    } catch(e) {}
+  }, []);
 
   if (step === 0) {
     return (
