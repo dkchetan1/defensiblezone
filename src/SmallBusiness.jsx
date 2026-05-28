@@ -740,6 +740,56 @@ export default function SmallBusiness(props) {
   }, []);
 
   useEffect(function() {
+    var params = new URLSearchParams(window.location.search);
+
+    if (params.get("success") === "true") {
+      window.history.replaceState({}, "", window.location.pathname);
+      try {
+        var saved = localStorage.getItem("dz_saved_report_sb");
+        if (saved) {
+          var parsed = JSON.parse(saved);
+          if (parsed && parsed.gateEmail) setGateEmail(parsed.gateEmail);
+        }
+      } catch(e) {}
+
+      (async function() {
+        try {
+          var res = await fetch("/api/verify-payment", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              session_id: params.get("session_id"),
+              product: "smallbusiness",
+            }),
+          });
+          var data = await res.json();
+          if (!res.ok) throw new Error((data && data.error) || "verify-payment failed");
+          setTier(data.tier);
+          setCheckoutError(null);
+        } catch(e) {
+          setCheckoutError("Payment verification failed. Please contact support@recursiolab.com");
+        } finally {
+          window.scrollTo(0, 0);
+        }
+      })();
+      return;
+    }
+
+    if (params.get("canceled") === "true") {
+      window.history.replaceState({}, "", window.location.pathname);
+      try {
+        var saved2 = localStorage.getItem("dz_saved_report_sb");
+        if (saved2) {
+          var parsed2 = JSON.parse(saved2);
+          if (parsed2 && parsed2.gateEmail) setGateEmail(parsed2.gateEmail);
+        }
+      } catch(e) {}
+      setCheckoutError("Payment was cancelled — try again when you're ready.");
+      window.scrollTo(0, 0);
+    }
+  }, []);
+
+  useEffect(function() {
     if (!gateSent) { setShowResend(false); return; }
     setShowResend(false);
     var t = setTimeout(function() { setShowResend(true); }, 30000);

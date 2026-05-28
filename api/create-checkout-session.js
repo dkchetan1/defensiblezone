@@ -96,7 +96,7 @@ export default async function handler(req, res) {
   }
 
   const origin = getOrigin(req);
-  const successUrl = `${origin}${path}?success=true`;
+  const successUrl = product === "smallbusiness" ? `${origin}${path}?success=true&session_id={CHECKOUT_SESSION_ID}` : `${origin}${path}?success=true`;
   const cancelUrl = `${origin}${path}?canceled=true`;
 
   const productNames = {
