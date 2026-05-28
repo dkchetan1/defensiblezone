@@ -23,6 +23,7 @@ const PRODUCT_PATHS = {
   finance: "/finance",
   ux: "/ux",
   sales: "/sales",
+  smallbusiness: "/smallbusiness",
 };
 
 function getOrigin(req) {
@@ -85,6 +86,11 @@ export default async function handler(req, res) {
       body?.discount === true
         ? process.env.STRIPE_PRICE_SALES_3950
         : process.env.STRIPE_PRICE_SALES_79;
+  } else if (product === "smallbusiness") {
+    const sbTier = Number(body?.tier);
+    if (sbTier === 3) priceId = process.env.STRIPE_PRICE_SB_349;
+    else if (sbTier === 2) priceId = process.env.STRIPE_PRICE_SB_199;
+    else priceId = process.env.STRIPE_PRICE_SB_99;
   } else if (!Number.isFinite(price) || price < 100 || price > 50000) {
     return res.status(400).json({ error: "Invalid price" });
   }
@@ -101,6 +107,7 @@ export default async function handler(req, res) {
     finance: "Defensible Zone Finance Edition",
     ux: "Defensible Zone UX Professional Edition — 90-Day Plan",
     sales: "Defensible Zone™ Sales Edition — 90-Day Plan",
+    smallbusiness: "Defensible Zone™ Small Business Edition",
   };
 
   try {
@@ -109,7 +116,7 @@ export default async function handler(req, res) {
     });
 
     const session =
-      product === "sales"
+      product === "sales" || product === "smallbusiness"
         ? await stripe.checkout.sessions.create({
             mode: "payment",
             customer_email: email.trim(),
