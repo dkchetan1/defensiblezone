@@ -325,6 +325,7 @@ export default function SmallBusiness(props) {
   var [checkoutError, setCheckoutError] = useState(null);
   var [promoCode, setPromoCode] = useState("");
   var [promoError, setPromoError] = useState("");
+  var [testMode, setTestMode] = useState(false);
   var [promoUsed, setPromoUsed] = useState(false);
   var [sessionPromo, setSessionPromo] = useState(false);
   var [showPromo, setShowPromo] = useState(false);
@@ -534,6 +535,7 @@ export default function SmallBusiness(props) {
           product: "smallbusiness",
           email: gateEmail.trim(),
           tier: tier,
+          testMode: testMode,
         }),
       });
       var data = await res.json();
@@ -648,6 +650,9 @@ export default function SmallBusiness(props) {
       setTier(1);
       setPromoUsed(true);
       setSessionPromo(true);
+      setPromoError("");
+    } else if (v === "DZONE") {
+      setTestMode(true);
       setPromoError("");
     } else {
       setPromoError("That code isn't valid.");

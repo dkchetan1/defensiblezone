@@ -87,10 +87,14 @@ export default async function handler(req, res) {
         ? process.env.STRIPE_PRICE_SALES_3950
         : process.env.STRIPE_PRICE_SALES_79;
   } else if (product === "smallbusiness") {
-    const sbTier = Number(body?.tier);
-    if (sbTier === 3) priceId = process.env.STRIPE_PRICE_SB_349;
-    else if (sbTier === 2) priceId = process.env.STRIPE_PRICE_SB_199;
-    else priceId = process.env.STRIPE_PRICE_SB_99;
+    if (body?.testMode === true) {
+      priceId = process.env.STRIPE_PRICE_TEST_1;
+    } else {
+      const sbTier = Number(body?.tier);
+      if (sbTier === 3) priceId = process.env.STRIPE_PRICE_SB_349;
+      else if (sbTier === 2) priceId = process.env.STRIPE_PRICE_SB_199;
+      else priceId = process.env.STRIPE_PRICE_SB_99;
+    }
   } else if (!Number.isFinite(price) || price < 100 || price > 50000) {
     return res.status(400).json({ error: "Invalid price" });
   }
