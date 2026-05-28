@@ -82,10 +82,13 @@ export default async function handler(req, res) {
   const price = Number(body?.price);
   let priceId;
   if (product === "sales") {
-    priceId =
-      body?.discount === true
-        ? process.env.STRIPE_PRICE_SALES_3950
-        : process.env.STRIPE_PRICE_SALES_79;
+    if (body?.testMode === true) {
+      priceId = process.env.STRIPE_PRICE_TEST_1;
+    } else if (body?.discount === true) {
+      priceId = process.env.STRIPE_PRICE_SALES_3950;
+    } else {
+      priceId = process.env.STRIPE_PRICE_SALES_79;
+    }
   } else if (product === "smallbusiness") {
     if (body?.testMode === true) {
       priceId = process.env.STRIPE_PRICE_TEST_1;

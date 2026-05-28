@@ -139,6 +139,7 @@ var S = {
 // ── PROMO CODES ─────────────────────────────────────────────────────
 var PROMO_CODES    = ["DZFRIEND","DZPREVIEW","DZTEST","DZSALESPRE"];
 var DISCOUNT_CODES = ["DZHALF","DZSALESHALF"];
+var TEST_CODES     = ["DZONE"];
 
 // ── MATH ────────────────────────────────────────────────────────────
 var AFFINITY_STOPS = [0, 3, 5, 7, 10];
@@ -397,6 +398,7 @@ export default function Sales({ reportMode }) {
   var [promoError, setPromoError] = useState("");
   var [promoUsed, setPromoUsed] = useState(false);
   var [discountApplied, setDiscountApplied] = useState(false);
+  var [testModeApplied, setTestModeApplied] = useState(false);
   var [checkoutLoading, setCheckoutLoading] = useState(false);
   var [checkoutError, setCheckoutError] = useState(null);
   var [paymentCanceled, setPaymentCanceled] = useState(false);
@@ -818,6 +820,7 @@ export default function Sales({ reportMode }) {
     var v = (promoCode || "").trim();
     var isFree = PROMO_CODES.some(function (c) { return c.toLowerCase() === v.toLowerCase(); });
     var isDiscount = DISCOUNT_CODES.some(function (c) { return c.toLowerCase() === v.toLowerCase(); });
+    var isTest = TEST_CODES.some(function (c) { return c.toLowerCase() === v.toLowerCase(); });
     if (isFree) {
       setTier(2);
       setPromoUsed(true);
@@ -826,6 +829,9 @@ export default function Sales({ reportMode }) {
       setStep(6);
     } else if (isDiscount) {
       setDiscountApplied(true);
+      setPromoError("");
+    } else if (isTest) {
+      setTestModeApplied(true);
       setPromoError("");
     } else {
       setPromoError("That code isn't valid.");
@@ -841,7 +847,7 @@ export default function Sales({ reportMode }) {
     setCheckoutError(null);
     setPaymentCanceled(false);
     saveStateForReturn();
-    var priceCents = discountApplied ? 3950 : 7900;
+    var priceCents = testModeApplied ? 100 : (discountApplied ? 3950 : 7900);
     try {
       var res = await fetch("/api/create-checkout-session", {
         method: "POST",
@@ -851,6 +857,7 @@ export default function Sales({ reportMode }) {
           email: gateEmail.trim(),
           price: priceCents,
           discount: discountApplied,
+          testMode: testModeApplied,
         }),
       });
       var data = await res.json();
@@ -1779,7 +1786,9 @@ export default function Sales({ reportMode }) {
             </button>
           </div>
           {promoError ? <div style={{ color: S.red, fontSize: 14, marginBottom: 12 }}>{promoError}</div> : null}
-          {discountApplied ? (
+          {testModeApplied ? (
+            <div style={{ color: S.green, fontSize: 14, marginBottom: 20 }}>Test mode — $1.00 price applied</div>
+          ) : discountApplied ? (
             <div style={{ color: S.green, fontSize: 14, marginBottom: 20 }}>50% discount applied — your price is $39.50</div>
           ) : null}
 
@@ -1906,7 +1915,9 @@ export default function Sales({ reportMode }) {
             </button>
           </div>
           {promoError ? <div style={{ color: S.red, fontSize: 14, marginBottom: 12 }}>{promoError}</div> : null}
-          {discountApplied ? (
+          {testModeApplied ? (
+            <div style={{ color: S.green, fontSize: 14, marginBottom: 24 }}>Test mode — $1.00 price applied</div>
+          ) : discountApplied ? (
             <div style={{ color: S.green, fontSize: 14, marginBottom: 24 }}>50% discount applied — your price is $39.50</div>
           ) : null}
 
