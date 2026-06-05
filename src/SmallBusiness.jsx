@@ -632,7 +632,8 @@ export default function SmallBusiness(props) {
       var raw = data.content.map(function(b) { return b.text || ""; }).join("");
       var m = raw.match(/\{[\s\S]*\}/);
       if (!m) throw new Error("No JSON found in: " + raw.slice(0, 300));
-      var parsed = JSON.parse(m[0]);
+      var cleaned = m[0].replace(/<cite[^>]*>([\s\S]*?)<\/cite>/g, "$1");
+      var parsed = JSON.parse(cleaned);
       setReport(parsed);
       sendSessionBrief(parsed);
       setReportLoading(false);
