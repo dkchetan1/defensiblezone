@@ -96,6 +96,7 @@ var S = {
 // ── PROMO CODES ─────────────────────────────────────────────────────
 var PROMO_CODES    = ["DZFRIEND","DZPREVIEW","DZTEST"];
 var DISCOUNT_CODES = ["DZHALF"];
+var TEST_CODES     = ["DZONE"];
 
 // ── MATH ────────────────────────────────────────────────────────────
 var AFFINITY_STOPS = [0, 3, 5, 7, 10];
@@ -268,6 +269,7 @@ export default function ProductManager() {
   var [promoError, setPromoError]           = useState("");
   var [promoUsed, setPromoUsed]             = useState(false);
   var [discountApplied, setDiscountApplied] = useState(false);
+  var [testModeApplied, setTestModeApplied] = useState(false);
   var [gateEmail, setGateEmail]             = useState("");
   var [gateSent, setGateSent]               = useState(false);
   var [gateVerified, setGateVerified]       = useState(false);
@@ -695,6 +697,7 @@ export default function ProductManager() {
     var isDiscount = DISCOUNT_CODES.some(function (c) {
       return c.toLowerCase() === v.toLowerCase();
     });
+    var isTest = TEST_CODES.some(function (c) { return c.toLowerCase() === v.toLowerCase(); });
     if (isFree) {
       setTier(2);
       setPromoUsed(true);
@@ -703,6 +706,9 @@ export default function ProductManager() {
       setStep(6);
     } else if (isDiscount) {
       setDiscountApplied(true);
+      setPromoError("");
+    } else if (isTest) {
+      setTestModeApplied(true);
       setPromoError("");
     } else {
       setPromoError("That code isn't valid.");
@@ -718,7 +724,7 @@ export default function ProductManager() {
     setCheckoutError(null);
     setPaymentCanceled(false);
     saveStateForReturn();
-    var priceCents = discountApplied ? 3950 : 7900;
+    var priceCents = testModeApplied ? 100 : (discountApplied ? 3950 : 7900);
     try {
       var res = await fetch("/api/create-checkout-session", {
         method: "POST",
@@ -727,6 +733,7 @@ export default function ProductManager() {
           product: "pm",
           email: gateEmail.trim(),
           price: priceCents,
+          testMode: testModeApplied,
         }),
       });
       var data = await res.json();
