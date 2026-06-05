@@ -339,6 +339,7 @@ export default function SmallBusiness(props) {
   var [bizDiff, setBizDiff] = useState("");
 
   var sessionBriefSentRef = useRef(false);
+  var sendPaidOnNextReport = useRef(false);
 
   var _industry = industry;
   var _stage = stage;
@@ -556,13 +557,14 @@ export default function SmallBusiness(props) {
   async function sendSessionBrief(reportData) {
     if (sessionBriefSentRef.current) return;
     sessionBriefSentRef.current = true;
+    var emailType = sendPaidOnNextReport.current ? "paid" : "session_brief";
     var industryLabel = (SB_INDUSTRIES.find(function(i) { return i.id === _industry; }) || {}).label || _industry;
     try {
       await fetch("/api/send-results-email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          type: "session_brief",
+          type: emailType,
           product: "smallbusiness",
           ownerEmail: gateEmail,
           adminEmail: "dilip@recursiolab.com",
@@ -769,6 +771,7 @@ export default function SmallBusiness(props) {
           });
           var data = await res.json();
           if (!res.ok) throw new Error((data && data.error) || "verify-payment failed");
+          if (data.tier >= 2) { sendPaidOnNextReport.current = true; }
           if (data.token) {
             try { localStorage.setItem("dz_token_smallbusiness", data.token); } catch(_e) {}
           }
