@@ -159,25 +159,5 @@ export default async function handler(req, res) {
     console.error("send-gate-email: unexpected resend error:", err?.message ?? err);
   }
 
-  try {
-    const base = getBaseUrl(req);
-    if (!base) {
-      console.warn("send-gate-email: unable to determine base URL for subscribe call");
-    } else {
-      void fetch(new URL("/api/subscribe", base).toString(), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: trimmedEmail,
-          productName: productCfg.productName,
-        }),
-      }).catch((err) => {
-        console.error("send-gate-email: subscribe fetch error:", err?.message ?? err);
-      });
-    }
-  } catch (err) {
-    console.error("send-gate-email: unexpected subscribe error:", err?.message ?? err);
-  }
-
   return res.status(200).json({ success: true });
 }
