@@ -392,6 +392,7 @@ export default function Engineer() {
       if (decoded.product && decoded.product !== "engineer") return false;
       if (decoded.tier === 2 || decoded.tier === 3) {
         setTier(decoded.tier);
+        setGateVerified(true);
         return true;
       }
       return false;
@@ -421,6 +422,7 @@ export default function Engineer() {
           setResults(s.results);
           setStep(4);
         }
+        if (s.gateEmail) setGateEmail(s.gateEmail);
       } catch (e) {}
     }
 
@@ -670,7 +672,7 @@ export default function Engineer() {
         localStorage.setItem("dz_saved_report_engineer", JSON.stringify({
           step: 3, devType, devTypeOther, seniority, workContexts,
           companyType, skills, conscience, pull, fluencies,
-          benchmark, results
+          benchmark, results, gateEmail
         }));
       } catch(_e) {}
       var res = await fetch("/api/create-checkout-session", {
