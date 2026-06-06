@@ -489,6 +489,7 @@ var S = {
 };
 
 var PROMO_CODES = ["DZFRIEND", "DZPREVIEW", "DZTEST"];
+var TEST_CODES = ["DZONE"];
 
 // ── MATH HELPERS ──────────────────────────────────────────────────────
 var AFFINITY_STOPS = [0, 3, 5, 7, 10];
@@ -657,6 +658,7 @@ export default function UX() {
   var [promoError, setPromoError] = useState("");
   var [promoUsed, setPromoUsed] = useState(false);
   var [discountApplied, setDiscountApplied] = useState(false);
+  var [testModeApplied, setTestModeApplied] = useState(false);
   var [gateEmail, setGateEmail] = useState("");
   var [gateSent, setGateSent] = useState(false);
   var [gateVerified, setGateVerified] = useState(false);
@@ -997,7 +999,8 @@ export default function UX() {
         body: JSON.stringify({
           product: "ux",
           email: gateEmail.trim(),
-          price: 7900,
+          price: testModeApplied ? 100 : 7900,
+          testMode: testModeApplied,
         }),
       });
       var data = await res.json();
@@ -2730,6 +2733,9 @@ export default function UX() {
                                     setDiscountApplied(true);
                                     setPromoError("");
                                     setStep(6);
+                                  } else if (TEST_CODES.indexOf(code) !== -1) {
+                                    setTestModeApplied(true);
+                                    setPromoError("");
                                   } else {
                                     setPromoError("Invalid promo code");
                                   }
