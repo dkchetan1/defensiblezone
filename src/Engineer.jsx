@@ -197,6 +197,7 @@ function Chip(props) {
 // Remove the array entirely (set to []) when going fully live.
 var PROMO_CODES = ["DZFRIEND", "DZPREVIEW", "DZTEST"];
 var DISCOUNT_CODES = ["DZHALF"];
+var TEST_CODES = ["DZONE"];
 
 // ── MAIN APP ───────────────────────────────────────────────────────────
 export default function Engineer() {
@@ -228,6 +229,8 @@ export default function Engineer() {
   var [promoCode, setPromoCode]           = useState("");
   var [promoError, setPromoError]         = useState("");
   var [discountApplied, setDiscountApplied] = useState(false);
+  var [testModeApplied, setTestModeApplied] = useState(false);
+  var [testCheckoutError, setTestCheckoutError] = useState(null);
   var [gateEmail, setGateEmail] = useState("");
   var [gateSent, setGateSent] = useState(false);
   var [gateVerified, setGateVerified] = useState(false);
@@ -608,6 +611,34 @@ export default function Engineer() {
     } catch (e) {
       setRecsError("Could not load recommendations. Please try again.");
       setRecsLoading(false);
+    }
+  }
+
+  async function handleTestCheckout() {
+    setTestCheckoutError(null);
+    try {
+      try {
+        localStorage.setItem("dz_saved_report_engineer", JSON.stringify({
+          step: 3, devType, devTypeOther, seniority, workContexts,
+          companyType, skills, conscience, pull, fluencies,
+          benchmark, results
+        }));
+      } catch(_e) {}
+      var res = await fetch("/api/create-checkout-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          product: "engineer",
+          email: gateEmail.trim(),
+          price: 100,
+          testMode: true,
+        }),
+      });
+      var data = await res.json();
+      if (!res.ok || !data.url) throw new Error(data.error || "Could not start checkout");
+      window.location.href = data.url;
+    } catch(e) {
+      setTestCheckoutError(e.message || "Could not start checkout. Please try again.");
     }
   }
 
@@ -1897,7 +1928,7 @@ export default function Engineer() {
                 var hasPhases = groupedByPhase.length > 1;
 
                 var showAllRecs = tier >= 2 || promoUsed;
-                var showUpsell = tier === 0 && !promoUsed;
+                var showUpsell = tier === 0 && !promoUsed && !testModeApplied;
 
                 var rec29Url = "https://buy.stripe.com/9B67sL0gGezx0D3a7YdQQ08" + (discountApplied ? "?prefilled_promo_code=DZHALF" : "");
                 var rec34Url = "https://buy.stripe.com/00wfZh8Ncezx0D3gwmdQQ09" + (discountApplied ? "?prefilled_promo_code=DZHALF" : "");
@@ -2043,6 +2074,20 @@ export default function Engineer() {
                     {tier >= 2 || promoUsed ? (
                       <div style={{ marginTop: 20, marginBottom: 4, textAlign: "center" }} className="no-print">
                         <PDFButton contentId="dz-engineer-report" label="Save as PDF" />
+                      </div>
+                    ) : null}
+
+                    {testModeApplied && tier === 0 && !promoUsed ? (
+                      <div style={{ background: "linear-gradient(135deg,#1a1d2e 0%,#2d1f5e 100%)", borderRadius: 16, padding: 28, marginTop: 24, marginBottom: 28 }}>
+                        <div style={{ fontFamily: S.mono, fontSize: 12, color: S.gold, letterSpacing: "0.1em", marginBottom: 12, fontWeight: 600 }}>TEST MODE — $1 CHECKOUT</div>
+                        <p style={{ fontSize: 15, color: "rgba(196,181,253,0.85)", lineHeight: 1.65, margin: "0 0 20px" }}>DZONE applied. Click below to complete a $1 test purchase and unlock your full action plan.</p>
+                        {testCheckoutError ? <div style={{ color: "#f87171", fontSize: 14, marginBottom: 12 }}>{testCheckoutError}</div> : null}
+                        <button
+                          onClick={handleTestCheckout}
+                          style={{ padding: "14px 28px", fontSize: 16, fontWeight: 700, fontFamily: S.font, background: S.gold, color: "#000", border: "none", borderRadius: 10, cursor: "pointer" }}
+                        >
+                          Pay $1.00 to Unlock
+                        </button>
                       </div>
                     ) : null}
 
@@ -2267,12 +2312,16 @@ export default function Engineer() {
      var v = (promoCode || "").trim();
      var isFree = PROMO_CODES.some(function(c) { return c.toLowerCase() === v.toLowerCase(); });
      var isDiscount = DISCOUNT_CODES.some(function(c) { return c.toLowerCase() === v.toLowerCase(); });
+     var isTest = TEST_CODES.some(function(c) { return c.toLowerCase() === v.toLowerCase(); });
      if (isFree) {
        setTier(2);
        setPromoUsed(true);
        setPromoError("");
      } else if (isDiscount) {
        setDiscountApplied(true);
+       setPromoError("");
+     } else if (isTest) {
+       setTestModeApplied(true);
        setPromoError("");
      } else {
        setPromoError("That code isn't valid.");
