@@ -297,6 +297,7 @@ export default function Engineer() {
               if (s.conscience !== undefined) setConscience(s.conscience);
               if (s.pull !== undefined) setPull(s.pull);
             } catch (e) {}
+            if (data.email) setGateEmail(data.email);
             setGateVerified(true);
             setStep(3);
           } else {
