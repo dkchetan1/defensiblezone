@@ -216,6 +216,8 @@ export default function Engineer() {
   var [fluencies, setFluencies]           = useState({});
   var [adjustedSkills, setAdjustedSkills] = useState(function() { return new Set(); });
   var adjustedSkillsRef                   = useRef(new Set());
+  var freeEmailSentRef = useRef(false);
+  var paidEmailSentRef = useRef(false);
   var [results, setResults]               = useState(null);
   var [benchmark, setBenchmark]           = useState(null);
   var [recommendations, setRecommendations] = useState(null);
@@ -328,6 +330,28 @@ export default function Engineer() {
     [step, gateVerified, skills]
   );
 
+  useEffect(function() {
+    if (step !== 4 || !results) return;
+    if (!gateEmail || !gateEmail.trim()) return;
+    if (freeEmailSentRef.current) return;
+    freeEmailSentRef.current = true;
+    var prof = buildProfile(devType, devTypeOther, seniority, workContexts, companyType);
+    fetch("/api/send-results-email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: gateEmail.trim(),
+        product: "engineer",
+        type: "free",
+        results: {
+          profile: { roleLabel: prof.devLabel + " Engineer", seniorityLabel: prof.seniorityLabel },
+          landscape: landscape,
+          skills: results,
+        },
+      }),
+    }).catch(function() {});
+  }, [step, results]);
+
   useEffect(
     function () {
       if (!gateSent) {
@@ -434,6 +458,30 @@ export default function Engineer() {
       fetchRecommendations(results);
     }
   }, [results, tier, promoUsed, devType, seniority]);
+
+  useEffect(function() {
+    if (!recommendations || tier < 2) return;
+    if (!results) return;
+    if (!gateEmail || !gateEmail.trim()) return;
+    if (paidEmailSentRef.current) return;
+    paidEmailSentRef.current = true;
+    var prof = buildProfile(devType, devTypeOther, seniority, workContexts, companyType);
+    fetch("/api/send-results-email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: gateEmail.trim(),
+        product: "engineer",
+        type: "paid",
+        results: {
+          profile: { roleLabel: prof.devLabel + " Engineer", seniorityLabel: prof.seniorityLabel },
+          landscape: landscape,
+          skills: results,
+          recommendations: recommendations,
+        },
+      }),
+    }).catch(function() {});
+  }, [recommendations, tier]);
 
   useEffect(function() {
     var link = document.createElement("link");
