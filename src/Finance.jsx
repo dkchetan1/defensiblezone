@@ -359,6 +359,8 @@ export default function Finance(props) {
   var [fluencies, setFluencies] = useState({});
   var [adjustedSkills, setAdjustedSkills] = useState(new Set());
   var adjustedSkillsRef = useRef(new Set());
+  var freeEmailSentRef = useRef(false);
+  var paidEmailSentRef = useRef(false);
   var [skills, setSkills] = useState([]);
   var [landscape, setLandscape] = useState("");
   var [loading, setLoading] = useState(false);
@@ -1062,6 +1064,30 @@ export default function Finance(props) {
     }
   }, [results, tier, promoUsed]); // eslint-disable-line react-hooks/exhaustive-deps -- intentional gating deps
 
+  useEffect(function() {
+    if (!recommendations || tier < 2) return;
+    if (!results) return;
+    if (!gateEmail || !gateEmail.trim()) return;
+    if (paidEmailSentRef.current) return;
+    paidEmailSentRef.current = true;
+    fetch("/api/send-results-email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: gateEmail.trim(),
+        product: "finance",
+        type: "paid",
+        results: {
+          profile: { roleLabel: role, seniorityLabel: seniority },
+          landscape: landscape,
+          skills: results.skills,
+          overallScore: results.overallDZ,
+          recommendations: recommendations,
+        },
+      }),
+    }).catch(function() {});
+  }, [recommendations, tier]);
+
   useEffect(
     function () {
       if (!(step === 5 && gateVerified)) return;
@@ -1101,6 +1127,28 @@ export default function Finance(props) {
     },
     [step, gateVerified, skills] // eslint-disable-line react-hooks/exhaustive-deps -- fetchResults stub is stable
   );
+
+  useEffect(function() {
+    if (step !== 6 || !results) return;
+    if (!gateEmail || !gateEmail.trim()) return;
+    if (freeEmailSentRef.current) return;
+    freeEmailSentRef.current = true;
+    fetch("/api/send-results-email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: gateEmail.trim(),
+        product: "finance",
+        type: "free",
+        results: {
+          profile: { roleLabel: role, seniorityLabel: seniority },
+          landscape: landscape,
+          skills: results.skills,
+          overallScore: results.overallDZ,
+        },
+      }),
+    }).catch(function() {});
+  }, [step, results]);
 
   function isValidEmail(email) {
     if (!email) return false;
