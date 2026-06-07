@@ -439,6 +439,7 @@ export default function Engineer() {
     // Handle ?success=true (create-checkout-session flow used by DZONE)
     if (params.get("success") === "true") {
       window.history.replaceState({}, "", window.location.pathname);
+      freeEmailSentRef.current = true;
       restoreReport();
       setTier(2);
       setGateVerified(true);
