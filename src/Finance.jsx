@@ -341,6 +341,7 @@ var S = {
   mono: "'DM Mono','Courier New',monospace",
   serif: "'DM Serif Display',Georgia,serif",
 };
+var TEST_CODES = ["DZONE"];
 
 export default function Finance(props) {
   var reportMode = Boolean(props && props.reportMode);
@@ -382,6 +383,8 @@ export default function Finance(props) {
   var [tier, setTier] = useState(0);
   var [promoCode, setPromoCode] = useState("");
   var [promoError, setPromoError] = useState("");
+  var [testModeApplied, setTestModeApplied] = useState(false);
+  var [testCheckoutError, setTestCheckoutError] = useState(null);
   var [promoUsed, setPromoUsed] = useState(false);
 
   function restoreReport() {
@@ -407,6 +410,7 @@ export default function Finance(props) {
         setResults(d.results);
         setStep(6);
       }
+      if (d.gateEmail) setGateEmail(d.gateEmail);
     } catch (e) {
       console.error("restoreReport error:", e);
     }
@@ -431,6 +435,7 @@ export default function Finance(props) {
         })
         .then(function (data) {
           if (data && data.valid === true) {
+            if (data.email) setGateEmail(data.email);
             setGateVerified(true);
             setGateLoading(false);
 
@@ -480,6 +485,14 @@ export default function Finance(props) {
           setStep(5);
           setGateLoading(false);
         });
+    }
+
+    if (params.get("success") === "true") {
+      window.history.replaceState({}, "", window.location.pathname);
+      restoreReport();
+      setTier(2);
+      setGateVerified(true);
+      return;
     }
 
     var sessionId = params.get("session_id");
@@ -890,6 +903,33 @@ export default function Finance(props) {
       setRecsError("Could not load recommendations.");
     } finally {
       setRecsLoading(false);
+    }
+  }
+
+  async function handleTestCheckout() {
+    setTestCheckoutError(null);
+    try {
+      try {
+        localStorage.setItem("dz_saved_report_finance", JSON.stringify({
+          sector, role, seniority, firmType, companySize, workFocus,
+          skills, conscience, pull, fluencies, promoUsed, results, gateEmail
+        }));
+      } catch (_e) {}
+      var res = await fetch("/api/create-checkout-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          product: "finance",
+          email: gateEmail.trim(),
+          price: 100,
+          testMode: true,
+        }),
+      });
+      var data = await res.json();
+      if (!res.ok || !data.url) throw new Error(data.error || "Could not start checkout");
+      window.location.href = data.url;
+    } catch (e) {
+      setTestCheckoutError(e.message || "Could not start checkout. Please try again.");
     }
   }
 
@@ -1461,7 +1501,19 @@ export default function Finance(props) {
               90-DAY ACTION PLAN
             </div>
 
-            {tier === 0 && !promoUsed ? (
+            {testModeApplied && tier === 0 && !promoUsed ? (
+              <div style={{ background: "linear-gradient(135deg,#1a1d2e 0%,#2d1f5e 100%)", borderRadius: 16, padding: 28, marginTop: 24, marginBottom: 28 }}>
+                <div style={{ fontFamily: S.mono, fontSize: 12, color: S.gold, letterSpacing: "0.1em", marginBottom: 12, fontWeight: 600 }}>TEST MODE — $1 CHECKOUT</div>
+                <p style={{ fontSize: 15, color: "rgba(196,181,253,0.85)", lineHeight: 1.65, margin: "0 0 20px" }}>DZONE applied. Click below to complete a $1 test purchase and unlock your full report.</p>
+                {testCheckoutError ? <div style={{ color: "#f87171", fontSize: 14, marginBottom: 12 }}>{testCheckoutError}</div> : null}
+                <button
+                  onClick={handleTestCheckout}
+                  style={{ padding: "14px 28px", fontSize: 16, fontWeight: 700, fontFamily: S.font, background: S.gold, color: "#000", border: "none", borderRadius: 10, cursor: "pointer" }}
+                >
+                  Pay $1.00 to Unlock
+                </button>
+              </div>
+            ) : tier === 0 && !promoUsed ? (
               (function () {
                 var recs = Array.isArray(recommendations) ? recommendations : [];
                 var first = recs[0];
@@ -1628,9 +1680,13 @@ export default function Finance(props) {
                             type="button"
                             onClick={function () {
                               var v = (promoCode || "").trim().toUpperCase();
+                              var isTest = TEST_CODES.some(function(c) { return c.toLowerCase() === v.toLowerCase(); });
                               if (v === "DZFRIEND" || v === "DZPREVIEW" || v === "DZTEST") {
                                 setPromoUsed(true);
                                 setTier(3);
+                                setPromoError("");
+                              } else if (isTest) {
+                                setTestModeApplied(true);
                                 setPromoError("");
                               } else {
                                 setPromoError("Invalid code");
