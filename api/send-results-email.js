@@ -9,7 +9,7 @@ const PRODUCT_CONFIG = {
   engineer: {
     path: "/engineer",
     productName: "Defensible Zone Engineer Edition",
-    subjects: {
+    subject: {
       free: "Your Defensible Zone™ Engineer results",
       paid: "Your Defensible Zone™ Engineer 90-day plan",
     },
@@ -17,7 +17,7 @@ const PRODUCT_CONFIG = {
   pm: {
     path: "/pm",
     productName: "Defensible Zone Product Manager Edition",
-    subjects: {
+    subject: {
       free: "Your Defensible Zone™ Product Manager results",
       paid: "Your Defensible Zone™ Product Manager 90-day plan",
     },
@@ -25,7 +25,7 @@ const PRODUCT_CONFIG = {
   sales: {
     path: "/sales",
     productName: "Defensible Zone Sales Edition",
-    subjects: {
+    subject: {
       free: "Your Defensible Zone™ Sales results",
       paid: "Your Defensible Zone™ Sales 90-day plan",
     },
@@ -33,9 +33,17 @@ const PRODUCT_CONFIG = {
   ux: {
     path: "/ux",
     productName: "Defensible Zone UX Professional Edition",
-    subjects: {
+    subject: {
       free: "Your Defensible Zone™ UX Professional results",
       paid: "Your Defensible Zone™ UX Professional 90-day plan",
+    },
+  },
+  finance: {
+    path: "/finance",
+    productName: "Defensible Zone Finance Edition",
+    subject: {
+      free: "Your Defensible Zone™ Finance Assessment — free results inside",
+      paid: "Your Defensible Zone™ Finance Defensibility Report — full report inside",
     },
   },
   smallbusiness: {
@@ -803,7 +811,7 @@ export default async function handler(req, res) {
     return res.status(200).json({ success: true });
   }
 
-  const subject = productCfg.subjects[type];
+  const subject = typeof productCfg.subject === "object" ? productCfg.subject[type] : productCfg.subject;
   const html = buildResultsHtml({ productCfg, type, results });
 
   try {
