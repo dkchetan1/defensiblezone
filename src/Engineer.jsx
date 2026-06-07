@@ -433,8 +433,19 @@ export default function Engineer() {
       return; // already unlocked from previous purchase
     }
 
-    // 2. Fresh redirect from Stripe — verify session_id with backend
+    // 2. Fresh redirect from Stripe
     var params = new URLSearchParams(window.location.search);
+
+    // Handle ?success=true (create-checkout-session flow used by DZONE)
+    if (params.get("success") === "true") {
+      window.history.replaceState({}, "", window.location.pathname);
+      restoreReport();
+      setTier(2);
+      setGateVerified(true);
+      return;
+    }
+
+    // Handle ?session_id= (direct Stripe buy link flow)
     var sessionId = params.get("session_id");
     if (sessionId) {
       window.history.replaceState({}, "", window.location.pathname); // clean URL immediately
