@@ -529,13 +529,16 @@ function MGhost({children,onClick,style}){ return <button onClick={onClick} styl
 var PROMO_CODES = ["DZFRIEND", "DZPREVIEW", "DZTEST"];
 var DISCOUNT_CODES = ["DZHALF"];
 
-function PaywallGateMedical({ onSaveState, setTier, setPromoUsed }) {
+function PaywallGateMedical({ onSaveState, setTier, setPromoUsed, testMode, setTestMode }) {
   var [promoCode, setPromoCode]   = React.useState("");
   var [promoError, setPromoError]   = React.useState("");
   var [discountApplied, setDiscountApplied] = React.useState(false);
   const [shake, setShake]   = React.useState(false);
 
-  var paymentUrl = "https://buy.stripe.com/6oUcN52oObnl71r2FwdQQ0c" + (discountApplied ? "?prefilled_promo_code=DZHALF" : "");
+  var rec79Url = testMode
+    ? "https://buy.stripe.com/8x214nbZo3UT71ra7YdQQ0d"
+    : "https://buy.stripe.com/6oUcN52oObnl71r2FwdQQ0c";
+  rec79Url += discountApplied ? "?prefilled_promo_code=DZHALF" : "";
 
   return (
     <MCard className="no-print" style={{marginBottom:14}}>
@@ -564,7 +567,7 @@ function PaywallGateMedical({ onSaveState, setTier, setPromoUsed }) {
             </li>
           ))}
         </ul>
-        <MBtn onClick={() => { onSaveState(); window.location.href = paymentUrl; }} style={{width:"100%"}}>
+        <MBtn onClick={() => { onSaveState(); window.location.href = rec79Url; }} style={{width:"100%"}}>
           Unlock Full Action Plan →
         </MBtn>
       </div>
@@ -588,6 +591,9 @@ function PaywallGateMedical({ onSaveState, setTier, setPromoUsed }) {
               } else if (isDiscount) {
                 setDiscountApplied(true);
                 setPromoError("");
+              } else if (v.toLowerCase() === "dzone") {
+                setTestMode(true);
+                setPromoError("");
               } else {
                 setPromoError("That code isn't valid.");
               }
@@ -607,6 +613,9 @@ function PaywallGateMedical({ onSaveState, setTier, setPromoUsed }) {
      } else if (isDiscount) {
        setDiscountApplied(true);
        setPromoError("");
+     } else if (v.toLowerCase() === "dzone") {
+       setTestMode(true);
+       setPromoError("");
      } else {
        setPromoError("That code isn't valid.");
      }
@@ -617,6 +626,9 @@ function PaywallGateMedical({ onSaveState, setTier, setPromoUsed }) {
         {promoError && <MMono style={{color:T.red,display:"block",marginTop:6,fontWeight:600,fontSize:11}}>{promoError}</MMono>}
         {discountApplied ? (
           <div style={{ color: "#059669", fontSize: 14, marginTop: 8 }}>50% discount applied! Click a button above to pay.</div>
+        ) : null}
+        {testMode ? (
+          <div style={{ color: T.dim, fontSize: 13, marginTop: 8 }}>Test mode enabled — checkout link updated.</div>
         ) : null}
       </div>
     </MCard>
@@ -644,6 +656,7 @@ export default function DefensibleZoneMedical({ reportMode = false }){
   const [recommendations, setRecommendations] = useState(null);
   const [tier,        setTier]        = useState(0); // 0=free, 2=recs, 3=pdf
   const [promoUsed,   setPromoUsed]   = useState(false);
+  const [testMode, setTestMode] = useState(false);
   const [emailInput,  setEmailInput]  = useState("");
   const [emailSubmitting, setEmailSubmitting] = useState(false);
   useEffect(() => { window.scrollTo(0, 0); }, [step]);
@@ -974,6 +987,7 @@ export default function DefensibleZoneMedical({ reportMode = false }){
     adjustedSkillsRef.current = new Set();
     paidEmailSentRef.current = false;
     setResults(null); setTier(0); setPromoUsed(false);
+    setTestMode(false);
     setRecommendations(null);
     setRecsLoading(false);
     setRecsError(null);
@@ -1486,7 +1500,7 @@ export default function DefensibleZoneMedical({ reportMode = false }){
 
           {actionPlanBlock}
 
-          {showUpsell ? <PaywallGateMedical onSaveState={saveStateForReturn} setTier={setTier} setPromoUsed={setPromoUsed} /> : null}
+          {showUpsell ? <PaywallGateMedical onSaveState={saveStateForReturn} setTier={setTier} setPromoUsed={setPromoUsed} testMode={testMode} setTestMode={setTestMode} /> : null}
 
           {degree==="DO"&&(
             <MCard style={{marginBottom:14,borderLeft:"4px solid "+T.grn}}>
