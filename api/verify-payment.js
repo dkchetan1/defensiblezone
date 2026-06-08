@@ -25,21 +25,17 @@ const PRICE_TIER_MAP = {
   // Engineer & Doctor $34 PDF
   "price_engineer_34": 3,
   "price_doctor_34":   3,
+  "price_1Tg8QxEtPD2ThqDeFBeZsBKE": 2,
   "price_1TQHh9EtPD2ThqDe2e4WrgNA": 3,
   "price_1TQHcQEtPD2ThqDeMU5Qqia7": 2,
 };
 
 // Fallback: if Price ID isn't mapped, infer tier from amount
 function tierFromAmount(amountTotal, product) {
-  if (product === "sales" && amountTotal >= 7900) return 2; // $79.00 (Sales Edition)
-  if (amountTotal <= 2900) return 2; // $29.00
-  if (amountTotal <= 3400) return 3; // $34.00
-  if (amountTotal <= 5900) return 2; // $59.00 (Finance Edition)
-  if (amountTotal <= 6400) return 3; // $64.00 (Finance Edition)
-  if (product === "smallbusiness" && amountTotal >= 34900) return 3; // $349
-  if (product === "smallbusiness" && amountTotal >= 19900) return 2; // $199
-  if (product === "smallbusiness" && amountTotal >= 9900) return 1;  // $99
-  return 2; // default to tier 2
+  if (product === "doctor" && amountTotal >= 7900) return 2;
+  if (amountTotal <= 2900) return 2;
+  if (amountTotal <= 3400) return 3;
+  return 2;
 }
 
 export default async function handler(req, res) {
