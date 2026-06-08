@@ -14,6 +14,14 @@ const PRODUCT_CONFIG = {
       paid: "Your Defensible Zone™ Engineer 90-day plan",
     },
   },
+  doctor: {
+    path: "/doctor",
+    productName: "Defensible Zone Doctor Edition",
+    subject: {
+      free: "Your Defensible Zone™ Medical Edition results",
+      paid: "Your Defensible Zone™ Medical Edition 90-day plan",
+    },
+  },
   pm: {
     path: "/pm",
     productName: "Defensible Zone Product Manager Edition",
@@ -839,7 +847,7 @@ export default async function handler(req, res) {
       }
       console.log("send-results-email: sent", type, "email to:", trimmedEmail, "product:", productKey);
 
-      if (type === "paid") {
+      if (type === "paid" || (type === "free" && productKey === "doctor")) {
         try {
           const leadHtml = buildLeadCardHtml({ productCfg, trimmedEmail, results });
           const leadSubject = "[Lead Card] " + productCfg.productName + " — " + trimmedEmail;
