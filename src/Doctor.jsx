@@ -1,6 +1,5 @@
 import { DZNavBar, DZFooter } from "./SharedComponents";
 import React, { useState, useEffect, useRef } from "react";
-import PDFButton from "./PDFButton";
 
 // ══════════════════════════════════════════════════════════════════
 // SPECIALTY DATA — evidence-grounded, fully local scoring
@@ -536,8 +535,7 @@ function PaywallGateMedical({ onSaveState, setTier, setPromoUsed }) {
   var [discountApplied, setDiscountApplied] = React.useState(false);
   const [shake, setShake]   = React.useState(false);
 
-  var rec29Url = "https://buy.stripe.com/4gM3cv4wWbnldpP2FwdQQ04" + (discountApplied ? "?prefilled_promo_code=DZHALF" : "");
-  var rec34Url = "https://buy.stripe.com/00waEX4wWdvtdpP7ZQdQQ05" + (discountApplied ? "?prefilled_promo_code=DZHALF" : "");
+  var paymentUrl = "https://buy.stripe.com/6oUcN52oObnl71r2FwdQQ0c" + (discountApplied ? "?prefilled_promo_code=DZHALF" : "");
 
   return (
     <MCard className="no-print" style={{marginBottom:14}}>
@@ -554,44 +552,21 @@ function PaywallGateMedical({ onSaveState, setTier, setPromoUsed }) {
         </div>
       </div>
 
-      {/* Tier cards */}
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:20}}>
-
-        {/* Tier 2 — $29 */}
-        <div style={{background:T.bg,border:"2px solid "+T.amb,borderRadius:12,padding:16}}>
-          <MLbl style={{marginBottom:6}}>Recommendations</MLbl>
-          <div style={{fontFamily:T.disp,fontSize:28,color:T.txt,lineHeight:1,marginBottom:4}}>$29<span style={{fontFamily:T.mono,fontSize:13,fontWeight:400,color:T.dim}}> one-time</span></div>
-          <ul style={{margin:"10px 0 14px",padding:0,listStyle:"none"}}>
-            {["Personalized action plan","Steps ranked by impact & effort","Skills to protect vs deprioritize","AI landscape timeline for your specialty"].map(item=>(
-              <li key={item} style={{display:"flex",gap:7,alignItems:"flex-start",marginBottom:5}}>
-                <span style={{color:T.amb,fontWeight:700,flexShrink:0,marginTop:1}}>✓</span>
-                <MMono style={{color:T.mut,fontSize:11,lineHeight:1.5}}>{item}</MMono>
-              </li>
-            ))}
-          </ul>
-          <MBtn onClick={() => { onSaveState(); window.location.href = rec29Url; }} style={{width:"100%"}}>
-            Get Recommendations →
-          </MBtn>
-        </div>
-
-        {/* Tier 3 — $34 */}
-        <div style={{background:T.bg,border:"2px solid #1a1d2e",borderRadius:12,padding:16,position:"relative"}}>
-          <div style={{position:"absolute",top:-11,left:"50%",transform:"translateX(-50%)",background:"#1a1d2e",color:"white",fontFamily:T.mono,fontSize:11,fontWeight:700,padding:"3px 10px",borderRadius:20,letterSpacing:"0.1em",whiteSpace:"nowrap"}}>BEST VALUE</div>
-          <MLbl col="#1a1d2e" style={{marginBottom:6}}>Recommendations + PDF</MLbl>
-          <div style={{fontFamily:T.disp,fontSize:28,color:T.txt,lineHeight:1,marginBottom:4}}>$34<span style={{fontFamily:T.mono,fontSize:13,fontWeight:400,color:T.dim}}> one-time</span></div>
-          <ul style={{margin:"10px 0 14px",padding:0,listStyle:"none"}}>
-            {["Everything in Recommendations","Branded PDF you can save & share","Ready for career coaches & advisors","Permanent record of your assessment"].map(item=>(
-              <li key={item} style={{display:"flex",gap:7,alignItems:"flex-start",marginBottom:5}}>
-                <span style={{color:"#1a1d2e",fontWeight:700,flexShrink:0,marginTop:1}}>✓</span>
-                <MMono style={{color:T.mut,fontSize:11,lineHeight:1.5}}>{item}</MMono>
-              </li>
-            ))}
-          </ul>
-          <button
-            onClick={() => { onSaveState(); window.location.href = rec34Url; }}
-            style={{width:"100%",background:"#1a1d2e",color:"white",border:"none",borderRadius:8,padding:"11px 0",fontFamily:T.mono,fontSize:12,fontWeight:700,cursor:"pointer",letterSpacing:"0.06em"}}
-          >Get PDF Report →</button>
-        </div>
+      {/* Single product */}
+      <div style={{background:T.bg,border:"2px solid "+T.amb,borderRadius:12,padding:16,marginBottom:20}}>
+        <MLbl style={{marginBottom:6}}>Full 90-Day Action Plan</MLbl>
+        <div style={{fontFamily:T.disp,fontSize:28,color:T.txt,lineHeight:1,marginBottom:4}}>$79<span style={{fontFamily:T.mono,fontSize:13,fontWeight:400,color:T.dim}}> one-time</span></div>
+        <ul style={{margin:"10px 0 14px",padding:0,listStyle:"none"}}>
+          {["Complete 90-day action plan for every skill","Steps ranked by impact & effort","Skills to protect vs deprioritize","AI landscape timeline for your specialty"].map(item=>(
+            <li key={item} style={{display:"flex",gap:7,alignItems:"flex-start",marginBottom:5}}>
+              <span style={{color:T.amb,fontWeight:700,flexShrink:0,marginTop:1}}>✓</span>
+              <MMono style={{color:T.mut,fontSize:11,lineHeight:1.5}}>{item}</MMono>
+            </li>
+          ))}
+        </ul>
+        <MBtn onClick={() => { onSaveState(); window.location.href = paymentUrl; }} style={{width:"100%"}}>
+          Unlock Full Action Plan →
+        </MBtn>
       </div>
 
       {/* Promo code */}
@@ -659,6 +634,7 @@ export default function DefensibleZoneMedical({ reportMode = false }){
   const [fluencies,   setFluencies]   = useState({});
   const [adjustedSkills, setAdjustedSkills] = useState(new Set());
   const adjustedSkillsRef = useRef(new Set());
+  const paidEmailSentRef = useRef(false);
   const [results,     setResults]     = useState(null);
   const [showGuide,   setShowGuide]   = useState(true);
   const [showDO,      setShowDO]      = useState(false);
@@ -694,6 +670,41 @@ export default function DefensibleZoneMedical({ reportMode = false }){
     }
   }, [results, tier, promoUsed, degree, level, specialty]); // eslint-disable-line
 
+  useEffect(function() {
+    if (!recommendations || tier < 2) return;
+    if (!results) return;
+    if (paidEmailSentRef.current) return;
+    var savedEmail = emailInput.trim();
+    if (!savedEmail) {
+      try {
+        var saved = localStorage.getItem("dz_saved_report_doctor");
+        if (saved) { var s = JSON.parse(saved); savedEmail = s.email || ""; }
+      } catch(e) {}
+    }
+    if (!savedEmail) return;
+    paidEmailSentRef.current = true;
+    fetch("/api/send-results-email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: savedEmail,
+        product: "doctor",
+        type: "paid",
+        results: {
+          profile: {
+            seniorityLabel: level,
+            roleLabel: specialty,
+            summary: degree + " · " + level + " · " + specialty,
+          },
+          skills: results.map(function(s) {
+            return { name: s.name, dz: s.dz, ai_replaceability: s.aiR, market_demand: s.mkt };
+          }),
+          recommendations: recommendations,
+        },
+      }),
+    }).catch(function() {});
+  }, [recommendations, tier]); // eslint-disable-line
+
   useEffect(() => {
     setFluencies(prev => {
       const next = { ...prev };
@@ -706,23 +717,38 @@ export default function DefensibleZoneMedical({ reportMode = false }){
     });
   }, [conscience, pull, skills]);
 
-  async function submitEmailToKit(email) {
-    try {
-      await fetch("https://api.convertkit.com/v3/forms/9309751/subscribe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ api_key: "OtIv3L3SPCCcxped1fYkLw", email: email, fields: { source: "doctor" } })
-      });
-    } catch(e) { /* silent fail */ }
-  }
-
   async function handleEmailAndContinue() {
     const email = emailInput.trim();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return;
     setEmailSubmitting(true);
-    await submitEmailToKit(email);
+    const scored = runAnalysis();
     setEmailSubmitting(false);
-    runAnalysis();
+    fetch("/api/subscribe", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: email, productName: "Defensible Zone Doctor Edition" }),
+    }).catch(function() {});
+    if (scored && scored.length > 0) {
+      fetch("/api/send-results-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: email,
+          product: "doctor",
+          type: "free",
+          results: {
+            profile: {
+              seniorityLabel: level,
+              roleLabel: specialty,
+              summary: degree + " · " + level + " · " + specialty,
+            },
+            skills: scored.map(function(s) {
+              return { name: s.name, dz: s.dz, ai_replaceability: s.aiR, market_demand: s.mkt };
+            }),
+          },
+        }),
+      }).catch(function() {});
+    }
   }
 
   async function fetchRecommendations(scoredResults) {
@@ -845,6 +871,7 @@ export default function DefensibleZoneMedical({ reportMode = false }){
             const s = JSON.parse(saved);
             if (s.degree)    setDegree(s.degree);
             if (s.level)     setLevel(s.level);
+            if (s.email)     setEmailInput(s.email);
             if (s.specialty) setSpecialty(s.specialty);
             if (s.skills)    setSkills(s.skills);
             if (s.fluencies) setFluencies(s.fluencies);
@@ -876,6 +903,7 @@ export default function DefensibleZoneMedical({ reportMode = false }){
                 const s = JSON.parse(saved);
                 if (s.degree)    setDegree(s.degree);
                 if (s.level)     setLevel(s.level);
+                if (s.email)     setEmailInput(s.email);
                 if (s.specialty) setSpecialty(s.specialty);
                 if (s.skills)    setSkills(s.skills);
                 if (s.fluencies) setFluencies(s.fluencies);
@@ -930,19 +958,21 @@ export default function DefensibleZoneMedical({ reportMode = false }){
     try {
       localStorage.setItem("dz_saved_report_doctor", JSON.stringify({
         step: 3, degree, level, specialty, skills, conscience, pull,
-        fluencies, results: scored,
+        fluencies, results: scored, email: emailInput,
         adjustedSkills: [...adjustedSkillsRef.current]
       }));
     } catch(e) { console.error("save failed:", e); }
     setResults(scored);
     setStep(3);
     fetchRecommendations(scored);
+    return scored;
   }
 
   function reset(){
     setStep(0); setDegree(""); setLevel(""); setSpecialty(""); setSkills([]);
     setConscience(5); setPull(5); setFluencies({}); setAdjustedSkills(new Set());
     adjustedSkillsRef.current = new Set();
+    paidEmailSentRef.current = false;
     setResults(null); setTier(0); setPromoUsed(false);
     setRecommendations(null);
     setRecsLoading(false);
@@ -1246,7 +1276,6 @@ export default function DefensibleZoneMedical({ reportMode = false }){
     const dzLabel =
       avgDZ >= 70 ? "Highly Defensible" : avgDZ >= 50 ? "Moderately Defensible" : avgDZ >= 30 ? "Mixed Territory" : "Needs Attention";
     const showAllRecs = tier >= 2 || promoUsed;
-    const showPDF = tier >= 3 || promoUsed;
     const showUpsell = tier === 0 && !promoUsed;
 
     var rawRecsFull = recommendations && recommendations.recommendations ? recommendations.recommendations.slice() : [];
@@ -1342,11 +1371,6 @@ export default function DefensibleZoneMedical({ reportMode = false }){
               );
             })}
           </div>
-          {showPDF ? (
-            <div style={{ marginTop: 20, marginBottom: 4, textAlign: "center" }}>
-              <PDFButton contentId="dz-doctor-report" label="Save as PDF" />
-            </div>
-          ) : null}
         </div>
       );
     }
