@@ -75,6 +75,28 @@ var S = {
   serif: "'DM Serif Display',Georgia,serif",
 };
 
+function getRoleLabel(id) {
+  var rt = ROLE_TYPES.find(function (x) { return x.id === id; });
+  return rt ? rt.label : id;
+}
+
+function getSeniorityLabel(id) {
+  var sl = SENIORITY_LEVELS.find(function (x) { return x.id === id; });
+  return sl ? sl.label : id;
+}
+
+function getWorkContextLabel(id) {
+  var wc = WORK_CONTEXTS.find(function (x) { return x.id === id; });
+  return wc ? wc.label : id;
+}
+
+function getDomainLabels(ids) {
+  return ids.map(function (id) {
+    var d = CONTENT_DOMAINS.find(function (x) { return x.id === id; });
+    return d ? d.label : id;
+  });
+}
+
 export default function Localization() {
   var [step, setStep] = useState(0);
   var [roleType, setRoleType] = useState("");
@@ -84,6 +106,12 @@ export default function Localization() {
   var [specialization, setSpecialization] = useState("");
   var [contentDomains, setContentDomains] = useState([]);
   var [workContext, setWorkContext] = useState("");
+  var [landscape, setLandscape] = useState("");
+  var [skills, setSkills] = useState([]);
+  var [fluencies, setFluencies] = useState({});
+  var [loading, setLoading] = useState(false);
+  var [loadingMsg, setLoadingMsg] = useState("");
+  var [error, setError] = useState(null);
 
   useEffect(function () {
     var link = document.createElement("link");
@@ -113,6 +141,110 @@ export default function Localization() {
     setSpecialization("");
     setContentDomains([]);
     setWorkContext("");
+    setLandscape("");
+    setSkills([]);
+    setFluencies({});
+    setLoading(false);
+    setLoadingMsg("");
+    setError(null);
+  }
+
+  function buildAnalysisPrompt() {
+    var sl = SENIORITY_LEVELS.find(function (x) { return x.id === seniority; });
+    var domainLabels = getDomainLabels(contentDomains).join(", ");
+    var specLine = specialization.trim() !== "" ? "\n- Specialization: " + specialization.trim() : "";
+    return (
+      "You are a senior localization and language-industry career strategist specializing in AI labor market analysis for language professionals.\n\n" +
+      "PROFESSIONAL PROFILE:\n" +
+      "- Role type: " + getRoleLabel(roleType) + "\n" +
+      "- Seniority: " + getSeniorityLabel(seniority) + (sl ? " — " + sl.note : "") + "\n" +
+      "- Language pair: " + sourceLanguage + " → " + targetLanguage + "\n" +
+      "- Content domains: " + domainLabels + "\n" +
+      "- Work context: " + getWorkContextLabel(workContext) +
+      specLine +
+      "\n\nTask 1 — LANDSCAPE SNAPSHOT: Write 2–3 precise sentences about the AI threat to this exact language professional profile RIGHT NOW (2026). Name specific tools where relevant (DeepL, Google Translate, GPT-4/Claude, Smartling, Phrase, memoQ, SDL Trados, dubbing AI, speech-to-speech). Factor in the language pair — high-resource pairs (e.g. EN↔FR, EN↔ES) face much higher MT quality and AI exposure than low-resource or literary pairs. Factor in content domain — legal/medical/technical vs literary/marketing changes exposure differently. Be specific to this combination, not generic AI commentary.\n\n" +
+      "Task 2 — SKILLS: Generate exactly 6 skills that are the most strategically important for this professional to assess for AI defensibility right now. Each skill must include:\n" +
+      "- name: a specific skill label (not generic — e.g. 'EN→FR legal contract translation under tight deadlines' not just 'translation')\n" +
+      "- aiR: AI replaceability score 0–10 (0 = AI cannot do this today, 10 = AI fully does this today). Calibrate to THIS language pair, domain, and role — e.g. a legal translator on EN↔FR should score higher aiR than a literary translator in a low-resource pair.\n" +
+      "- mkt: market demand score 0–10 (0 = low market value, 10 = high market value) for someone with this profile today.\n\n" +
+      "Return ONLY valid JSON with no preamble:\n" +
+      '{"landscape":"...","skills":[{"name":"...","aiR":0,"mkt":0},{"name":"...","aiR":0,"mkt":0},{"name":"...","aiR":0,"mkt":0},{"name":"...","aiR":0,"mkt":0},{"name":"...","aiR":0,"mkt":0},{"name":"...","aiR":0,"mkt":0}]}'
+    );
+  }
+
+  function applyAnalysisResult(parsed) {
+    if (!parsed.skills || !Array.isArray(parsed.skills)) throw new Error("Invalid skills");
+    var loaded = parsed.skills.slice(0, 6).map(function (sk, i) {
+      return {
+        name: sk.name || sk.text || "Skill " + (i + 1),
+        aiR: typeof sk.aiR === "number" ? sk.aiR : typeof sk.ai_replaceability === "number" ? sk.ai_replaceability : 5,
+        mkt: typeof sk.mkt === "number" ? sk.mkt : typeof sk.market_demand === "number" ? sk.market_demand : 5,
+      };
+    });
+    while (loaded.length < 6) {
+      loaded.push({ name: "Skill " + (loaded.length + 1), aiR: 5, mkt: 5 });
+    }
+    var defaultFluencies = {};
+    for (var fi = 0; fi < 6; fi++) defaultFluencies[fi] = 5;
+    setLandscape(parsed.landscape || "");
+    setSkills(loaded);
+    setFluencies(defaultFluencies);
+    setStep(3);
+  }
+
+  async function fetchLandscapeAndSkills() {
+    var domainCount = contentDomains.length;
+    var canAnalyze = domainCount >= 1 && domainCount <= 3 && workContext !== "";
+    if (!canAnalyze) return;
+    setStep(3);
+    setLoading(true);
+    setLoadingMsg("Analyzing your language work profile…");
+    setError(null);
+    var prompt = buildAnalysisPrompt();
+    try {
+      var res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-6",
+          max_tokens: 1000,
+          messages: [{ role: "user", content: prompt }],
+        }),
+      });
+      var data = await res.json();
+      if (!data.content) throw new Error(data.error || data.error_description || "API error: " + JSON.stringify(data));
+      var raw = data.content.map(function (b) { return b.text || ""; }).join("");
+      var m = raw.match(/\{[\s\S]*\}/);
+      if (!m) throw new Error("No JSON in response");
+      applyAnalysisResult(JSON.parse(m[0]));
+    } catch (e) {
+      if (e.message && e.message.indexOf("overloaded") !== -1) {
+        await new Promise(function (r) { setTimeout(r, 2000); });
+        try {
+          var res2 = await fetch("/api/generate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              model: "claude-sonnet-4-6",
+              max_tokens: 1000,
+              messages: [{ role: "user", content: prompt }],
+            }),
+          });
+          var data2 = await res2.json();
+          if (!data2.content) throw new Error(typeof data2.error === "object" ? JSON.stringify(data2) : (data2.error || JSON.stringify(data2)));
+          var raw2 = data2.content.map(function (b) { return b.text || ""; }).join("");
+          var m2 = raw2.match(/\{[\s\S]*\}/);
+          if (!m2) throw new Error("No JSON in response");
+          applyAnalysisResult(JSON.parse(m2[0]));
+        } catch (e2) {
+          setError("Something went wrong — please try again in a moment.");
+        }
+      } else {
+        setError("Something went wrong — please try again in a moment.");
+      }
+    } finally {
+      setLoading(false);
+    }
   }
 
   function toggleDomain(id) {
@@ -243,7 +375,7 @@ export default function Localization() {
           fontWeight: 600,
         }}
       >
-        STEP {props2.n} OF 3
+        STEP {props2.n} OF 4
       </div>
     );
   }
@@ -550,14 +682,18 @@ export default function Localization() {
             })}
           </div>
 
+          {error ? (
+            <p style={{ color: "#b91c1c", fontSize: 14, fontFamily: S.mono, fontWeight: 600, marginBottom: 12, textAlign: "center" }}>{error}</p>
+          ) : null}
+
           <button
             type="button"
-            disabled={!canAnalyze}
+            disabled={!canAnalyze || loading}
             onClick={function () {
-              if (!canAnalyze) return;
-              setStep(3);
+              if (!canAnalyze || loading) return;
+              fetchLandscapeAndSkills();
             }}
-            style={Object.assign({}, continueBtnBase, !canAnalyze ? { opacity: 0.5, cursor: "not-allowed" } : null)}
+            style={Object.assign({}, continueBtnBase, !canAnalyze || loading ? { opacity: 0.5, cursor: "not-allowed" } : null)}
           >
             ANALYZE MY PROFILE →
           </button>
@@ -568,7 +704,148 @@ export default function Localization() {
     );
   }
 
-  // ── STEP 3: Placeholder results ───────────────────────────────────────
+  // ── STEP 3: Landscape + affinity sliders ──────────────────────────────
+  if (step === 3) {
+    var dzSliderCSS =
+      "input[type=range].dz-slider{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:3px;outline:none;cursor:pointer;border:none} input[type=range].dz-slider::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:#d97706;border:2px solid white;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.18)} input[type=range].dz-slider::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:#d97706;border:2px solid white;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.18)}";
+
+    if (loading) {
+      return (
+        <div style={{ background: S.bg, minHeight: "100vh", display: "flex", flexDirection: "column", fontFamily: S.font, padding: "32px 20px", boxSizing: "border-box" }}>
+          <DZNavBar />
+          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <style dangerouslySetInnerHTML={{ __html: "@keyframes spin{to{transform:rotate(360deg)}}" }} />
+            <div style={{ textAlign: "center", maxWidth: 400, padding: "0 20px" }}>
+              <div style={{ width: 52, height: 52, border: "3px solid " + S.border, borderTop: "3px solid " + S.gold, borderRadius: "50%", margin: "0 auto 28px", animation: "spin 0.85s linear infinite" }} />
+              <p style={{ fontFamily: S.mono, fontSize: 12, color: S.muted, margin: "0 0 10px", letterSpacing: "0.08em" }}>DEFENSIBLE ZONE&#8482; · LOCALIZATION EDITION</p>
+              <p style={{ fontFamily: S.serif, fontSize: 22, color: S.text, fontStyle: "italic", margin: "0 0 10px" }}>{loadingMsg}</p>
+              <p style={{ fontFamily: S.mono, fontSize: 12, color: S.muted, margin: 0, letterSpacing: "0.08em" }}>READING YOUR LANGUAGE LANDSCAPE · SCORING AI EXPOSURE</p>
+            </div>
+          </div>
+          <div style={{ maxWidth: 640, margin: "0 auto", width: "100%" }}><DZFooter /></div>
+        </div>
+      );
+    }
+
+    var roleLabel = getRoleLabel(roleType);
+    var seniorityLabel = getSeniorityLabel(seniority);
+    var canSeeDZ = skills.length >= 6 && skills.every(function (_sk, idx) {
+      return fluencies[idx] !== undefined;
+    });
+
+    return (
+      <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font, padding: "32px 20px", boxSizing: "border-box" }}>
+        <DZNavBar />
+        <style dangerouslySetInnerHTML={{ __html: dzSliderCSS }} />
+        <div style={containerInner}>
+          <button type="button" onClick={function () { setStep(2); setError(null); }} style={backBtnStyle}>
+            ← back
+          </button>
+
+          <div style={{ fontFamily: S.mono, fontSize: 12, color: S.gold, letterSpacing: "0.1em", marginBottom: 16, fontWeight: 600 }}>
+            STEP 3 OF 4 · {roleLabel.toUpperCase()}
+          </div>
+
+          <h1
+            style={{
+              fontFamily: S.serif,
+              fontSize: 34,
+              fontStyle: "italic",
+              color: S.text,
+              margin: "0 0 20px",
+              lineHeight: 1.15,
+              fontWeight: 600,
+            }}
+          >
+            Your AI landscape
+          </h1>
+
+          {error ? (
+            <p style={{ color: "#b91c1c", fontSize: 14, fontFamily: S.mono, fontWeight: 600, marginBottom: 16 }}>{error}</p>
+          ) : null}
+
+          <div style={{ background: "linear-gradient(135deg,rgba(26,29,46,.97),rgba(26,29,46,.92))", borderRadius: 14, padding: 22, marginBottom: 18, position: "relative", overflow: "hidden" }}>
+            <div style={{ position: "absolute", top: 0, right: 0, width: 160, height: 160, background: "radial-gradient(circle,rgba(217,119,6,.15) 0%,transparent 70%)", pointerEvents: "none" }} />
+            <div style={{ fontFamily: S.mono, fontSize: 12, color: "rgba(217,119,6,.8)", letterSpacing: "0.1em", marginBottom: 8, fontWeight: 600 }}>
+              AI LANDSCAPE · {roleLabel.toUpperCase()} · {seniorityLabel.toUpperCase()} · {sourceLanguage.toUpperCase()} → {targetLanguage.toUpperCase()}
+            </div>
+            <p style={{ color: "rgba(240,242,248,.9)", fontSize: 16, lineHeight: 1.75, margin: 0, fontStyle: "italic" }}>{landscape}</p>
+          </div>
+
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 24 }}>
+            {getDomainLabels(contentDomains).map(function (dl) {
+              return (
+                <span key={dl} style={{ fontFamily: S.mono, fontSize: 12, color: S.gold, background: "rgba(217,119,6,0.1)", border: "1px solid rgba(217,119,6,0.3)", borderRadius: 12, padding: "3px 10px", fontWeight: 600 }}>{dl}</span>
+              );
+            })}
+          </div>
+
+          <div style={Object.assign({}, sectionLabel, { marginBottom: 16 })}>Rate your natural affinity for each skill</div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 24 }}>
+            {skills.map(function (sk, idx) {
+              var fluencyVal = fluencies[idx] !== undefined ? fluencies[idx] : 5;
+              return (
+                <div
+                  key={idx}
+                  style={{
+                    background: S.card,
+                    border: "1px solid " + S.border,
+                    borderRadius: 12,
+                    padding: "18px 20px",
+                  }}
+                >
+                  <div style={{ fontSize: 16, fontWeight: 600, color: S.text, marginBottom: 4, lineHeight: 1.35 }}>{sk.name}</div>
+                  <div style={{ fontFamily: S.mono, fontSize: 12, color: S.dim, marginBottom: 14 }}>
+                    AI replaceability {sk.aiR}/10 · Market demand {sk.mkt}/10
+                  </div>
+                  <div style={{ fontSize: 14, color: S.muted, marginBottom: 10 }}>How naturally does this come to you?</div>
+                  <input
+                    className="dz-slider"
+                    type="range"
+                    min={1}
+                    max={10}
+                    step={1}
+                    value={fluencyVal}
+                    onChange={function (e) {
+                      var val = Number(e.target.value);
+                      setFluencies(function (prev) {
+                        var next = Object.assign({}, prev);
+                        next[idx] = val;
+                        return next;
+                      });
+                    }}
+                    style={{ background: "linear-gradient(to right, #d97706 " + (fluencyVal / 10) * 100 + "%, #d0d7e8 " + (fluencyVal / 10) * 100 + "%)" }}
+                  />
+                  <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8, fontFamily: S.mono, fontSize: 11, color: S.dim }}>
+                    <span>1</span>
+                    <span style={{ color: S.gold, fontWeight: 700 }}>{fluencyVal}/10</span>
+                    <span>10</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <button
+            type="button"
+            disabled={!canSeeDZ}
+            onClick={function () {
+              if (!canSeeDZ) return;
+              setStep(4);
+            }}
+            style={Object.assign({}, continueBtnBase, !canSeeDZ ? { opacity: 0.5, cursor: "not-allowed" } : null)}
+          >
+            SEE MY DEFENSIBLE ZONE →
+          </button>
+
+          <DZFooter />
+        </div>
+      </div>
+    );
+  }
+
+  // ── STEP 4: Placeholder results ───────────────────────────────────────
   return (
     <div style={containerOuter}>
       <DZNavBar />
