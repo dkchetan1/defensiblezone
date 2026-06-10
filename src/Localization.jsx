@@ -153,6 +153,7 @@ export default function Localization() {
   var [results, setResults] = useState(null);
   var [resultsLoading, setResultsLoading] = useState(false);
   var [resultsError, setResultsError] = useState(null);
+  var [insightsError, setInsightsError] = useState(null);
   var resultsFetchRef = useRef(false);
 
   useEffect(function () {
@@ -191,6 +192,7 @@ export default function Localization() {
     setResults(null);
     setResultsLoading(false);
     setResultsError(null);
+    setInsightsError(null);
     setLoading(false);
     setLoadingMsg("");
     setError(null);
@@ -266,7 +268,7 @@ export default function Localization() {
 
   async function fetchResultsInsights(scored) {
     setResultsLoading(true);
-    setResultsError(null);
+    setInsightsError(null);
     var prompt = buildResultsPrompt(scored);
     try {
       var res = await fetch("/api/generate", {
@@ -318,10 +320,14 @@ export default function Localization() {
           if (!parsed2.headline) throw new Error("Invalid response");
           setResults(parsed2);
         } catch (e2) {
-          setResultsError("Something went wrong — please try again in a moment.");
+          console.log(e2);
+          setInsightsError("Could not load insights. Please try again.");
+          setResultsLoading(false);
         }
       } else {
-        setResultsError("Something went wrong — please try again in a moment.");
+        console.log(e);
+        setInsightsError("Could not load insights. Please try again.");
+        setResultsLoading(false);
       }
     } finally {
       setResultsLoading(false);
@@ -333,6 +339,7 @@ export default function Localization() {
     setScoredSkills(scored);
     setResults(null);
     setResultsError(null);
+    setInsightsError(null);
     setResultsLoading(true);
     resultsFetchRef.current = false;
     setStep(4);
@@ -1049,7 +1056,7 @@ export default function Localization() {
   }
 
   // ── STEP 4: Results ───────────────────────────────────────────────────
-  if (step === 4 && (resultsLoading || (!results && !resultsError))) {
+  if (step === 4 && resultsLoading && !results && !insightsError) {
     return (
       <div style={{ background: S.bg, minHeight: "100vh", display: "flex", flexDirection: "column", fontFamily: S.font, padding: "32px 20px", boxSizing: "border-box" }}>
         <DZNavBar />
@@ -1096,14 +1103,14 @@ export default function Localization() {
     );
   }
 
-  if (step === 4 && results) {
+  if (step === 4 && (results || insightsError)) {
     var overallScore = computeOverallFromTop3(scoredSkills);
     var overallColor = overallScoreColor(overallScore);
     var roleLabel4 = getRoleLabel(roleType);
     var seniorityLabel4 = getSeniorityLabel(seniority);
-    var strengthsList = Array.isArray(results.strengths) ? results.strengths : [];
-    var risksList = Array.isArray(results.risks) ? results.risks : [];
-    var actionsList = Array.isArray(results.actions)
+    var strengthsList = results && Array.isArray(results.strengths) ? results.strengths : [];
+    var risksList = results && Array.isArray(results.risks) ? results.risks : [];
+    var actionsList = results && Array.isArray(results.actions)
       ? results.actions.slice().sort(function (a, b) {
           return (a.step || 0) - (b.step || 0);
         })
@@ -1149,9 +1156,11 @@ export default function Localization() {
             <div style={{ fontFamily: S.mono, fontSize: 72, fontWeight: 700, color: overallColor, lineHeight: 1, marginBottom: 16 }}>
               {overallScore}
             </div>
-            <p style={{ fontSize: 16, color: S.text, lineHeight: 1.65, margin: 0, maxWidth: 520, marginLeft: "auto", marginRight: "auto", fontStyle: "italic" }}>
-              {results.headline}
-            </p>
+            {results ? (
+              <p style={{ fontSize: 16, color: S.text, lineHeight: 1.65, margin: 0, maxWidth: 520, marginLeft: "auto", marginRight: "auto", fontStyle: "italic" }}>
+                {results.headline}
+              </p>
+            ) : null}
           </div>
 
           <div
@@ -1209,6 +1218,30 @@ export default function Localization() {
               </div>
             );
           })}
+
+          {insightsError ? (
+            <div style={{ marginTop: 16, marginBottom: 8 }}>
+              <p style={{ color: "#b91c1c", fontSize: 14, margin: "0 0 8px", lineHeight: 1.5 }}>{insightsError}</p>
+              <button
+                type="button"
+                onClick={function () {
+                  fetchResultsInsights(scoredSkills);
+                }}
+                style={{
+                  fontFamily: S.mono,
+                  fontSize: 13,
+                  color: S.dim,
+                  background: "transparent",
+                  border: "1px solid " + S.border,
+                  borderRadius: 8,
+                  padding: "8px 14px",
+                  cursor: "pointer",
+                }}
+              >
+                Retry
+              </button>
+            </div>
+          ) : null}
 
           {strengthsList.length > 0 ? (
             <div style={{ marginTop: 28, marginBottom: 24 }}>
