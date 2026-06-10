@@ -1,5 +1,5 @@
 import { DZNavBar, DZFooter } from "./SharedComponents";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 // ── ROLE TYPES ─────────────────────────────────────────────────────────
 var ROLE_TYPES = [
@@ -70,10 +70,47 @@ var S = {
   dim: "#4a5568",
   accent: "#1a1d2e",
   gold: "#D97706",
+  green: "#059669",
+  red: "#dc2626",
+  orange: "#ea580c",
   font: "'DM Sans',system-ui,-apple-system,sans-serif",
   mono: "'DM Mono','Courier New',monospace",
   serif: "'DM Serif Display',Georgia,serif",
 };
+
+function calcDZ(aff, aiR, mkt) {
+  return Math.min(100, Math.round(100 * Math.pow(aff / 10, 0.35) * Math.pow((10 - aiR) / 10, 0.40) * Math.pow(mkt / 10, 0.25)));
+}
+
+function computeOverallFromTop3(scoredSkills) {
+  if (!Array.isArray(scoredSkills) || scoredSkills.length === 0) return 0;
+  var sorted = scoredSkills.slice().sort(function (a, b) {
+    return b.dz - a.dz;
+  });
+  var top3 = sorted.slice(0, 3);
+  return Math.round(top3.reduce(function (sum, s) {
+    return sum + s.dz;
+  }, 0) / top3.length);
+}
+
+function overallScoreColor(score) {
+  if (score >= 70) return S.green;
+  if (score >= 45) return S.gold;
+  if (score >= 25) return S.orange;
+  return S.red;
+}
+
+function skillBarColor(score) {
+  if (score >= 65) return S.green;
+  if (score >= 40) return S.gold;
+  return S.red;
+}
+
+function getSkillStatusLabel(score) {
+  if (score >= 65) return "Defensible";
+  if (score >= 40) return "Developing";
+  return "At Risk";
+}
 
 function getRoleLabel(id) {
   var rt = ROLE_TYPES.find(function (x) { return x.id === id; });
@@ -112,6 +149,11 @@ export default function Localization() {
   var [loading, setLoading] = useState(false);
   var [loadingMsg, setLoadingMsg] = useState("");
   var [error, setError] = useState(null);
+  var [scoredSkills, setScoredSkills] = useState([]);
+  var [results, setResults] = useState(null);
+  var [resultsLoading, setResultsLoading] = useState(false);
+  var [resultsError, setResultsError] = useState(null);
+  var resultsFetchRef = useRef(false);
 
   useEffect(function () {
     var link = document.createElement("link");
@@ -133,6 +175,7 @@ export default function Localization() {
   );
 
   function resetAll() {
+    resultsFetchRef.current = false;
     setStep(0);
     setRoleType("");
     setSeniority("");
@@ -144,10 +187,170 @@ export default function Localization() {
     setLandscape("");
     setSkills([]);
     setFluencies({});
+    setScoredSkills([]);
+    setResults(null);
+    setResultsLoading(false);
+    setResultsError(null);
     setLoading(false);
     setLoadingMsg("");
     setError(null);
   }
+
+  function buildScoredSkills() {
+    return skills.map(function (sk, idx) {
+      var aff = fluencies[idx] !== undefined ? fluencies[idx] : 5;
+      return {
+        name: sk.name,
+        aiR: sk.aiR,
+        mkt: sk.mkt,
+        aff: aff,
+        dz: calcDZ(aff, sk.aiR, sk.mkt),
+      };
+    });
+  }
+
+  function buildResultsPrompt(scored) {
+    var sl = SENIORITY_LEVELS.find(function (x) { return x.id === seniority; });
+    var domainLabels = getDomainLabels(contentDomains).join(", ");
+    var specLine = specialization.trim() !== "" ? "\n- Specialization: " + specialization.trim() : "";
+    var overall = computeOverallFromTop3(scored);
+    var skillLines = scored
+      .map(function (s, i) {
+        return (
+          i +
+          1 +
+          ". " +
+          s.name +
+          " — DZ: " +
+          s.dz +
+          "/100, Affinity: " +
+          s.aff +
+          "/10, AI Replaceability: " +
+          s.aiR +
+          "/10, Market Demand: " +
+          s.mkt +
+          "/10"
+        );
+      })
+      .join("\n");
+    return (
+      "You are a senior localization and language-industry career strategist.\n\n" +
+      "PROFESSIONAL PROFILE:\n" +
+      "- Role: " +
+      getRoleLabel(roleType) +
+      "\n" +
+      "- Seniority: " +
+      getSeniorityLabel(seniority) +
+      (sl ? " — " + sl.note : "") +
+      "\n" +
+      "- Language pair: " +
+      sourceLanguage +
+      " → " +
+      targetLanguage +
+      "\n" +
+      "- Content domains: " +
+      domainLabels +
+      "\n" +
+      "- Work context: " +
+      getWorkContextLabel(workContext) +
+      specLine +
+      "\n\nDEFENSIBLE ZONE SCORES (overall from top 3 skills: " +
+      overall +
+      "/100):\n" +
+      skillLines +
+      "\n\nBased on this profile and scores, provide specific, actionable advice for someone in the localization/language industry — not generic career advice. Reference their language pair, domain, role, and work context where relevant. Name specific tools or workflows (TMS, MT engines, CAT tools, LLM evaluation) when appropriate.\n\n" +
+      "Return ONLY valid JSON with no preamble:\n" +
+      '{"headline":"one sentence summarizing this person\'s DZ position","strengths":["2–3 skills that are their most defensible, with a one-line reason each"],"risks":["1–2 skills most at risk from AI, with a one-line reason each"],"actions":[{"step":1,"title":"short action title","detail":"one sentence of what to do"},{"step":2,"title":"...","detail":"..."},{"step":3,"title":"...","detail":"..."}]}'
+    );
+  }
+
+  async function fetchResultsInsights(scored) {
+    setResultsLoading(true);
+    setResultsError(null);
+    var prompt = buildResultsPrompt(scored);
+    try {
+      var res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-6",
+          max_tokens: 800,
+          messages: [{ role: "user", content: prompt }],
+        }),
+      });
+      var data = await res.json();
+      if (!data.content) throw new Error(data.error || data.error_description || "API error");
+      var raw = data.content
+        .map(function (b) {
+          return b.text || "";
+        })
+        .join("");
+      var m = raw.match(/\{[\s\S]*\}/);
+      if (!m) throw new Error("No JSON in response");
+      var parsed = JSON.parse(m[0]);
+      if (!parsed.headline) throw new Error("Invalid response");
+      setResults(parsed);
+    } catch (e) {
+      if (e.message && e.message.indexOf("overloaded") !== -1) {
+        await new Promise(function (r) {
+          setTimeout(r, 2000);
+        });
+        try {
+          var res2 = await fetch("/api/generate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              model: "claude-sonnet-4-6",
+              max_tokens: 800,
+              messages: [{ role: "user", content: prompt }],
+            }),
+          });
+          var data2 = await res2.json();
+          if (!data2.content) throw new Error(typeof data2.error === "object" ? JSON.stringify(data2) : data2.error || "API error");
+          var raw2 = data2.content
+            .map(function (b) {
+              return b.text || "";
+            })
+            .join("");
+          var m2 = raw2.match(/\{[\s\S]*\}/);
+          if (!m2) throw new Error("No JSON in response");
+          var parsed2 = JSON.parse(m2[0]);
+          if (!parsed2.headline) throw new Error("Invalid response");
+          setResults(parsed2);
+        } catch (e2) {
+          setResultsError("Something went wrong — please try again in a moment.");
+        }
+      } else {
+        setResultsError("Something went wrong — please try again in a moment.");
+      }
+    } finally {
+      setResultsLoading(false);
+    }
+  }
+
+  function goToResults() {
+    var scored = buildScoredSkills();
+    setScoredSkills(scored);
+    setResults(null);
+    setResultsError(null);
+    setResultsLoading(true);
+    resultsFetchRef.current = false;
+    setStep(4);
+  }
+
+  useEffect(
+    function () {
+      if (step !== 4) {
+        resultsFetchRef.current = false;
+        return;
+      }
+      if (scoredSkills.length === 0) return;
+      if (resultsFetchRef.current) return;
+      resultsFetchRef.current = true;
+      fetchResultsInsights(scoredSkills);
+    },
+    [step, scoredSkills] // eslint-disable-line react-hooks/exhaustive-deps -- fetch on step 4 entry with scored skills
+  );
 
   function buildAnalysisPrompt() {
     var sl = SENIORITY_LEVELS.find(function (x) { return x.id === seniority; });
@@ -832,7 +1035,7 @@ export default function Localization() {
             disabled={!canSeeDZ}
             onClick={function () {
               if (!canSeeDZ) return;
-              setStep(4);
+              goToResults();
             }}
             style={Object.assign({}, continueBtnBase, !canSeeDZ ? { opacity: 0.5, cursor: "not-allowed" } : null)}
           >
@@ -845,32 +1048,305 @@ export default function Localization() {
     );
   }
 
-  // ── STEP 4: Placeholder results ───────────────────────────────────────
-  return (
-    <div style={containerOuter}>
-      <DZNavBar />
-      <div style={Object.assign({}, containerInner, { textAlign: "center", paddingTop: 48, paddingBottom: 48 })}>
-        <p
-          style={{
-            fontFamily: S.serif,
-            fontSize: 28,
-            fontStyle: "italic",
-            color: S.text,
-            margin: "0 0 32px",
-            lineHeight: 1.3,
-          }}
-        >
-          Results coming soon
-        </p>
-        <button
-          type="button"
-          onClick={resetAll}
-          style={Object.assign({}, continueBtnBase, { maxWidth: 280, margin: "0 auto" })}
-        >
-          ← BACK
-        </button>
-        <DZFooter />
+  // ── STEP 4: Results ───────────────────────────────────────────────────
+  if (step === 4 && (resultsLoading || (!results && !resultsError))) {
+    return (
+      <div style={{ background: S.bg, minHeight: "100vh", display: "flex", flexDirection: "column", fontFamily: S.font, padding: "32px 20px", boxSizing: "border-box" }}>
+        <DZNavBar />
+        <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <style dangerouslySetInnerHTML={{ __html: "@keyframes spin{to{transform:rotate(360deg)}} @keyframes dzLocDots{0%,100%{opacity:0.25}50%{opacity:1}}" }} />
+          <div style={{ textAlign: "center", maxWidth: 420, padding: "0 20px" }}>
+            <div style={{ width: 52, height: 52, border: "3px solid " + S.border, borderTop: "3px solid " + S.gold, borderRadius: "50%", margin: "0 auto 28px", animation: "spin 0.85s linear infinite" }} />
+            <p style={{ fontFamily: S.mono, fontSize: 12, color: S.muted, margin: "0 0 10px", letterSpacing: "0.08em" }}>DEFENSIBLE ZONE&#8482; · LOCALIZATION EDITION</p>
+            <p style={{ fontFamily: S.serif, fontSize: 22, color: S.text, fontStyle: "italic", margin: "0 0 10px" }}>Building your personalized insights…</p>
+            <div style={{ display: "flex", justifyContent: "center", gap: 6, marginTop: 18, fontFamily: S.mono, fontSize: 22, color: S.dim, lineHeight: 1 }}>
+              <span style={{ animation: "dzLocDots 1s ease-in-out infinite" }}>.</span>
+              <span style={{ animation: "dzLocDots 1s ease-in-out 0.2s infinite" }}>.</span>
+              <span style={{ animation: "dzLocDots 1s ease-in-out 0.4s infinite" }}>.</span>
+            </div>
+          </div>
+        </div>
+        <div style={{ maxWidth: 640, margin: "0 auto", width: "100%" }}><DZFooter /></div>
       </div>
-    </div>
-  );
+    );
+  }
+
+  if (step === 4 && resultsError && !results) {
+    return (
+      <div style={{ background: S.bg, minHeight: "100vh", display: "flex", flexDirection: "column", fontFamily: S.font, padding: "32px 20px", boxSizing: "border-box" }}>
+        <DZNavBar />
+        <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ textAlign: "center", maxWidth: 420 }}>
+            <p style={{ color: S.red, fontSize: 15, margin: "0 0 20px", lineHeight: 1.5 }}>{resultsError}</p>
+            <button
+              type="button"
+              onClick={function () {
+                resultsFetchRef.current = false;
+                setResultsError(null);
+                fetchResultsInsights(scoredSkills);
+              }}
+              style={Object.assign({}, continueBtnBase, { marginTop: 0, width: "auto", minWidth: 200 })}
+            >
+              Try again
+            </button>
+          </div>
+        </div>
+        <div style={{ maxWidth: 640, margin: "0 auto", width: "100%" }}><DZFooter /></div>
+      </div>
+    );
+  }
+
+  if (step === 4 && results) {
+    var overallScore = computeOverallFromTop3(scoredSkills);
+    var overallColor = overallScoreColor(overallScore);
+    var roleLabel4 = getRoleLabel(roleType);
+    var seniorityLabel4 = getSeniorityLabel(seniority);
+    var strengthsList = Array.isArray(results.strengths) ? results.strengths : [];
+    var risksList = Array.isArray(results.risks) ? results.risks : [];
+    var actionsList = Array.isArray(results.actions)
+      ? results.actions.slice().sort(function (a, b) {
+          return (a.step || 0) - (b.step || 0);
+        })
+      : [];
+
+    return (
+      <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font, padding: "32px 20px", boxSizing: "border-box" }}>
+        <DZNavBar />
+        <div style={{ maxWidth: 680, margin: "0 auto" }}>
+          <div style={{ fontFamily: S.mono, fontSize: 12, color: S.gold, letterSpacing: "0.12em", marginBottom: 20, fontWeight: 600 }}>
+            DEFENSIBLE ZONE™ · LOCALIZATION EDITION
+          </div>
+
+          <h1
+            style={{
+              fontFamily: S.serif,
+              fontSize: 34,
+              color: S.text,
+              margin: "0 0 6px",
+              lineHeight: 1.15,
+              fontWeight: 600,
+            }}
+          >
+            Your Defensible Zone™
+          </h1>
+          <p style={{ color: S.dim, fontSize: 16, lineHeight: 1.6, margin: "0 0 28px" }}>
+            {seniorityLabel4} {roleLabel4} · {sourceLanguage} → {targetLanguage}
+          </p>
+
+          <div
+            style={{
+              background: "#ffffff",
+              border: "1px solid " + S.border,
+              borderRadius: 16,
+              padding: "32px 28px",
+              marginBottom: 24,
+              textAlign: "center",
+            }}
+          >
+            <div style={{ fontFamily: S.mono, fontSize: 12, color: S.dim, letterSpacing: "0.08em", marginBottom: 16, fontWeight: 600 }}>
+              YOUR DEFENSIBLE ZONE SCORE
+            </div>
+            <div style={{ fontFamily: S.mono, fontSize: 72, fontWeight: 700, color: overallColor, lineHeight: 1, marginBottom: 16 }}>
+              {overallScore}
+            </div>
+            <p style={{ fontSize: 16, color: S.text, lineHeight: 1.65, margin: 0, maxWidth: 520, marginLeft: "auto", marginRight: "auto", fontStyle: "italic" }}>
+              {results.headline}
+            </p>
+          </div>
+
+          <div
+            style={{
+              fontFamily: S.mono,
+              fontSize: 12,
+              textTransform: "uppercase",
+              letterSpacing: "0.06em",
+              color: S.dim,
+              marginBottom: 14,
+              fontWeight: 600,
+            }}
+          >
+            Skill breakdown
+          </div>
+
+          {scoredSkills.map(function (sk, idx) {
+            var col = skillBarColor(sk.dz);
+            var statusLabel = getSkillStatusLabel(sk.dz);
+            var statusBg = sk.dz >= 65 ? "rgba(5,150,105,0.1)" : sk.dz >= 40 ? "rgba(217,119,6,0.1)" : "rgba(220,38,38,0.1)";
+            return (
+              <div
+                key={idx}
+                style={{
+                  background: S.card,
+                  border: "1px solid " + S.border,
+                  borderRadius: 12,
+                  padding: "16px 18px",
+                  marginBottom: 8,
+                }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, marginBottom: 10 }}>
+                  <div style={{ fontSize: 16, fontWeight: 600, color: S.text, flex: 1, lineHeight: 1.35 }}>{sk.name}</div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+                    <span
+                      style={{
+                        fontFamily: S.mono,
+                        fontSize: 11,
+                        fontWeight: 700,
+                        color: col,
+                        background: statusBg,
+                        borderRadius: 6,
+                        padding: "3px 8px",
+                        letterSpacing: "0.04em",
+                      }}
+                    >
+                      {statusLabel}
+                    </span>
+                    <span style={{ fontFamily: S.mono, fontSize: 22, fontWeight: 700, color: col, lineHeight: 1 }}>{sk.dz}</span>
+                  </div>
+                </div>
+                <div style={{ height: 8, background: S.card2, borderRadius: 4, overflow: "hidden" }}>
+                  <div style={{ width: sk.dz + "%", height: "100%", background: col, borderRadius: 4 }} />
+                </div>
+              </div>
+            );
+          })}
+
+          {strengthsList.length > 0 ? (
+            <div style={{ marginTop: 28, marginBottom: 24 }}>
+              <div
+                style={{
+                  fontFamily: S.mono,
+                  fontSize: 12,
+                  color: S.green,
+                  letterSpacing: "0.1em",
+                  marginBottom: 14,
+                  fontWeight: 700,
+                }}
+              >
+                STRENGTHS
+              </div>
+              <div style={{ background: "#ffffff", border: "1px solid " + S.border, borderRadius: 12, padding: "20px 22px", borderLeft: "4px solid " + S.green }}>
+                {strengthsList.map(function (item, i) {
+                  return (
+                    <p key={i} style={{ fontSize: 15, color: S.text, lineHeight: 1.65, margin: i < strengthsList.length - 1 ? "0 0 12px" : 0 }}>
+                      {item}
+                    </p>
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
+
+          {risksList.length > 0 ? (
+            <div style={{ marginBottom: 28 }}>
+              <div
+                style={{
+                  fontFamily: S.mono,
+                  fontSize: 12,
+                  color: S.red,
+                  letterSpacing: "0.1em",
+                  marginBottom: 14,
+                  fontWeight: 700,
+                }}
+              >
+                RISKS
+              </div>
+              <div style={{ background: "#ffffff", border: "1px solid " + S.border, borderRadius: 12, padding: "20px 22px", borderLeft: "4px solid " + S.red }}>
+                {risksList.map(function (item, i) {
+                  return (
+                    <p key={i} style={{ fontSize: 15, color: S.text, lineHeight: 1.65, margin: i < risksList.length - 1 ? "0 0 12px" : 0 }}>
+                      {item}
+                    </p>
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
+
+          {actionsList.length > 0 ? (
+            <div style={{ marginBottom: 32 }}>
+              <div
+                style={{
+                  fontFamily: S.mono,
+                  fontSize: 12,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.06em",
+                  color: S.dim,
+                  marginBottom: 14,
+                  fontWeight: 600,
+                }}
+              >
+                Your action plan
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                {actionsList.map(function (act) {
+                  return (
+                    <div
+                      key={act.step}
+                      style={{
+                        background: "#ffffff",
+                        border: "1px solid " + S.border,
+                        borderRadius: 12,
+                        padding: "18px 20px",
+                        display: "flex",
+                        gap: 16,
+                        alignItems: "flex-start",
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: "50%",
+                          background: S.accent,
+                          color: "#ffffff",
+                          fontFamily: S.mono,
+                          fontSize: 14,
+                          fontWeight: 700,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          flexShrink: 0,
+                        }}
+                      >
+                        {act.step}
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 16, fontWeight: 600, color: S.text, marginBottom: 6, lineHeight: 1.35 }}>{act.title}</div>
+                        <p style={{ fontSize: 15, color: S.dim, lineHeight: 1.6, margin: 0 }}>{act.detail}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
+
+          <button
+            type="button"
+            onClick={resetAll}
+            style={{
+              width: "100%",
+              background: "transparent",
+              border: "1px solid " + S.border,
+              color: S.dim,
+              borderRadius: 10,
+              padding: 16,
+              fontSize: 14,
+              fontWeight: 600,
+              fontFamily: S.mono,
+              letterSpacing: "0.06em",
+              cursor: "pointer",
+              marginBottom: 24,
+            }}
+          >
+            START OVER
+          </button>
+
+          <DZFooter />
+        </div>
+      </div>
+    );
+  }
+
+  return null;
 }
