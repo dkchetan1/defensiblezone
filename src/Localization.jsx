@@ -1460,7 +1460,7 @@ export default function Localization() {
                   <input
                     className="dz-slider"
                     type="range"
-                    min={1}
+                    min={0}
                     max={10}
                     step={1}
                     value={fluencyVal}
@@ -1475,7 +1475,7 @@ export default function Localization() {
                     style={{ background: "linear-gradient(to right, #d97706 " + (fluencyVal / 10) * 100 + "%, " + S.card2 + " " + (fluencyVal / 10) * 100 + "%)" }}
                   />
                   <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8, fontFamily: S.mono, fontSize: 11, color: S.dim }}>
-                    <span>1</span>
+                    <span>0</span>
                     <span style={{ color: S.gold, fontWeight: 700 }}>{fluencyVal}/10</span>
                     <span>10</span>
                   </div>
