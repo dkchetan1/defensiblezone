@@ -69,6 +69,37 @@ var TRACK_MAP = {
   language_data:  "E",
   lang_learning:  "G",
 };
+// ── AFFINITY LABELS (Section 13 — bifactor questions by track) ────────
+var AFFINITY_LABELS = {
+  A: {
+    conscience: "When a translation misses the cultural nuance or feels off, how much does it bother you?",
+    pull: "How often do you find yourself thinking about language, word choice, or cultural meaning outside of work?",
+  },
+  B: {
+    conscience: "When a localization project ships with quality or process problems, how much does it affect you?",
+    pull: "How often do you naturally think about workflows, timelines, and team coordination?",
+  },
+  C: {
+    conscience: "When you encounter poorly internationalized code or a broken localization pipeline, how bothered are you?",
+    pull: "How often do you find yourself drawn to solving localization tooling and automation problems?",
+  },
+  D: {
+    conscience: "When an organization's language operations are inefficient or fragmented, how driven are you to fix it?",
+    pull: "How often do you think about language infrastructure, technology strategy, or global scale problems?",
+  },
+  E: {
+    conscience: "When you see AI produce poor multilingual output or biased language data, how much does it concern you?",
+    pull: "How often do you find yourself curious about how language models handle multilingual content?",
+  },
+  F: {
+    conscience: "When you notice an error or imprecision in your own rendition, how much does it stay with you?",
+    pull: "How often do you find yourself mentally interpreting — in meetings, on TV, in everyday conversation?",
+  },
+  G: {
+    conscience: "When a learner isn't progressing or your instruction misses the mark, how much does it bother you?",
+    pull: "How often do you naturally think about how people learn language, and what makes instruction work?",
+  },
+};
 // ── EMPLOYMENT MODELS (Track A) ────────────────────────────────────────
 var EMPLOYMENT_MODELS = [
   { id:"freelance_solo",    label:"Freelance / independent" },
@@ -234,6 +265,25 @@ var S = {
   serif: "'DM Serif Display',Georgia,serif",
 };
 
+var AFFINITY_STOPS = [0, 3, 5, 7, 10];
+
+function snapToStop(val) {
+  return AFFINITY_STOPS.reduce(function (prev, curr) {
+    return Math.abs(curr - val) < Math.abs(prev - val) ? curr : prev;
+  });
+}
+
+function getSeed(c, p) {
+  var raw = Math.round((c * 0.5 + p * 0.5) * 10) / 10;
+  return AFFINITY_STOPS.reduce(function (prev, curr) {
+    return Math.abs(curr - raw) < Math.abs(prev - raw) ? curr : prev;
+  });
+}
+
+function compAff(conscience, pull, fluency) {
+  return Math.round((conscience * 0.35 + pull * 0.35 + fluency * 0.3) * 10) / 10;
+}
+
 function calcDZ(aff, aiR, mkt) {
   return Math.min(100, Math.round(100 * Math.pow(aff / 10, 0.35) * Math.pow((10 - aiR) / 10, 0.40) * Math.pow(mkt / 10, 0.25)));
 }
@@ -318,7 +368,11 @@ export default function Localization() {
   var [resultsLoading, setResultsLoading] = useState(false);
   var [resultsError, setResultsError] = useState(null);
   var [insightsError, setInsightsError] = useState(null);
+  var [conscience, setConscience] = useState(5);
+  var [pull, setPull] = useState(5);
+  var [adjustedSkills, setAdjustedSkills] = useState(new Set());
   var resultsFetchRef = useRef(false);
+  var adjustedSkillsRef = useRef(new Set());
 
   useEffect(function () {
     var link = document.createElement("link");
@@ -360,11 +414,21 @@ export default function Localization() {
     setLoading(false);
     setLoadingMsg("");
     setError(null);
+    setConscience(5);
+    setPull(5);
+    adjustedSkillsRef.current = new Set();
+    setAdjustedSkills(new Set());
+  }
+
+  function markAdjusted(id) {
+    adjustedSkillsRef.current.add(id);
+    setAdjustedSkills(new Set(adjustedSkillsRef.current));
   }
 
   function buildScoredSkills() {
     return skills.map(function (sk, idx) {
-      var aff = fluencies[idx] !== undefined ? fluencies[idx] : 5;
+      var fluency = fluencies[idx] !== undefined ? fluencies[idx] : getSeed(conscience, pull);
+      var aff = compAff(conscience, pull, fluency);
       return {
         name: sk.name,
         aiR: sk.aiR,
@@ -559,7 +623,7 @@ export default function Localization() {
       loaded.push({ name: "Skill " + (loaded.length + 1), aiR: 5, mkt: 5 });
     }
     var defaultFluencies = {};
-    for (var fi = 0; fi < 6; fi++) defaultFluencies[fi] = 5;
+    for (var fi = 0; fi < 6; fi++) defaultFluencies[fi] = getSeed(conscience, pull);
     setLandscape(parsed.landscape || "");
     setSkills(loaded);
     setFluencies(defaultFluencies);
@@ -1128,7 +1192,7 @@ export default function Localization() {
             disabled={!canAnalyze || loading}
             onClick={function () {
               if (!canAnalyze || loading) return;
-              fetchLandscapeAndSkills();
+              setStep(3);
             }}
             style={Object.assign({}, continueBtnBase, !canAnalyze || loading ? { opacity: 0.5, cursor: "not-allowed" } : null)}
           >
@@ -1144,7 +1208,163 @@ export default function Localization() {
   // ── STEP 3: Landscape + affinity sliders ──────────────────────────────
   if (step === 3) {
     var dzSliderCSS =
-      "input[type=range].dz-slider{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:3px;outline:none;cursor:pointer;border:none} input[type=range].dz-slider::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:#d97706;border:2px solid white;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.18)} input[type=range].dz-slider::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:#d97706;border:2px solid white;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.18)}";
+      "input[type=range].dz-slider{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:3px;outline:none;cursor:pointer;border:none} input[type=range].dz-slider::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:#d97706;border:2px solid white;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.18)} input[type=range].dz-slider::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:#d97706;border:2px solid white;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.18)} input[type=range].conscience-sl::-webkit-slider-thumb{background:#7c3aed} input[type=range].conscience-sl::-moz-range-thumb{background:#7c3aed} input[type=range].pull-sl::-webkit-slider-thumb{background:#0891b2} input[type=range].pull-sl::-moz-range-thumb{background:#0891b2}";
+
+    if (!loading && skills.length === 0) {
+      var track3 = getTrack(roleType);
+      var affinityCopy = AFFINITY_LABELS[track3] || AFFINITY_LABELS.A;
+      var affinityStops = [0, 3, 5, 7, 10];
+      var conscienceLabelTexts = ["Move on easily", "Mildly bothered", "Somewhat unsettled", "Want to fix it", "Can't let it go"];
+      var pullLabelTexts = ["Almost never", "Occasionally", "Sometimes", "Regularly", "Constantly"];
+      return (
+        <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font, padding: "32px 20px", boxSizing: "border-box" }}>
+          <DZNavBar />
+          <style dangerouslySetInnerHTML={{ __html: dzSliderCSS }} />
+          <div style={containerInner}>
+            <button type="button" onClick={function () { setStep(2); setError(null); }} style={backBtnStyle}>
+              ← back
+            </button>
+            <StepLabel n={3} />
+
+            <h1
+              style={{
+                fontFamily: S.serif,
+                fontSize: 34,
+                fontStyle: "italic",
+                color: S.text,
+                margin: "0 0 12px",
+                lineHeight: 1.15,
+                fontWeight: 600,
+              }}
+            >
+              How does language work feel?
+            </h1>
+
+            <p style={{ fontSize: 16, color: S.dim, lineHeight: 1.75, margin: "0 0 32px" }}>
+              These questions aren&apos;t about how skilled you are. They&apos;re about whether this work genuinely fits you. Be honest — there are no wrong answers.
+            </p>
+
+            <div
+              style={{
+                background: S.card,
+                border: "1px solid " + S.border,
+                borderRadius: 14,
+                padding: "24px 28px",
+                marginBottom: 16,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#7c3aed", flexShrink: 0 }} />
+                <span style={{ fontFamily: S.mono, fontSize: 12, fontWeight: 700, color: "#7c3aed", letterSpacing: "0.08em" }}>
+                  CRAFT CONSCIENCE
+                </span>
+              </div>
+              <p style={{ fontSize: 16, fontStyle: "italic", color: S.muted, lineHeight: 1.6, marginBottom: 20, marginTop: 0 }}>
+                {affinityCopy.conscience}
+              </p>
+              <input
+                className="dz-slider conscience-sl"
+                type="range"
+                min={0}
+                max={10}
+                step={1}
+                value={conscience}
+                onChange={function (e) {
+                  setConscience(snapToStop(Number(e.target.value)));
+                }}
+                style={{ background: "linear-gradient(to right, #7c3aed " + (conscience / 10) * 100 + "%, #d0d7e8 " + (conscience / 10) * 100 + "%)" }}
+              />
+              <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10 }}>
+                {affinityStops.map(function (stopValue, idx) {
+                  return (
+                    <div
+                      key={stopValue}
+                      style={{
+                        width: "20%",
+                        textAlign: "center",
+                        fontSize: 12,
+                        color: "#7c3aed",
+                        opacity: Math.abs(conscience - stopValue) <= 1 ? 1 : 0.25,
+                        fontWeight: Math.abs(conscience - stopValue) <= 1 ? 700 : 400,
+                      }}
+                    >
+                      {conscienceLabelTexts[idx]}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div
+              style={{
+                background: S.card,
+                border: "1px solid " + S.border,
+                borderRadius: 14,
+                padding: "24px 28px",
+                marginBottom: 24,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#0891b2", flexShrink: 0 }} />
+                <span style={{ fontFamily: S.mono, fontSize: 12, fontWeight: 700, color: "#0891b2", letterSpacing: "0.08em" }}>
+                  INTRINSIC PULL
+                </span>
+              </div>
+              <p style={{ fontSize: 16, fontStyle: "italic", color: S.muted, lineHeight: 1.6, marginBottom: 20, marginTop: 0 }}>
+                {affinityCopy.pull}
+              </p>
+              <input
+                className="dz-slider pull-sl"
+                type="range"
+                min={0}
+                max={10}
+                step={1}
+                value={pull}
+                onChange={function (e) {
+                  setPull(snapToStop(Number(e.target.value)));
+                }}
+                style={{ background: "linear-gradient(to right, #0891b2 " + (pull / 10) * 100 + "%, #d0d7e8 " + (pull / 10) * 100 + "%)" }}
+              />
+              <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10 }}>
+                {affinityStops.map(function (stopValue, idx) {
+                  return (
+                    <div
+                      key={stopValue}
+                      style={{
+                        width: "20%",
+                        textAlign: "center",
+                        fontSize: 12,
+                        color: "#0891b2",
+                        opacity: Math.abs(pull - stopValue) <= 1 ? 1 : 0.25,
+                        fontWeight: Math.abs(pull - stopValue) <= 1 ? 700 : 400,
+                      }}
+                    >
+                      {pullLabelTexts[idx]}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {error ? (
+              <p style={{ color: "#b91c1c", fontSize: 14, fontFamily: S.mono, fontWeight: 600, marginBottom: 12, textAlign: "center" }}>{error}</p>
+            ) : null}
+
+            <button
+              type="button"
+              onClick={function () {
+                fetchLandscapeAndSkills();
+              }}
+              style={continueBtnBase}
+            >
+              ANALYZE MY PROFILE →
+            </button>
+
+            <DZFooter />
+          </div>
+        </div>
+      );
+    }
 
     if (loading) {
       return (
