@@ -440,6 +440,16 @@ export default function Localization() {
   }
 
   function buildResultsPrompt(scored) {
+    var track = getTrack(roleType);
+    var TRACK_LABELS = {
+      A: "Track A — Translator / Interpreter",
+      B: "Track B — Localization PM / Program Manager",
+      C: "Track C — Localization Engineer",
+      D: "Track D — LangOps / Globalization Strategist",
+      E: "Track E — Language Data / NLP",
+      F: "Track F — Interpreter",
+      G: "Track G — Language Learning & Content",
+    };
     var sl = SENIORITY_LEVELS.find(function (x) { return x.id === seniority; });
     var domainLabels = getDomainLabels(contentDomains).join(", ");
     var specLine = specialization.trim() !== "" ? "\n- Specialization: " + specialization.trim() : "";
@@ -466,6 +476,9 @@ export default function Localization() {
     return (
       "You are a senior localization and language-industry career strategist.\n\n" +
       "PROFESSIONAL PROFILE:\n" +
+      "- Track: " +
+      (TRACK_LABELS[track] || "Track " + track) +
+      "\n" +
       "- Role: " +
       getRoleLabel(roleType) +
       "\n" +
@@ -488,9 +501,23 @@ export default function Localization() {
       overall +
       "/100):\n" +
       skillLines +
-      "\n\nBased on this profile and scores, provide specific, actionable advice for someone in the localization/language industry — not generic career advice. Reference their language pair, domain, role, and work context where relevant. Name specific tools or workflows (TMS, MT engines, CAT tools, LLM evaluation) when appropriate.\n\n" +
+      "\n\nBased on this profile and scores, provide specific, actionable advice for someone in the localization/language industry — not generic career advice. Reference their language pair, domain, role track, and work context where relevant.\n\n" +
+      "TASK:\n" +
+      "1. Write one headline sentence summarizing this person's DZ position.\n" +
+      "2. List exactly 2 strengths — their most defensible skills, each with a one-line reason.\n" +
+      "3. List 1–2 risks — skills most at risk from AI, each with a one-line reason.\n" +
+      "4. Provide exactly 3 action cards — concrete next steps specific to this profile.\n\n" +
+      "Each action card MUST include a \"resources\" array of 1–2 objects, each with \"label\" and \"url\". These must be real, named, track-specific resources — tools, certification bodies, communities, or publications drawn from the user's role track. Example pools by track:\n" +
+      "- Track A: ATA (ata.org), ProZ (proz.com), Slator (slator.com), Phrase (phrase.com/blog)\n" +
+      "- Track B: GALA (gala-global.org), Smartling blog (smartling.com/blog), LocWorld (locworld.com)\n" +
+      "- Track C: Phrase docs (phrase.com/docs), Crowdin (crowdin.com), i18next (i18next.com)\n" +
+      "- Track D: LangOps Institute (langops.institute), Nimdzi (nimdzi.com), Slator (slator.com)\n" +
+      "- Track E: TAUS (taus.net), Slator (slator.com), WMT (statmt.org/wmt)\n" +
+      "- Track F: AIIC (aiic.net), CCHI (cchi.us), Interprefy (interprefy.com)\n" +
+      "- Track G: ACTFL (actfl.org), Duolingo for Business (duolingo.com/business), Preply (preply.com)\n" +
+      "Pick the most relevant 1–2 resources for each specific action — do not list all track resources on every card.\n\n" +
       "Return ONLY valid JSON with no preamble:\n" +
-      '{"headline":"one sentence summarizing this person\'s DZ position","strengths":["2–3 skills that are their most defensible, with a one-line reason each"],"risks":["1–2 skills most at risk from AI, with a one-line reason each"],"actions":[{"step":1,"title":"short action title","detail":"one sentence of what to do"},{"step":2,"title":"...","detail":"..."},{"step":3,"title":"...","detail":"..."}]}'
+      '{"headline":"...","strengths":["...","..."],"risks":["...","..."],"actions":[{"step":1,"title":"...","detail":"...","resources":[{"label":"...","url":"..."}]},{"step":2,"title":"...","detail":"...","resources":[{"label":"...","url":"..."}]},{"step":3,"title":"...","detail":"...","resources":[{"label":"...","url":"..."}]}]}'
     );
   }
 
@@ -1905,9 +1932,37 @@ export default function Localization() {
                       >
                         {act.step}
                       </div>
-                      <div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 16, fontWeight: 600, color: S.text, marginBottom: 6, lineHeight: 1.35 }}>{act.title}</div>
                         <p style={{ fontSize: 15, color: S.dim, lineHeight: 1.6, margin: 0 }}>{act.detail}</p>
+                        {act.resources && Array.isArray(act.resources) && act.resources.length > 0 ? (
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12 }}>
+                            {act.resources.map(function (res, ri) {
+                              if (!res || !res.label || !res.url) return null;
+                              return (
+                                <a
+                                  key={ri}
+                                  href={res.url.indexOf("http") === 0 ? res.url : "https://" + res.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  style={{
+                                    display: "inline-block",
+                                    fontFamily: S.mono,
+                                    fontSize: 11,
+                                    color: S.dim,
+                                    border: "1px solid " + S.border,
+                                    borderRadius: 6,
+                                    padding: "4px 10px",
+                                    textDecoration: "none",
+                                    lineHeight: 1.4,
+                                  }}
+                                >
+                                  {res.label}
+                                </a>
+                              );
+                            })}
+                          </div>
+                        ) : null}
                       </div>
                     </div>
                   );
