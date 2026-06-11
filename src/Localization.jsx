@@ -894,48 +894,109 @@ export default function Localization() {
             })}
           </div>
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-              gap: 12,
-              marginBottom: 24,
-            }}
-          >
-            <div>
-              <div style={Object.assign({}, sectionLabel, { marginBottom: 8 })}>Source language</div>
-              <select
-                value={sourceLanguage}
-                onChange={function (e) { setSourceLanguage(e.target.value); }}
-                style={selectStyle}
-              >
-                <option value="">Select…</option>
-                {LANGUAGE_PAIRS.SOURCE_LANGUAGES.map(function (lang) {
-                  return <option key={lang} value={lang}>{lang}</option>;
-                })}
-              </select>
+          {needsLangPair ? (
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(2, minmax(0, 1fr))", gap:12, marginBottom:24 }}>
+              <div>
+                <div style={Object.assign({}, sectionLabel, { marginBottom:8 })}>Source language</div>
+                <select value={sourceLanguage} onChange={function(e){ setSourceLanguage(e.target.value); }} style={selectStyle}>
+                  <option value="">Select…</option>
+                  {LANGUAGE_PAIRS.SOURCE_LANGUAGES.map(function(lang){ return <option key={lang} value={lang}>{lang}</option>; })}
+                </select>
+              </div>
+              <div>
+                <div style={Object.assign({}, sectionLabel, { marginBottom:8 })}>Target language</div>
+                <select value={targetLanguage} onChange={function(e){ setTargetLanguage(e.target.value); }} style={selectStyle}>
+                  <option value="">Select…</option>
+                  {LANGUAGE_PAIRS.TARGET_LANGUAGES.map(function(lang){ return <option key={lang} value={lang}>{lang}</option>; })}
+                </select>
+              </div>
             </div>
-            <div>
-              <div style={Object.assign({}, sectionLabel, { marginBottom: 8 })}>Target language</div>
-              <select
-                value={targetLanguage}
-                onChange={function (e) { setTargetLanguage(e.target.value); }}
-                style={selectStyle}
-              >
-                <option value="">Select…</option>
-                {LANGUAGE_PAIRS.TARGET_LANGUAGES.map(function (lang) {
-                  return <option key={lang} value={lang}>{lang}</option>;
-                })}
-              </select>
-            </div>
-          </div>
+          ) : null}
 
-          <div style={Object.assign({}, sectionLabel, { marginBottom: 8 })}>Specialization <span style={{ color: S.dim, fontWeight: 400, textTransform: "none" }}>— optional</span></div>
+          {track1 === "B" ? (
+            <div style={{ marginBottom:24 }}>
+              <div style={Object.assign({}, sectionLabel, { marginBottom:8 })}>TMS platform</div>
+              <select value={workContext} onChange={function(e){ setWorkContext(e.target.value); }} style={selectStyle}>
+                <option value="">Select…</option>
+                {TMS_PLATFORMS.map(function(p){ return <option key={p.id} value={p.id}>{p.label}</option>; })}
+              </select>
+            </div>
+          ) : null}
+
+          {track1 === "C" ? (
+            <div style={{ marginBottom:24 }}>
+              <div style={Object.assign({}, sectionLabel, { marginBottom:8 })}>Engineering focus</div>
+              <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+                {ENGINEERING_FOCUS.map(function(ef){
+                  var sel = specialization === ef.id;
+                  return (
+                    <div key={ef.id} role="button" tabIndex={0}
+                      onClick={function(){ setSpecialization(ef.id); }}
+                      onKeyDown={function(e){ if(e.key==="Enter"||e.key===" ") setSpecialization(ef.id); }}
+                      style={Object.assign({}, tileBase, { background: sel ? S.gold+"12" : "#ffffff", border: sel ? "1px solid "+S.gold : "1px solid "+S.border, padding:"12px 16px" })}>
+                      <div style={{ fontSize:15, fontWeight:600, color:S.text }}>{ef.label}</div>
+                      <div style={{ fontSize:13, color:S.dim }}>{ef.sub}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
+
+          {track1 === "D" ? (
+            <div style={{ marginBottom:24 }}>
+              <div style={Object.assign({}, sectionLabel, { marginBottom:8 })}>Organisation size</div>
+              <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
+                {ORG_SIZES.map(function(os){
+                  var sel = specialization === os.id;
+                  return (
+                    <span key={os.id} role="button" tabIndex={0}
+                      onClick={function(){ setSpecialization(os.id); }}
+                      onKeyDown={function(e){ if(e.key==="Enter"||e.key===" ") setSpecialization(os.id); }}
+                      style={sel ? pillSelected : pillDefault}>
+                      <div style={{ fontSize:14, fontWeight:600 }}>{os.label}</div>
+                      <div style={{ fontSize:12, opacity:0.8 }}>{os.sub}</div>
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
+
+          {track1 === "E" ? (
+            <div style={{ marginBottom:24 }}>
+              <div style={Object.assign({}, sectionLabel, { marginBottom:8 })}>Annotation / AI task type</div>
+              <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
+                {ANNOTATION_TYPES.map(function(at){
+                  var sel = specialization === at.id;
+                  return (
+                    <span key={at.id} role="button" tabIndex={0}
+                      onClick={function(){ setSpecialization(at.id); }}
+                      onKeyDown={function(e){ if(e.key==="Enter"||e.key===" ") setSpecialization(at.id); }}
+                      style={sel ? pillSelected : pillDefault}>
+                      {at.label}
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
+
+          <div style={Object.assign({}, sectionLabel, { marginBottom:8 })}>
+            Specialization <span style={{ color:S.dim, fontWeight:400, textTransform:"none" }}>— optional</span>
+          </div>
           <input
             type="text"
-            value={specialization}
-            onChange={function (e) { setSpecialization(e.target.value); }}
-            placeholder="e.g. patent law, video game narrative, pharma clinical trials"
+            value={track1 === "B" || track1 === "C" || track1 === "D" || track1 === "E" ? specialization : specialization}
+            onChange={function(e){ setSpecialization(e.target.value); }}
+            placeholder={
+              track1 === "B" ? "e.g. game localization, enterprise SaaS, regulated pharma" :
+              track1 === "C" ? "e.g. iOS app, React SPA, SAP integration" :
+              track1 === "D" ? "e.g. 12 language markets, APAC expansion, regulated industry" :
+              track1 === "E" ? "e.g. low-resource language pairs, RLHF for multilingual LLMs" :
+              track1 === "G" ? "e.g. executive coaching, corporate onboarding, CEFR B2 learners" :
+              "e.g. patent law, video game narrative, pharma clinical trials"
+            }
             style={inputStyle}
           />
 
