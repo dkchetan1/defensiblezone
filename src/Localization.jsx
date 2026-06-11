@@ -450,74 +450,67 @@ export default function Localization() {
       F: "Track F — Interpreter",
       G: "Track G — Language Learning & Content",
     };
-    var sl = SENIORITY_LEVELS.find(function (x) { return x.id === seniority; });
-    var domainLabels = getDomainLabels(contentDomains).join(", ");
-    var specLine = specialization.trim() !== "" ? "\n- Specialization: " + specialization.trim() : "";
     var overall = computeOverallFromTop3(scored);
+    var domainLabels = getDomainLabels(contentDomains).join(", ");
+    var specText = specialization.trim() !== "" ? specialization.trim() : "(none specified)";
+    var profileBlock =
+      "- Role track: " + (TRACK_LABELS[track] || "Track " + track) + "\n" +
+      "- Role type: " + getRoleLabel(roleType) + "\n" +
+      "- Seniority: " + getSeniorityLabel(seniority) + "\n" +
+      "- Work context: " + getWorkContextLabel(workContext) + "\n" +
+      "- Specialization: " + specText + "\n" +
+      "- Content domains: " + (domainLabels || "(none specified)") + "\n" +
+      "- Craft conscience: " + conscience + "/10\n" +
+      "- Intrinsic pull: " + pull + "/10";
+    if (track === "A" || track === "F" || track === "G") {
+      profileBlock += "\n- Language pair: " + sourceLanguage + " → " + targetLanguage;
+    }
     var skillLines = scored
       .map(function (s, i) {
         return (
-          i +
-          1 +
-          ". " +
-          s.name +
-          " — DZ: " +
-          s.dz +
-          "/100, Affinity: " +
-          s.aff +
-          "/10, AI Replaceability: " +
-          s.aiR +
-          "/10, Market Demand: " +
-          s.mkt +
-          "/10"
+          i + 1 + ". " + s.name +
+          " — DZ: " + s.dz + "/100" +
+          ", aiR: " + s.aiR + "/10" +
+          ", mkt: " + s.mkt + "/10"
         );
       })
       .join("\n");
     return (
-      "You are a senior localization and language-industry career strategist.\n\n" +
+      "You are a senior localization and language-industry career strategist specializing in AI labor market analysis for language professionals.\n\n" +
       "PROFESSIONAL PROFILE:\n" +
-      "- Track: " +
-      (TRACK_LABELS[track] || "Track " + track) +
-      "\n" +
-      "- Role: " +
-      getRoleLabel(roleType) +
-      "\n" +
-      "- Seniority: " +
-      getSeniorityLabel(seniority) +
-      (sl ? " — " + sl.note : "") +
-      "\n" +
-      "- Language pair: " +
-      sourceLanguage +
-      " → " +
-      targetLanguage +
-      "\n" +
-      "- Content domains: " +
-      domainLabels +
-      "\n" +
-      "- Work context: " +
-      getWorkContextLabel(workContext) +
-      specLine +
-      "\n\nDEFENSIBLE ZONE SCORES (overall from top 3 skills: " +
-      overall +
-      "/100):\n" +
+      profileBlock +
+      "\n\nDEFENSIBLE ZONE SCORES:\n" +
+      "- Overall DZ (average of top 3 skills by DZ): " + overall + "/100\n" +
       skillLines +
-      "\n\nBased on this profile and scores, provide specific, actionable advice for someone in the localization/language industry — not generic career advice. Reference their language pair, domain, role track, and work context where relevant.\n\n" +
+      "\n\nBased on this profile and scores, provide specific, actionable advice calibrated to the 2026 localization/AI market — not generic career advice. Reference their actual skills, language pair (if applicable), domains, role track, and work context throughout.\n\n" +
       "TASK:\n" +
       "1. Write one headline sentence summarizing this person's DZ position.\n" +
       "2. List exactly 2 strengths — their most defensible skills, each with a one-line reason.\n" +
       "3. List 1–2 risks — skills most at risk from AI, each with a one-line reason.\n" +
-      "4. Provide exactly 3 action cards — concrete next steps specific to this profile.\n\n" +
-      "Each action card MUST include a \"resources\" array of 1–2 objects, each with \"label\" and \"url\". These must be real, named, track-specific resources — tools, certification bodies, communities, or publications drawn from the user's role track. Example pools by track:\n" +
-      "- Track A: ATA (ata.org), ProZ (proz.com), Slator (slator.com), Phrase (phrase.com/blog)\n" +
-      "- Track B: GALA (gala-global.org), Smartling blog (smartling.com/blog), LocWorld (locworld.com)\n" +
-      "- Track C: Phrase docs (phrase.com/docs), Crowdin (crowdin.com), i18next (i18next.com)\n" +
-      "- Track D: LangOps Institute (langops.institute), Nimdzi (nimdzi.com), Slator (slator.com)\n" +
-      "- Track E: TAUS (taus.net), Slator (slator.com), WMT (statmt.org/wmt)\n" +
-      "- Track F: AIIC (aiic.net), CCHI (cchi.us), Interprefy (interprefy.com)\n" +
-      "- Track G: ACTFL (actfl.org), Duolingo for Business (duolingo.com/business), Preply (preply.com)\n" +
-      "Pick the most relevant 1–2 resources for each specific action — do not list all track resources on every card.\n\n" +
-      "Return ONLY valid JSON with no preamble:\n" +
-      '{"headline":"...","strengths":["...","..."],"risks":["...","..."],"actions":[{"step":1,"title":"...","detail":"...","resources":[{"label":"...","url":"..."}]},{"step":2,"title":"...","detail":"...","resources":[{"label":"...","url":"..."}]},{"step":3,"title":"...","detail":"...","resources":[{"label":"...","url":"..."}]}]}'
+      "4. Provide exactly 3 action cards structured as NOW / NEXT / FUTURE:\n" +
+      "   - NOW (0–90 days): tied to their highest-DZ skill. One concrete executable action to protect and signal that anchor. Must name a specific tool, certification, or community.\n" +
+      "   - NEXT (3–12 months): tied to the skill with high mkt but lower DZ — the highest-leverage gap. Specific skill investment, specific acquisition path, why this window in the 2026 localization market matters.\n" +
+      "   - FUTURE (1–2 years): strategic positioning move for 2027. If overall DZ is below 40, must recommend a specific track pivot (e.g. junior translator in common language pair → MTPE specialization → LangOps or language data track). Otherwise, where does this person need to be positioned in the industry.\n\n" +
+      "Each action card MUST include:\n" +
+      "- horizon: \"NOW\", \"NEXT\", or \"FUTURE\"\n" +
+      "- horizonLabel: \"0–90 days\", \"3–12 months\", or \"1–2 years\"\n" +
+      "- title: short specific headline\n" +
+      "- detail: 3–4 sentences. Must reference their actual skills, language pair, domain, and role. Not generic.\n" +
+      "- why: one sentence on why the timing matters right now in the 2026 localization/AI market.\n" +
+      "- resources: array of 1–2 objects with \"label\" and \"url\", relevant to that specific action (real tools, certifications, communities, or publications).\n\n" +
+      "If overall DZ (" + overall + ") is below 40, return a top-level \"pivot\" field with one sentence naming the recommended track change and why. Otherwise return \"pivot\": null.\n\n" +
+      "Return ONLY valid JSON with no preamble in this exact shape:\n" +
+      "{\n" +
+      "  \"headline\": \"...\",\n" +
+      "  \"strengths\": [\"...\", \"...\"],\n" +
+      "  \"risks\": [\"...\", \"...\"],\n" +
+      "  \"pivot\": null,\n" +
+      "  \"actions\": [\n" +
+      "    { \"horizon\": \"NOW\", \"horizonLabel\": \"0–90 days\", \"title\": \"...\", \"detail\": \"...\", \"why\": \"...\", \"resources\": [{\"label\": \"...\", \"url\": \"...\"}] },\n" +
+      "    { \"horizon\": \"NEXT\", \"horizonLabel\": \"3–12 months\", \"title\": \"...\", \"detail\": \"...\", \"why\": \"...\", \"resources\": [{\"label\": \"...\", \"url\": \"...\"}] },\n" +
+      "    { \"horizon\": \"FUTURE\", \"horizonLabel\": \"1–2 years\", \"title\": \"...\", \"detail\": \"...\", \"why\": \"...\", \"resources\": [{\"label\": \"...\", \"url\": \"...\"}] }\n" +
+      "  ]\n" +
+      "}"
     );
   }
 
@@ -1899,71 +1892,127 @@ export default function Localization() {
               >
                 Your action plan
               </div>
+              {results && results.pivot ? (
+                <div
+                  style={{
+                    background: "rgba(217,119,6,0.08)",
+                    border: "1px solid rgba(217,119,6,0.25)",
+                    borderLeft: "4px solid " + S.gold,
+                    borderRadius: 12,
+                    padding: "16px 18px",
+                    marginBottom: 14,
+                  }}
+                >
+                  <div
+                    style={{
+                      fontFamily: S.mono,
+                      fontSize: 11,
+                      fontWeight: 700,
+                      color: S.gold,
+                      letterSpacing: "0.1em",
+                      marginBottom: 8,
+                    }}
+                  >
+                    TRACK SIGNAL
+                  </div>
+                  <p style={{ fontSize: 15, color: S.text, lineHeight: 1.65, margin: 0 }}>{results.pivot}</p>
+                </div>
+              ) : null}
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                 {actionsList.map(function (act) {
+                  var horizonColor =
+                    act.horizon === "NOW" ? S.green : act.horizon === "NEXT" ? S.gold : S.accent;
                   return (
                     <div
-                      key={act.step}
+                      key={act.horizon}
                       style={{
                         background: "#ffffff",
                         border: "1px solid " + S.border,
                         borderRadius: 12,
                         padding: "18px 20px",
-                        display: "flex",
-                        gap: 16,
-                        alignItems: "flex-start",
                       }}
                     >
                       <div
                         style={{
-                          width: 32,
-                          height: 32,
-                          borderRadius: "50%",
-                          background: S.accent,
-                          color: "#ffffff",
+                          display: "inline-block",
                           fontFamily: S.mono,
-                          fontSize: 14,
+                          fontSize: 11,
                           fontWeight: 700,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          flexShrink: 0,
+                          color: horizonColor,
+                          background:
+                            act.horizon === "NOW"
+                              ? "rgba(5,150,105,0.1)"
+                              : act.horizon === "NEXT"
+                                ? "rgba(217,119,6,0.1)"
+                                : "rgba(26,29,46,0.08)",
+                          border: "1px solid " + horizonColor,
+                          borderRadius: 999,
+                          padding: "3px 10px",
+                          letterSpacing: "0.06em",
+                          marginBottom: 6,
                         }}
                       >
-                        {act.step}
+                        {act.horizon}
                       </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 16, fontWeight: 600, color: S.text, marginBottom: 6, lineHeight: 1.35 }}>{act.title}</div>
-                        <p style={{ fontSize: 15, color: S.dim, lineHeight: 1.6, margin: 0 }}>{act.detail}</p>
-                        {act.resources && Array.isArray(act.resources) && act.resources.length > 0 ? (
-                          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12 }}>
-                            {act.resources.map(function (res, ri) {
-                              if (!res || !res.label || !res.url) return null;
-                              return (
-                                <a
-                                  key={ri}
-                                  href={res.url.indexOf("http") === 0 ? res.url : "https://" + res.url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  style={{
-                                    display: "inline-block",
-                                    fontFamily: S.mono,
-                                    fontSize: 11,
-                                    color: S.dim,
-                                    border: "1px solid " + S.border,
-                                    borderRadius: 6,
-                                    padding: "4px 10px",
-                                    textDecoration: "none",
-                                    lineHeight: 1.4,
-                                  }}
-                                >
-                                  {res.label}
-                                </a>
-                              );
-                            })}
-                          </div>
-                        ) : null}
+                      {act.horizonLabel ? (
+                        <div
+                          style={{
+                            fontFamily: S.mono,
+                            fontSize: 11,
+                            color: S.dim,
+                            marginBottom: 10,
+                          }}
+                        >
+                          {act.horizonLabel}
+                        </div>
+                      ) : null}
+                      <div style={{ fontSize: 16, fontWeight: 600, color: S.text, marginBottom: 8, lineHeight: 1.35 }}>
+                        {act.title}
                       </div>
+                      <p style={{ fontSize: 15, color: S.dim, lineHeight: 1.6, margin: "0 0 12px" }}>{act.detail}</p>
+                      {act.why ? (
+                        <p
+                          style={{
+                            fontSize: 14,
+                            fontStyle: "italic",
+                            color: S.dim,
+                            lineHeight: 1.55,
+                            margin: "0 0 12px",
+                            paddingTop: 12,
+                            borderTop: "1px solid " + S.border,
+                          }}
+                        >
+                          {act.why}
+                        </p>
+                      ) : null}
+                      {act.resources && act.resources.length > 0 ? (
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                          {act.resources.map(function (res, ri) {
+                            if (!res || !res.label || !res.url) return null;
+                            return (
+                              <a
+                                key={ri}
+                                href={res.url.indexOf("http") === 0 ? res.url : "https://" + res.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{
+                                  display: "inline-block",
+                                  fontFamily: S.mono,
+                                  fontSize: 11,
+                                  color: S.dim,
+                                  border: "1px solid " + S.border,
+                                  borderRadius: 6,
+                                  padding: "4px 10px",
+                                  textDecoration: "none",
+                                  lineHeight: 1.4,
+                                }}
+                              >
+                                {res.label}
+                              </a>
+                            );
+                          })}
+                        </div>
+                      ) : null}
                     </div>
                   );
                 })}
