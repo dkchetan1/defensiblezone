@@ -840,9 +840,11 @@ export default function Localization() {
     );
   }
 
-  // ── STEP 1: Seniority + Language pair ──────────────────────────────────
+  // ── STEP 1: Seniority + track-conditional inputs ───────────────────────
   if (step === 1) {
-    var canContinue1 = seniority !== "" && sourceLanguage !== "" && targetLanguage !== "";
+    var track1 = getTrack(roleType);
+    var needsLangPair = showsLanguagePair(roleType);
+    var canContinue1 = seniority !== "" && (!needsLangPair || (sourceLanguage !== "" && targetLanguage !== ""));
     return (
       <div style={containerOuter}>
         <DZNavBar />
