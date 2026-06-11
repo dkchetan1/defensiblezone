@@ -1472,7 +1472,7 @@ export default function Localization() {
                         return next;
                       });
                     }}
-                    style={{ background: "linear-gradient(to right, #d97706 " + (fluencyVal / 10) * 100 + "%, #d0d7e8 " + (fluencyVal / 10) * 100 + "%)" }}
+                    style={{ background: "linear-gradient(to right, #d97706 " + (fluencyVal / 10) * 100 + "%, " + S.card2 + " " + (fluencyVal / 10) * 100 + "%)" }}
                   />
                   <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8, fontFamily: S.mono, fontSize: 11, color: S.dim }}>
                     <span>1</span>
