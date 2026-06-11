@@ -59,6 +59,162 @@ var WORK_CONTEXTS = [
   { id:"language_data_co",  label:"Language data / AI training company" },
 ];
 
+// ── TRACK MAP ──────────────────────────────────────────────────────────
+// Maps role IDs to track letters for conditional input logic
+var TRACK_MAP = {
+  translator:     "A",
+  loc_pm:         "B",
+  loc_engineer:   "C",
+  langops:        "D",
+  language_data:  "E",
+  lang_learning:  "G",
+};
+// ── EMPLOYMENT MODELS (Track A) ────────────────────────────────────────
+var EMPLOYMENT_MODELS = [
+  { id:"freelance_solo",    label:"Freelance / independent" },
+  { id:"freelance_agency",  label:"Freelance via agency / LSP" },
+  { id:"lsp_inhouse",       label:"In-house at an LSP" },
+  { id:"tech_inhouse",      label:"In-house at a tech company" },
+  { id:"enterprise_inhouse",label:"In-house at a non-tech enterprise" },
+];
+// ── TMS PLATFORMS (Track B and C) ─────────────────────────────────────
+var TMS_PLATFORMS = [
+  { id:"phrase",     label:"Phrase" },
+  { id:"lokalise",   label:"Lokalise" },
+  { id:"memoq",      label:"memoQ" },
+  { id:"trados",     label:"RWS Trados" },
+  { id:"crowdin",    label:"Crowdin" },
+  { id:"smartling",  label:"Smartling" },
+  { id:"xtm",        label:"XTM" },
+  { id:"none",       label:"None / manual workflows" },
+  { id:"other",      label:"Other" },
+];
+// ── MT INTEGRATION LEVELS (Track B) ────────────────────────────────────
+var MT_INTEGRATION_LEVELS = [
+  { id:"none",     label:"No MT in current workflow",       sub:"All human translation" },
+  { id:"partial",  label:"Some MT + post-editing",          sub:"Mixed workflow" },
+  { id:"full",     label:"MT-first with human review",      sub:"Post-editing is the primary task" },
+  { id:"building", label:"Building or evaluating MT program", sub:"In transition" },
+];
+// ── LANGUAGE COUNTS (Track B) ──────────────────────────────────────────
+var LANGUAGE_COUNTS = [
+  { id:"1_5",   label:"1–5 languages" },
+  { id:"6_15",  label:"6–15 languages" },
+  { id:"16_30", label:"16–30 languages" },
+  { id:"31_50", label:"31–50 languages" },
+  { id:"50_plus",label:"50+ languages" },
+];
+// ── CLIENT TYPES (Track B) ─────────────────────────────────────────────
+var CLIENT_TYPES = [
+  { id:"tech_inhouse",     label:"Tech company (in-house)" },
+  { id:"enterprise",       label:"Non-tech enterprise (in-house)" },
+  { id:"lsp_clients",      label:"LSP clients (vendor side)" },
+  { id:"mixed",            label:"Mixed portfolio" },
+  { id:"gov_public",       label:"Government / public sector" },
+];
+// ── PROGRAMMING LANGUAGES (Track C) ───────────────────────────────────
+var PROGRAMMING_LANGUAGES = [
+  "JavaScript","TypeScript","Python","Java","Ruby",
+  "Swift","Kotlin","Go","C++","PHP","Other",
+];
+// ── ENGINEERING FOCUS (Track C) ───────────────────────────────────────
+var ENGINEERING_FOCUS = [
+  { id:"i18n",      label:"Internationalization (i18n)",             sub:"Making products ready for localization" },
+  { id:"l10n",      label:"Localization Engineering (l10n)",          sub:"File processing, TMS integration, QA automation" },
+  { id:"both",      label:"Both i18n and l10n",                      sub:"Full lifecycle from code to delivery" },
+  { id:"solutions", label:"Solutions Architecture / LangOps tech",    sub:"Platform selection, integrations, automation strategy" },
+];
+// ── ORG SIZES (Track D) ────────────────────────────────────────────────
+var ORG_SIZES = [
+  { id:"startup",          label:"Startup",             sub:"Under 50 people" },
+  { id:"scaleup",          label:"Scale-up",            sub:"50–200 people" },
+  { id:"midmarket",        label:"Mid-market",          sub:"200–1,000 people" },
+  { id:"enterprise",       label:"Enterprise",          sub:"1,000–10,000 people" },
+  { id:"global_enterprise",label:"Global enterprise",   sub:"10,000+ people" },
+];
+// ── TECH MATURITY LEVELS (Track D) ────────────────────────────────────
+var TECH_MATURITY_LEVELS = [
+  { id:"manual",     label:"Manual / ad hoc",       sub:"Spreadsheets, email, no dedicated TMS" },
+  { id:"basic_tms",  label:"Basic TMS in place",    sub:"TMS adopted but workflows still largely manual" },
+  { id:"integrated", label:"Integrated workflow",   sub:"TMS connected to CMS and dev pipeline" },
+  { id:"automated",  label:"Largely automated",     sub:"MT + automation + human review in production" },
+  { id:"agentic",    label:"AI-first / agentic",    sub:"Agentic workflows, minimal human-in-loop" },
+];
+// ── ANNOTATION TYPES (Track E) ────────────────────────────────────────
+var ANNOTATION_TYPES = [
+  { id:"ner",        label:"NER / entity labeling" },
+  { id:"rlhf",       label:"RLHF / preference ranking" },
+  { id:"qe",         label:"Translation quality estimation (QE)" },
+  { id:"mt_eval",    label:"MT output evaluation" },
+  { id:"llm_ft",     label:"Multilingual LLM fine-tuning data" },
+  { id:"synthetic",  label:"Synthetic data generation" },
+  { id:"other",      label:"Other" },
+];
+// ── AI / ANNOTATION PLATFORMS (Track E) ───────────────────────────────
+var AI_PLATFORMS = [
+  { id:"appen",      label:"Appen" },
+  { id:"scale",      label:"Scale AI" },
+  { id:"defined",    label:"Defined.ai" },
+  { id:"remotasks",  label:"Remotasks" },
+  { id:"internal",   label:"Internal tooling" },
+  { id:"academic",   label:"Academic / research" },
+  { id:"other",      label:"Other" },
+];
+// ── INTERPRETING MODES (Track F — inside translator role) ─────────────
+var INTERPRETING_MODES = [
+  { id:"simultaneous", label:"Simultaneous",          sub:"Booth or RSI, real-time with lag" },
+  { id:"consecutive",  label:"Consecutive",           sub:"Speaker pauses for interpreter" },
+  { id:"rsi",          label:"Remote Simultaneous (RSI)", sub:"KUDO, Interprefy, Zoom" },
+  { id:"whispered",    label:"Whispered / Chuchotage", sub:"Close proximity, no booth" },
+  { id:"mixed",        label:"Mixed modes",            sub:"Depending on assignment" },
+];
+// ── INTERPRETING SETTINGS (Track F) ───────────────────────────────────
+var INTERPRETING_SETTINGS = [
+  { id:"conference",   label:"Conference / diplomatic" },
+  { id:"legal",        label:"Legal / court" },
+  { id:"medical",      label:"Medical / healthcare" },
+  { id:"community",    label:"Community / social services" },
+  { id:"business",     label:"Business / corporate" },
+  { id:"remote_tel",   label:"Remote / telephone" },
+];
+// ── INTERPRETER CERTIFICATIONS (Track F) ──────────────────────────────
+var INTERPRETER_CERTIFICATIONS = [
+  { id:"ata",        label:"ATA certified" },
+  { id:"cchi",       label:"CCHI / CHI certified" },
+  { id:"nbcmi",      label:"NBCMI / CMI certified" },
+  { id:"fcice",      label:"FCICE (federal court)" },
+  { id:"state_court",label:"State court certified" },
+  { id:"aiic",       label:"AIIC member" },
+  { id:"none",       label:"None yet" },
+  { id:"other",      label:"Other" },
+];
+// ── LEARNER TYPES (Track G) ────────────────────────────────────────────
+var LEARNER_TYPES = [
+  { id:"corporate_b2b", label:"Corporate / B2B",       sub:"Employees, professional development" },
+  { id:"consumer_app",  label:"Consumer app users",    sub:"Self-directed learners via apps or platforms" },
+  { id:"academic",      label:"Academic / students",   sub:"University, school, or continuing education" },
+  { id:"government",    label:"Government / public sector", sub:"Staff training, immigration, public services" },
+  { id:"mixed",         label:"Mixed learner base",    sub:"Multiple audience types" },
+];
+// ── LEARNING PLATFORMS (Track G) ──────────────────────────────────────
+var LEARNING_PLATFORMS = [
+  { id:"lms",          label:"LMS / corporate eLearning" },
+  { id:"duolingo_biz", label:"Duolingo for Business" },
+  { id:"preply",       label:"Preply / italki" },
+  { id:"custom_ai",    label:"Custom AI-assisted tool" },
+  { id:"in_person",    label:"In-person only" },
+  { id:"hybrid",       label:"Hybrid (live + digital)" },
+  { id:"other",        label:"Other" },
+];
+// ── CONTENT FORMATS (Track G) ─────────────────────────────────────────
+var CONTENT_FORMATS = [
+  { id:"live_inperson",label:"Live instruction (in-person)" },
+  { id:"live_virtual", label:"Live virtual (video call)" },
+  { id:"async",        label:"Asynchronous / self-paced" },
+  { id:"blended",      label:"Blended (live + async)" },
+  { id:"ai_adaptive",  label:"AI-assisted adaptive learning" },
+];
+
 // ── DESIGN TOKENS ──────────────────────────────────────────────────────
 var S = {
   bg: "#f8f9fb",
@@ -132,6 +288,14 @@ function getDomainLabels(ids) {
     var d = CONTENT_DOMAINS.find(function (x) { return x.id === id; });
     return d ? d.label : id;
   });
+}
+
+function getTrack(roleId) {
+  return TRACK_MAP[roleId] || "A";
+}
+function showsLanguagePair(roleId) {
+  var track = getTrack(roleId);
+  return track === "A" || track === "F" || track === "G";
 }
 
 export default function Localization() {
