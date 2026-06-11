@@ -588,24 +588,139 @@ export default function Localization() {
   );
 
   function buildAnalysisPrompt() {
+    var track = getTrack(roleType);
     var sl = SENIORITY_LEVELS.find(function (x) { return x.id === seniority; });
-    var domainLabels = getDomainLabels(contentDomains).join(", ");
-    var specLine = specialization.trim() !== "" ? "\n- Specialization: " + specialization.trim() : "";
+    var TRACK_LABELS = {
+      A: "Track A — Translator / Interpreter",
+      B: "Track B — Localization PM / Program Manager",
+      C: "Track C — Localization Engineer",
+      D: "Track D — LangOps / Globalization Strategist",
+      E: "Track E — Language Data / NLP",
+      F: "Track F — Interpreter",
+      G: "Track G — Language Learning & Content",
+    };
+    var TRACK_SKILL_POOLS = {
+      A: "Domain Specialization, Cultural Adaptation & Transcreation, MT Post-Editing (MTPE), Terminology Management, Translation Quality Assessment, Audiovisual Localization, Desktop Publishing (DTP), Prompt Engineering for Translation",
+      B: "TMS Administration & Optimization, Vendor & Freelancer Management, MT Program Strategy, Localization Quality Frameworks, Cross-functional Stakeholder Management, Financial Modeling & Budget Ownership, Agile Localization Workflows, AI Workflow Integration",
+      C: "CI/CD Localization Pipeline Integration, i18n Code Implementation, TMS API & Connector Development, File Format Engineering, Localization QA Automation, MT Engine Integration, Cloud Infrastructure for Localization, LLM/AI Tool Integration",
+      D: "Localization Program Strategy, Executive Stakeholder Advocacy, Language Data & AI Governance, Vendor Ecosystem Architecture, LangOps Metrics & ROI Reporting, Change Management & Org Design, Technology Roadmap Ownership, Global Content Operations",
+      E: "Annotation Task Design & QC, MT Quality Estimation & Evaluation, Multilingual Prompt Engineering, LLM Fine-Tuning for Language Tasks, Low-Resource Language Data Curation, Multilingual Bias Detection & Mitigation, Evaluation Framework Design",
+      F: "Simultaneous Interpreting, Consecutive Interpreting, RSI Platform Proficiency, Legal & Court Interpreting, Medical Interpreting, Conference Preparation & Terminology, AI-Assisted Interpreting Adaptation",
+      G: "Curriculum & Syllabus Design, AI-Adaptive Learning Integration, Learner Assessment & Progress Tracking, Instructional Content Production, Language Coaching & Conversation Facilitation, EdTech Platform Expertise, Corporate Language Program Management",
+    };
+    function idLabel(arr, id) {
+      var item = arr.find(function (x) { return x.id === id; });
+      return item ? item.label : id;
+    }
+    var profileLines = [
+      "- Role track: " + (TRACK_LABELS[track] || "Track " + track),
+      "- Role type: " + getRoleLabel(roleType),
+      "- Seniority: " + getSeniorityLabel(seniority) + (sl ? " — " + sl.note : ""),
+    ];
+    if (workContext !== "" && WORK_CONTEXTS.some(function (x) { return x.id === workContext; })) {
+      profileLines.push("- Work context: " + getWorkContextLabel(workContext));
+    }
+    if (specialization.trim() !== "") {
+      profileLines.push("- Specialization: " + specialization.trim());
+    }
+    var trackLines = [];
+    if (track === "A") {
+      if (sourceLanguage !== "" && targetLanguage !== "") {
+        trackLines.push("- Language pair: " + sourceLanguage + " → " + targetLanguage);
+      }
+      var domainLabelsA = getDomainLabels(contentDomains);
+      if (domainLabelsA.length > 0) {
+        trackLines.push("- Content domain: " + domainLabelsA.join(", "));
+      }
+    } else if (track === "B") {
+      if (typeof tmsPlatform !== "undefined" && tmsPlatform !== "") {
+        trackLines.push("- TMS platform: " + idLabel(TMS_PLATFORMS, tmsPlatform));
+      } else if (workContext !== "" && TMS_PLATFORMS.some(function (x) { return x.id === workContext; })) {
+        trackLines.push("- TMS platform: " + idLabel(TMS_PLATFORMS, workContext));
+      }
+      if (typeof languageCount !== "undefined" && languageCount !== "") {
+        trackLines.push("- Language count: " + idLabel(LANGUAGE_COUNTS, languageCount));
+      }
+      if (typeof mtIntegration !== "undefined" && mtIntegration !== "") {
+        trackLines.push("- MT integration level: " + idLabel(MT_INTEGRATION_LEVELS, mtIntegration));
+      }
+    } else if (track === "C") {
+      if (typeof programmingLanguages !== "undefined" && programmingLanguages !== "") {
+        trackLines.push("- Programming languages: " + programmingLanguages);
+      }
+      if (typeof tmsPlatform !== "undefined" && tmsPlatform !== "") {
+        trackLines.push("- TMS platform: " + idLabel(TMS_PLATFORMS, tmsPlatform));
+      }
+      if (typeof engineeringFocus !== "undefined" && engineeringFocus !== "") {
+        trackLines.push("- Engineering focus: " + idLabel(ENGINEERING_FOCUS, engineeringFocus));
+      } else if (specialization !== "" && ENGINEERING_FOCUS.some(function (x) { return x.id === specialization; })) {
+        trackLines.push("- Engineering focus: " + idLabel(ENGINEERING_FOCUS, specialization));
+      }
+    } else if (track === "D") {
+      if (typeof orgSize !== "undefined" && orgSize !== "") {
+        trackLines.push("- Org size: " + idLabel(ORG_SIZES, orgSize));
+      } else if (specialization !== "" && ORG_SIZES.some(function (x) { return x.id === specialization; })) {
+        trackLines.push("- Org size: " + idLabel(ORG_SIZES, specialization));
+      }
+      if (typeof techMaturity !== "undefined" && techMaturity !== "") {
+        trackLines.push("- Tech maturity: " + idLabel(TECH_MATURITY_LEVELS, techMaturity));
+      }
+    } else if (track === "E") {
+      if (typeof annotationType !== "undefined" && annotationType !== "") {
+        trackLines.push("- Annotation type: " + idLabel(ANNOTATION_TYPES, annotationType));
+      } else if (specialization !== "" && ANNOTATION_TYPES.some(function (x) { return x.id === specialization; })) {
+        trackLines.push("- Annotation type: " + idLabel(ANNOTATION_TYPES, specialization));
+      }
+      if (typeof aiPlatform !== "undefined" && aiPlatform !== "") {
+        trackLines.push("- AI platform: " + idLabel(AI_PLATFORMS, aiPlatform));
+      }
+    } else if (track === "F") {
+      if (typeof interpretingMode !== "undefined" && interpretingMode !== "") {
+        trackLines.push("- Interpreting mode: " + idLabel(INTERPRETING_MODES, interpretingMode));
+      }
+      if (typeof interpretingSetting !== "undefined" && interpretingSetting !== "") {
+        trackLines.push("- Interpreting setting: " + idLabel(INTERPRETING_SETTINGS, interpretingSetting));
+      }
+      if (typeof certification !== "undefined" && certification !== "") {
+        trackLines.push("- Certification: " + idLabel(INTERPRETER_CERTIFICATIONS, certification));
+      }
+    } else if (track === "G") {
+      if (typeof learnerType !== "undefined" && learnerType !== "") {
+        trackLines.push("- Learner type: " + idLabel(LEARNER_TYPES, learnerType));
+      }
+      if (typeof learningPlatform !== "undefined" && learningPlatform !== "") {
+        trackLines.push("- Learning platform: " + idLabel(LEARNING_PLATFORMS, learningPlatform));
+      }
+      if (typeof contentFormat !== "undefined" && contentFormat !== "") {
+        trackLines.push("- Content format: " + idLabel(CONTENT_FORMATS, contentFormat));
+      }
+    }
+    var skillPool = TRACK_SKILL_POOLS[track] || TRACK_SKILL_POOLS.A;
+    var mktCalibration =
+      "mkt score calibration:\n" +
+      "9-10: Scarce supply, active demand, top 10% earner profile (e.g. CI/CD localization integration, executive stakeholder advocacy, low-resource language curation, simultaneous conference interpreting)\n" +
+      "7-8: Strong premium, above-median compensation (e.g. legal/medical translation, MT program strategy, RSI platform proficiency, multilingual prompt engineering)\n" +
+      "5-6: Solid demand, competitive, median market rate (e.g. CAT tool proficiency, terminology management, curriculum design)\n" +
+      "3-4: Declining or commoditizing under AI pressure (e.g. MTPE in common language pairs, basic annotation, generalist translation)\n" +
+      "1-2: Structural decline, AI doing most of this work (e.g. basic data annotation, high-volume generalist translation)";
     return (
       "You are a senior localization and language-industry career strategist specializing in AI labor market analysis for language professionals.\n\n" +
-      "PROFESSIONAL PROFILE:\n" +
-      "- Role type: " + getRoleLabel(roleType) + "\n" +
-      "- Seniority: " + getSeniorityLabel(seniority) + (sl ? " — " + sl.note : "") + "\n" +
-      "- Language pair: " + sourceLanguage + " → " + targetLanguage + "\n" +
-      "- Content domains: " + domainLabels + "\n" +
-      "- Work context: " + getWorkContextLabel(workContext) +
-      specLine +
-      "\n\nTask 1 — LANDSCAPE SNAPSHOT: Write 2–3 precise sentences about the AI threat to this exact language professional profile RIGHT NOW (2026). Name specific tools where relevant (DeepL, Google Translate, GPT-4/Claude, Smartling, Phrase, memoQ, SDL Trados, dubbing AI, speech-to-speech). Factor in the language pair — high-resource pairs (e.g. EN↔FR, EN↔ES) face much higher MT quality and AI exposure than low-resource or literary pairs. Factor in content domain — legal/medical/technical vs literary/marketing changes exposure differently. Be specific to this combination, not generic AI commentary.\n\n" +
-      "Task 2 — SKILLS: Generate exactly 6 skills that are the most strategically important for this professional to assess for AI defensibility right now. Each skill must include:\n" +
-      "- name: a specific skill label (not generic — e.g. 'EN→FR legal contract translation under tight deadlines' not just 'translation')\n" +
-      "- aiR: AI replaceability score 0–10 (0 = AI cannot do this today, 10 = AI fully does this today). Calibrate to THIS language pair, domain, and role — e.g. a legal translator on EN↔FR should score higher aiR than a literary translator in a low-resource pair.\n" +
-      "- mkt: market demand score 0–10 (0 = low market value, 10 = high market value) for someone with this profile today.\n\n" +
-      "Return ONLY valid JSON with no preamble:\n" +
+      "ROLE CONTEXT:\n" +
+      profileLines.join("\n") +
+      (trackLines.length > 0 ? "\n\nTRACK CONTEXT:\n" + trackLines.join("\n") : "") +
+      "\n\nCRAFT PROFILE:\n" +
+      "- Craft conscience: " + conscience + "/10\n" +
+      "- Intrinsic pull: " + pull + "/10\n\n" +
+      "TRACK SKILL POOL (select exactly 6 skills ONLY from this list — do not invent skills not on this list):\n" +
+      skillPool +
+      "\n\n" +
+      mktCalibration +
+      "\n\nTASK:\n" +
+      "1. Write a 2–3 sentence landscape snapshot specific to this exact profile. Name AI tools where relevant (DeepL, GPT-4/Claude, Phrase, Smartling, memoQ, dubbing AI, speech-to-speech, etc.). Be direct if this profile is significantly disrupted by AI.\n" +
+      "2. Select exactly 6 skills from the TRACK SKILL POOL above only — use the exact skill names from the list.\n" +
+      "3. For each skill, score aiR 0–10 (0 = AI cannot do this today, 10 = AI fully does this today), calibrated to this profile.\n" +
+      "4. For each skill, score mkt 0–10 using the mkt score calibration block above.\n" +
+      "5. Return ONLY valid JSON with no preamble:\n" +
       '{"landscape":"...","skills":[{"name":"...","aiR":0,"mkt":0},{"name":"...","aiR":0,"mkt":0},{"name":"...","aiR":0,"mkt":0},{"name":"...","aiR":0,"mkt":0},{"name":"...","aiR":0,"mkt":0},{"name":"...","aiR":0,"mkt":0}]}'
     );
   }
