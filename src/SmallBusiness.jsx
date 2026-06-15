@@ -408,7 +408,7 @@ export default function SmallBusiness(props) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
+          model: "claude-sonnet-4-6",
           max_tokens: 800,
           messages: [{ role: "user", content: prompt }],
         }),
@@ -621,7 +621,7 @@ export default function SmallBusiness(props) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
+          model: "claude-sonnet-4-6",
           max_tokens: 4000,
           tools: [{ type: "web_search_20250305", name: "web_search" }],
           messages: [{ role: "user", content: prompt }],
