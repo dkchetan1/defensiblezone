@@ -25,6 +25,8 @@ const PRICE_TIER_MAP = {
   // Engineer & Doctor $34 PDF
   "price_engineer_34": 3,
   "price_doctor_34":   3,
+  "price_engineer_59": 3,
+  "price_engineer_1":  3,
   "price_1Tg8QxEtPD2ThqDeFBeZsBKE": 2,
   "price_1TQHh9EtPD2ThqDe2e4WrgNA": 3,
   "price_1TQHcQEtPD2ThqDeMU5Qqia7": 2,
@@ -32,6 +34,8 @@ const PRICE_TIER_MAP = {
 
 // Fallback: if Price ID isn't mapped, infer tier from amount
 function tierFromAmount(amountTotal, product) {
+  if (amountTotal <= 100)  return 3;  // $1.00  — engineer test purchase
+  if (amountTotal === 5900) return 3; // $59.00 — engineer full report
   if (product === "doctor" && amountTotal >= 7900) return 2;
   if (amountTotal <= 2900) return 2;
   if (amountTotal <= 3400) return 3;
