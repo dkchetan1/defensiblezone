@@ -35,7 +35,7 @@ const PRICE_TIER_MAP = {
 // Fallback: if Price ID isn't mapped, infer tier from amount
 function tierFromAmount(amountTotal, product) {
   if (amountTotal <= 100)  return 3;  // $1.00  — engineer test purchase
-  if (amountTotal === 5900) return 3; // $59.00 — engineer full report
+  if (amountTotal >= 5900 && amountTotal <= 7800) return 3; // $59.00 — engineer full report (covers up to 32% tax)
   if (product === "doctor" && amountTotal >= 7900) return 2;
   if (amountTotal <= 2900) return 2;
   if (amountTotal <= 3400) return 3;
