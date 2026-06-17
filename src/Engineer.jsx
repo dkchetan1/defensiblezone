@@ -232,7 +232,6 @@ export default function Engineer() {
   var [promoError, setPromoError]         = useState("");
   var [discountApplied, setDiscountApplied] = useState(false);
   var [testModeApplied, setTestModeApplied] = useState(false);
-  var [testCheckoutError, setTestCheckoutError] = useState(null);
   var [gateEmail, setGateEmail] = useState("");
   var [gateSent, setGateSent] = useState(false);
   var [gateVerified, setGateVerified] = useState(false);
@@ -674,34 +673,6 @@ export default function Engineer() {
     } catch (e) {
       setRecsError("Could not load recommendations. Please try again.");
       setRecsLoading(false);
-    }
-  }
-
-  async function handleTestCheckout() {
-    setTestCheckoutError(null);
-    try {
-      try {
-        localStorage.setItem("dz_saved_report_engineer", JSON.stringify({
-          step: 3, devType, devTypeOther, seniority, workContexts,
-          companyType, skills, conscience, pull, fluencies,
-          benchmark, results, gateEmail
-        }));
-      } catch(_e) {}
-      var res = await fetch("/api/create-checkout-session", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          product: "engineer",
-          email: gateEmail.trim(),
-          price: 100,
-          testMode: true,
-        }),
-      });
-      var data = await res.json();
-      if (!res.ok || !data.url) throw new Error(data.error || "Could not start checkout");
-      window.location.href = data.url;
-    } catch(e) {
-      setTestCheckoutError(e.message || "Could not start checkout. Please try again.");
     }
   }
 
@@ -1991,22 +1962,17 @@ export default function Engineer() {
                 var hasPhases = groupedByPhase.length > 1;
 
                 var showAllRecs = tier >= 2 || promoUsed;
-                var showUpsell = tier === 0 && !promoUsed && !testModeApplied;
+                var showUpsell = tier === 0 && !promoUsed;
 
-                var rec29Url = "https://buy.stripe.com/9B67sL0gGezx0D3a7YdQQ08" + (discountApplied ? "?prefilled_promo_code=DZHALF" : "");
-                var rec34Url = "https://buy.stripe.com/00wfZh8Ncezx0D3gwmdQQ09" + (discountApplied ? "?prefilled_promo_code=DZHALF" : "");
+                var rec59Url = (testModeApplied ? "https://buy.stripe.com/00weVd9Rg4YX1H7bc2dQQ0f" : "https://buy.stripe.com/6oU28rbZo9fd85vdkadQQ0e") + (discountApplied ? "?prefilled_promo_code=DZHALF" : "");
 
-                var tier29Features = [
+                var recFeatures = [
                   "All 8 personalized recommendations",
                   "Ranked by impact for your role",
                   "90-day action steps",
                   "Specific to your seniority and context",
-                ];
-                var tier34Features = [
-                  "Everything in Recommendations",
-                  "Downloadable PDF",
+                  "Downloadable PDF report",
                   "Share with a coach or manager",
-                  "Permanent record of your assessment",
                 ];
 
                 return (
@@ -2140,20 +2106,6 @@ export default function Engineer() {
                       </div>
                     ) : null}
 
-                    {testModeApplied && tier === 0 && !promoUsed ? (
-                      <div style={{ background: "linear-gradient(135deg,#1a1d2e 0%,#2d1f5e 100%)", borderRadius: 16, padding: 28, marginTop: 24, marginBottom: 28 }}>
-                        <div style={{ fontFamily: S.mono, fontSize: 12, color: S.gold, letterSpacing: "0.1em", marginBottom: 12, fontWeight: 600 }}>TEST MODE — $1 CHECKOUT</div>
-                        <p style={{ fontSize: 15, color: "rgba(196,181,253,0.85)", lineHeight: 1.65, margin: "0 0 20px" }}>DZONE applied. Click below to complete a $1 test purchase and unlock your full action plan.</p>
-                        {testCheckoutError ? <div style={{ color: "#f87171", fontSize: 14, marginBottom: 12 }}>{testCheckoutError}</div> : null}
-                        <button
-                          onClick={handleTestCheckout}
-                          style={{ padding: "14px 28px", fontSize: 16, fontWeight: 700, fontFamily: S.font, background: S.gold, color: "#000", border: "none", borderRadius: 10, cursor: "pointer" }}
-                        >
-                          Pay $1.00 to Unlock
-                        </button>
-                      </div>
-                    ) : null}
-
                     {showUpsell ? (
                       <div
                         className="no-print"
@@ -2194,144 +2146,36 @@ export default function Engineer() {
                           recommendations plus a PDF you can keep.
                         </p>
 
-                        <div
-                          style={{
-                            display: "flex",
-                            flexWrap: "wrap",
-                            gap: 12,
-                            alignItems: "stretch",
-                          }}
-                        >
-                          <div
-                            style={{
-                              flex: "1 1 260px",
-                              background: "#ffffff",
-                              border: "1px solid #d0d7e8",
-                              borderRadius: 12,
-                              padding: "20px 18px",
-                              display: "flex",
-                              flexDirection: "column",
-                            }}
-                          >
-                            <div
-                              style={{
-                                fontFamily: S.mono,
-                                fontSize: 12,
-                                textTransform: "uppercase",
-                                letterSpacing: "0.06em",
-                                color: "#6b7280",
-                                marginBottom: 8,
-                                fontWeight: 600,
-                              }}
-                            >
-                              RECOMMENDATIONS
-                            </div>
-                            <div style={{ fontSize: 16, fontWeight: 700, color: S.text, marginBottom: 4 }}>$29 one-time</div>
-                            <div style={{ flex: 1, marginBottom: 16 }}>
-                              {tier29Features.map(function (line) {
-                                return (
-                                  <div key={line} style={{ fontSize: 14, color: "#4a5568", lineHeight: 1.5, marginBottom: 6 }}>
-                                    {line}
-                                  </div>
-                                );
-                              })}
-                            </div>
-                            <button
-                              type="button"
-                              onClick={function () {
-                                window.location.href = rec29Url;
-                              }}
-                              style={{
-                                background: S.gold,
-                                color: "#ffffff",
-                                border: "none",
-                                borderRadius: 10,
-                                padding: "12px 16px",
-                                fontSize: 15,
-                                fontFamily: S.font,
-                                fontWeight: 600,
-                                cursor: "pointer",
-                                width: "100%",
-                              }}
-                            >
-                              Unlock Recommendations →
-                            </button>
+                        <div style={{ background: "#ffffff", border: "2px solid " + S.gold, borderRadius: 12, padding: "20px 18px", marginBottom: 20 }}>
+                          <div style={{ fontFamily: S.mono, fontSize: 12, textTransform: "uppercase", letterSpacing: "0.06em", color: "#6b7280", marginBottom: 8, fontWeight: 600 }}>
+                            FULL 90-DAY ACTION PLAN
                           </div>
-
-                          <div
-                            style={{
-                              flex: "1 1 260px",
-                              background: "#ffffff",
-                              border: "1px solid #d0d7e8",
-                              borderRadius: 12,
-                              padding: "20px 18px",
-                              display: "flex",
-                              flexDirection: "column",
-                              position: "relative",
-                            }}
-                          >
-                            <div
-                              style={{
-                                position: "absolute",
-                                top: 12,
-                                right: 12,
-                                fontFamily: S.mono,
-                                fontSize: 12,
-                                background: S.gold,
-                                color: "#ffffff",
-                                padding: "4px 8px",
-                                borderRadius: 6,
-                                fontWeight: 700,
-                                letterSpacing: "0.04em",
-                              }}
-                            >
-                              BEST VALUE
-                            </div>
-                            <div
-                              style={{
-                                fontFamily: S.mono,
-                                fontSize: 12,
-                                textTransform: "uppercase",
-                                letterSpacing: "0.06em",
-                                color: "#6b7280",
-                                marginBottom: 8,
-                                fontWeight: 600,
-                                paddingRight: 88,
-                              }}
-                            >
-                              RECOMMENDATIONS + PDF
-                            </div>
-                            <div style={{ fontSize: 16, fontWeight: 700, color: S.text, marginBottom: 4 }}>$34 one-time</div>
-                            <div style={{ flex: 1, marginBottom: 16 }}>
-                              {tier34Features.map(function (line) {
-                                return (
-                                  <div key={line} style={{ fontSize: 14, color: "#4a5568", lineHeight: 1.5, marginBottom: 6 }}>
-                                    {line}
-                                  </div>
-                                );
-                              })}
-                            </div>
-                            <button
-                              type="button"
-                              onClick={function () {
-                                window.location.href = rec34Url;
-                              }}
-                              style={{
-                                background: S.gold,
-                                color: "#ffffff",
-                                border: "none",
-                                borderRadius: 10,
-                                padding: "12px 16px",
-                                fontSize: 15,
-                                fontFamily: S.font,
-                                fontWeight: 600,
-                                cursor: "pointer",
-                                width: "100%",
-                              }}
-                            >
-                              Get PDF Report →
-                            </button>
+                          <div style={{ fontSize: 22, fontWeight: 700, color: S.text, lineHeight: 1, marginBottom: 4 }}>
+                            {testModeApplied ? "$1.00" : "$59"}
+                            <span style={{ fontFamily: S.mono, fontSize: 13, fontWeight: 400, color: S.muted }}> one-time</span>
                           </div>
+                          {testModeApplied ? (
+                            <div style={{ fontFamily: S.mono, fontSize: 11, color: S.gold, fontWeight: 700, letterSpacing: "0.08em", marginBottom: 10, marginTop: 4 }}>
+                              TEST MODE ACTIVE
+                            </div>
+                          ) : null}
+                          <div style={{ marginBottom: 16, marginTop: 10 }}>
+                            {recFeatures.map(function (line) {
+                              return (
+                                <div key={line} style={{ display: "flex", gap: 7, alignItems: "flex-start", marginBottom: 6 }}>
+                                  <span style={{ color: S.gold, fontWeight: 700, flexShrink: 0, marginTop: 1 }}>✓</span>
+                                  <div style={{ fontSize: 14, color: "#4a5568", lineHeight: 1.5 }}>{line}</div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={function () { window.location.href = rec59Url; }}
+                            style={{ background: S.gold, color: "#ffffff", border: "none", borderRadius: 10, padding: "14px 16px", fontSize: 15, fontFamily: S.font, fontWeight: 600, cursor: "pointer", width: "100%" }}
+                          >
+                            {testModeApplied ? "Pay $1.00 to Unlock →" : "Unlock Full Action Plan →"}
+                          </button>
                         </div>
 
                         <div className="no-print" style={{ marginTop: 24 }}>
