@@ -743,7 +743,7 @@ export default function Engineer() {
       setStep(4);
       try {
         localStorage.setItem("dz_saved_report_engineer", JSON.stringify({
-          step: 3, devType, seniority, workContexts, customContexts: [],
+          step: 3, devType, gateEmail, seniority, workContexts, customContexts: [],
           companyType, skills, conscience, pull, fluencies,
           benchmark: parsed.benchmark, results: enriched
         }));
@@ -773,7 +773,7 @@ export default function Engineer() {
           setStep(4);
           try {
             localStorage.setItem("dz_saved_report_engineer", JSON.stringify({
-              step: 3, devType, seniority, workContexts, customContexts,
+              step: 3, devType, gateEmail, seniority, workContexts, customContexts,
               companyType, skills, conscience, pull, fluencies,
               benchmark: parsed2.benchmark, results: enriched2
             }));
