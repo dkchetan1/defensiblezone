@@ -449,6 +449,7 @@ export default function Engineer() {
     var sessionId = params.get("session_id");
     if (sessionId) {
       window.history.replaceState({}, "", window.location.pathname); // clean URL immediately
+      freeEmailSentRef.current = true;
       fetch("/api/verify-payment", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
