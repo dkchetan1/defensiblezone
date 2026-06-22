@@ -1,4 +1,8 @@
 import { DZNavBar, DZFooter } from "./SharedComponents";
+import { snapToStop, getSeed, compAff, calcDZ } from "./SharedScoring";
+import { callGenerateWithRetry, parseGenerateJson } from "./SharedApi";
+import { DZ_SLIDER_CSS_STANDARD } from "./SharedStyles";
+import { createSkillEditorHandlers, skillsFromGeneratedList } from "./SharedSkillEditor";
 import { useState, useEffect, useRef } from "react";
 
 // ── PM TYPES ────────────────────────────────────────────────────────
@@ -98,26 +102,6 @@ var PROMO_CODES    = ["DZFRIEND","DZPREVIEW","DZTEST"];
 var DISCOUNT_CODES = ["DZHALF"];
 var TEST_CODES     = ["DZONE"];
 
-// ── MATH ────────────────────────────────────────────────────────────
-var AFFINITY_STOPS = [0, 3, 5, 7, 10];
-function snapToStop(val) {
-  return AFFINITY_STOPS.reduce(function(prev, curr) {
-    return Math.abs(curr - val) < Math.abs(prev - val) ? curr : prev;
-  });
-}
-function getSeed(c, p) {
-  var raw = Math.round((c * 0.5 + p * 0.5) * 10) / 10;
-  return AFFINITY_STOPS.reduce(function(prev, curr) {
-    return Math.abs(curr - raw) < Math.abs(prev - raw) ? curr : prev;
-  });
-}
-function compAff(conscience, pull, fluency) {
-  return Math.round((conscience * 0.35 + pull * 0.35 + fluency * 0.3) * 10) / 10;
-}
-function calcDZ(aff, aiR, mkt) {
-  var v = 100 * Math.pow(aff / 10, 0.35) * Math.pow((10 - aiR) / 10, 0.40) * Math.pow(mkt / 10, 0.25);
-  return Math.min(100, Math.round(v));
-}
 function dzScoreColor(score) {
   if (score < 40) return S.red;
   if (score <= 65) return S.gold;
@@ -745,26 +729,23 @@ export default function ProductManager() {
     }
   }
 
-  function startEditing(id) { setSkills(function(p) { return p.map(function(s) { return s.id===id ? Object.assign({},s,{editing:true}) : s; }); }); }
-  function updateText(id, text) { setSkills(function(p) { return p.map(function(s) { return s.id===id ? Object.assign({},s,{text:text}) : s; }); }); }
-  function commitEdit(id) { setSkills(function(p) { return p.map(function(s) { return s.id===id ? Object.assign({},s,{editing:false}) : s; }); }); }
-  function removeSkill(id) {
-    setSkills(function(p) { return p.filter(function(s) { return s.id!==id; }); });
-    setFluencies(function(p) { var n=Object.assign({},p); delete n[id]; return n; });
-    setSkillConscience(function(p) { var n=Object.assign({},p); delete n[id]; return n; });
-    setSkillPull(function(p) { var n=Object.assign({},p); delete n[id]; return n; });
-    adjustedSkillsRef.current.delete(id);
-    setAdjustedSkills(new Set(adjustedSkillsRef.current));
-  }
-
+  var skillEditor = createSkillEditorHandlers({
+    setSkills: setSkills,
+    setFluencies: setFluencies,
+    setCustomSkill: setCustomSkill,
+    adjustedSkillsRef: adjustedSkillsRef,
+    setAdjustedSkills: setAdjustedSkills,
+    onRemoveExtra: function (id) {
+      setSkillConscience(function (p) { var n = Object.assign({}, p); delete n[id]; return n; });
+      setSkillPull(function (p) { var n = Object.assign({}, p); delete n[id]; return n; });
+    },
+  });
+  var startEditing = skillEditor.startEditing;
+  var updateText = skillEditor.updateText;
+  var commitEdit = skillEditor.commitEdit;
+  var removeSkill = skillEditor.removeSkill;
   function addSkill() {
-    var t = customSkill.trim();
-    if (!t) return;
-    var id = "s" + Date.now();
-    setSkills(function(p) {
-      return p.concat([{ id: id, text: t, editing: false }]);
-    });
-    setCustomSkill("");
+    skillEditor.addSkill(customSkill);
   }
 
   var inputStyle = {
@@ -818,28 +799,13 @@ export default function ProductManager() {
       profile.seniorityLabel +
       " level. Do not suggest generic skills.\n\nReturn ONLY valid JSON:\n{\"landscape\":\"...\",\"skills\":[\"skill1\",\"skill2\",\"skill3\",\"skill4\",\"skill5\",\"skill6\",\"skill7\",\"skill8\"]}";
     try {
-      var res = await fetch("/api/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-6",
-          max_tokens: 1000,
-          messages: [{ role: "user", content: prompt }],
-        }),
+      var data = await callGenerateWithRetry({
+        model: "claude-sonnet-4-6",
+        max_tokens: 1000,
+        messages: [{ role: "user", content: prompt }],
       });
-      var data = await res.json();
-      if (!data.content) throw new Error(data.error || data.error_description || "API error: " + JSON.stringify(data));
-      var raw = data.content
-        .map(function (b) {
-          return b.text || "";
-        })
-        .join("");
-      var m = raw.match(/\{[\s\S]*\}/);
-      if (!m) throw new Error("No JSON in response");
-      var parsed = JSON.parse(m[0]);
-      var loaded = parsed.skills.map(function (text, i) {
-        return { id: "s" + i, text: text, editing: false };
-      });
+      var parsed = parseGenerateJson(data);
+      var loaded = skillsFromGeneratedList(parsed.skills);
       setLandscape(parsed.landscape);
       setSkills(loaded);
       setFluencies({});
@@ -849,48 +815,7 @@ export default function ProductManager() {
       adjustedSkillsRef.current = new Set();
       setStep(3);
     } catch (e) {
-      if (e.message && e.message.indexOf("overloaded") !== -1) {
-        await new Promise(function (r) {
-          setTimeout(r, 2000);
-        });
-        try {
-          var res2 = await fetch("/api/generate", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              model: "claude-sonnet-4-6",
-              max_tokens: 1000,
-              messages: [{ role: "user", content: prompt }],
-            }),
-          });
-          var data2 = await res2.json();
-          if (!data2.content)
-            throw new Error(typeof data2.error === "object" ? JSON.stringify(data2) : data2.error || JSON.stringify(data2));
-          var raw2 = data2.content
-            .map(function (b) {
-              return b.text || "";
-            })
-            .join("");
-          var m2 = raw2.match(/\{[\s\S]*\}/);
-          if (!m2) throw new Error("No JSON in response");
-          var parsed2 = JSON.parse(m2[0]);
-          var loaded2 = parsed2.skills.map(function (text, i) {
-            return { id: "s" + i, text: text, editing: false };
-          });
-          setLandscape(parsed2.landscape);
-          setSkills(loaded2);
-          setFluencies({});
-          setSkillConscience({});
-          setSkillPull({});
-          setAdjustedSkills(new Set());
-          adjustedSkillsRef.current = new Set();
-          setStep(3);
-        } catch (e2) {
-          setError("Something went wrong — please try again in a moment.");
-        }
-      } else {
-        setError("Something went wrong — please try again in a moment.");
-      }
+      setError("Something went wrong — please try again in a moment.");
     } finally {
       setLoading(false);
     }
@@ -926,28 +851,9 @@ export default function ProductManager() {
       " " +
       profile.pmLabel +
       "'s skills have different exposure profiles than a junior generalist. Score accordingly — do not default to middle values.\n\nReturn ONLY valid JSON:\n{\"scores\":[{\"id\":\"s0\",\"name\":\"skill name\",\"ai_replaceability\":N,\"market_demand\":N},{...}]}";
-    try {
-      var res = await fetch("/api/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-6",
-          max_tokens: 800,
-          messages: [{ role: "user", content: prompt }],
-        }),
-      });
-      var data = await res.json();
-      if (!data.content) throw new Error(data.error || data.error_description || "API error: " + JSON.stringify(data));
-      var raw = data.content
-        .map(function (b) {
-          return b.text || "";
-        })
-        .join("");
-      var m = raw.match(/\{[\s\S]*\}/);
-      if (!m) throw new Error("No JSON in response");
-      var parsed = JSON.parse(m[0]);
+    function enrichPmScores(parsed) {
       if (!parsed.scores || !Array.isArray(parsed.scores)) throw new Error("No scores in response");
-      var enriched = parsed.scores.map(function (scored, i) {
+      return parsed.scores.map(function (scored, i) {
         var found =
           skills.find(function (s) {
             return s.id === scored.id;
@@ -977,73 +883,19 @@ export default function ProductManager() {
           dz: dz,
         };
       });
+    }
+    try {
+      var data = await callGenerateWithRetry({
+        model: "claude-sonnet-4-6",
+        max_tokens: 800,
+        messages: [{ role: "user", content: prompt }],
+      });
+      var parsed = parseGenerateJson(data);
+      var enriched = enrichPmScores(parsed);
       setResults({ skills: enriched, profile: profile, landscape: landscape });
       setStep(4);
     } catch (e) {
-      if (e.message && e.message.indexOf("overloaded") !== -1) {
-        await new Promise(function (r) {
-          setTimeout(r, 2000);
-        });
-        try {
-          var res2 = await fetch("/api/generate", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              model: "claude-sonnet-4-6",
-              max_tokens: 800,
-              messages: [{ role: "user", content: prompt }],
-            }),
-          });
-          var data2 = await res2.json();
-          if (!data2.content)
-            throw new Error(typeof data2.error === "object" ? JSON.stringify(data2) : data2.error || JSON.stringify(data2));
-          var raw2 = data2.content
-            .map(function (b) {
-              return b.text || "";
-            })
-            .join("");
-          var m2 = raw2.match(/\{[\s\S]*\}/);
-          if (!m2) throw new Error("No JSON in response");
-          var parsed2 = JSON.parse(m2[0]);
-          if (!parsed2.scores || !Array.isArray(parsed2.scores)) throw new Error("No scores in response");
-          var enriched2 = parsed2.scores.map(function (scored, i) {
-            var found2 =
-              skills.find(function (s) {
-                return s.id === scored.id;
-              }) ||
-              skills.find(function (s) {
-                return scored.name === s.text;
-              }) ||
-              skills.find(function (s) {
-                return scored.name && scored.name.indexOf(s.text.slice(0, 20)) !== -1;
-              });
-            var id2 = found2 ? found2.id : scored.id || "s" + i;
-            var fluencyVal2 = fluencies[id2] !== undefined ? fluencies[id2] : getSeed(conscience, pull);
-            var aff2 = compAff(conscience, pull, fluencyVal2);
-            var aiR2 = typeof scored.ai_replaceability === "number" ? scored.ai_replaceability : 5;
-            var mkt2 = typeof scored.market_demand === "number" ? scored.market_demand : 7;
-            var dz2 = calcDZ(aff2, aiR2, mkt2);
-            return {
-              id: id2,
-              text: found2 ? found2.text : scored.name,
-              name: found2 ? found2.text : scored.name,
-              conscience: conscience,
-              pull: pull,
-              fluency: fluencyVal2,
-              affinity: aff2,
-              ai_replaceability: aiR2,
-              market_demand: mkt2,
-              dz: dz2,
-            };
-          });
-          setResults({ skills: enriched2, profile: profile, landscape: landscape });
-          setStep(4);
-        } catch (e2) {
-          setError("Something went wrong — please try again in a moment.");
-        }
-      } else {
-        setError("Something went wrong — please try again in a moment.");
-      }
+      setError("Something went wrong — please try again in a moment.");
     } finally {
       setLoading(false);
     }
@@ -1696,13 +1548,11 @@ export default function ProductManager() {
     var affinityStops = [0, 3, 5, 7, 10];
     var conscienceLabelTexts = ["Move on easily", "Mildly bothered", "Somewhat unsettled", "Want to fix it", "Can't let it go"];
     var pullLabelTexts = ["Almost never", "Occasionally", "Sometimes", "Regularly", "Constantly"];
-    var dzSliderCSS =
-      "input[type=range].dz-slider{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:3px;outline:none;cursor:pointer;border:none} input[type=range].dz-slider::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;border-radius:50%;border:3px solid white;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.18)} input[type=range].dz-slider::-moz-range-thumb{width:24px;height:24px;border-radius:50%;border:3px solid white;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.18)} input[type=range].conscience-sl::-webkit-slider-thumb{background:#7c3aed} input[type=range].conscience-sl::-moz-range-thumb{background:#7c3aed} input[type=range].pull-sl::-webkit-slider-thumb{background:#0891b2} input[type=range].pull-sl::-moz-range-thumb{background:#0891b2} input[type=range].fluency-sl::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:#d97706;border:2px solid white;cursor:pointer} input[type=range].fluency-sl::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:#d97706;border:2px solid white;cursor:pointer}";
     var landscapeSummary = profile3.seniorityLabel + " " + profile3.pmLabel;
     return (
       <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font, padding: "40px 20px", boxSizing: "border-box" }}>
         <DZNavBar />
-        <style dangerouslySetInnerHTML={{ __html: dzSliderCSS }} />
+        <style dangerouslySetInnerHTML={{ __html: DZ_SLIDER_CSS_STANDARD }} />
         <div style={{ maxWidth: 680, margin: "0 auto" }}>
           <div style={{ marginBottom: 28 }}>
             <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.1em", marginBottom: 10, fontWeight: 600 }}>

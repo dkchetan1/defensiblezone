@@ -1,4 +1,7 @@
 import { DZNavBar, DZFooter } from "./SharedComponents";
+import { snapToStop, getSeed, compAff, calcDZ } from "./SharedScoring";
+import { callGenerateWithRetry, parseGenerateJson } from "./SharedApi";
+import { DZ_SLIDER_CSS_LOCALIZATION } from "./SharedStyles";
 import { useState, useEffect, useRef } from "react";
 
 // ── ROLE TYPES ─────────────────────────────────────────────────────────
@@ -265,29 +268,6 @@ var S = {
   serif: "'DM Serif Display',Georgia,serif",
 };
 
-var AFFINITY_STOPS = [0, 3, 5, 7, 10];
-
-function snapToStop(val) {
-  return AFFINITY_STOPS.reduce(function (prev, curr) {
-    return Math.abs(curr - val) < Math.abs(prev - val) ? curr : prev;
-  });
-}
-
-function getSeed(c, p) {
-  var raw = Math.round((c * 0.5 + p * 0.5) * 10) / 10;
-  return AFFINITY_STOPS.reduce(function (prev, curr) {
-    return Math.abs(curr - raw) < Math.abs(prev - raw) ? curr : prev;
-  });
-}
-
-function compAff(conscience, pull, fluency) {
-  return Math.round((conscience * 0.35 + pull * 0.35 + fluency * 0.3) * 10) / 10;
-}
-
-function calcDZ(aff, aiR, mkt) {
-  return Math.min(100, Math.round(100 * Math.pow(aff / 10, 0.35) * Math.pow((10 - aiR) / 10, 0.40) * Math.pow(mkt / 10, 0.25)));
-}
-
 function computeOverallFromTop3(scoredSkills) {
   if (!Array.isArray(scoredSkills) || scoredSkills.length === 0) return 0;
   var sorted = scoredSkills.slice().sort(function (a, b) {
@@ -519,64 +499,18 @@ export default function Localization() {
     setInsightsError(null);
     var prompt = buildResultsPrompt(scored);
     try {
-      var res = await fetch("/api/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-6",
-          max_tokens: 2000,
-          messages: [{ role: "user", content: prompt }],
-        }),
+      var data = await callGenerateWithRetry({
+        model: "claude-sonnet-4-6",
+        max_tokens: 2000,
+        messages: [{ role: "user", content: prompt }],
       });
-      var data = await res.json();
-      if (!data.content) throw new Error(data.error || data.error_description || "API error");
-      var raw = data.content
-        .map(function (b) {
-          return b.text || "";
-        })
-        .join("");
-      var m = raw.match(/\{[\s\S]*\}/);
-      if (!m) throw new Error("No JSON in response");
-      var parsed = JSON.parse(m[0]);
+      var parsed = parseGenerateJson(data);
       if (!parsed.headline) throw new Error("Invalid response");
       setResults(parsed);
     } catch (e) {
-      if (e.message && e.message.indexOf("overloaded") !== -1) {
-        await new Promise(function (r) {
-          setTimeout(r, 2000);
-        });
-        try {
-          var res2 = await fetch("/api/generate", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              model: "claude-sonnet-4-6",
-              max_tokens: 2000,
-              messages: [{ role: "user", content: prompt }],
-            }),
-          });
-          var data2 = await res2.json();
-          if (!data2.content) throw new Error(typeof data2.error === "object" ? JSON.stringify(data2) : data2.error || "API error");
-          var raw2 = data2.content
-            .map(function (b) {
-              return b.text || "";
-            })
-            .join("");
-          var m2 = raw2.match(/\{[\s\S]*\}/);
-          if (!m2) throw new Error("No JSON in response");
-          var parsed2 = JSON.parse(m2[0]);
-          if (!parsed2.headline) throw new Error("Invalid response");
-          setResults(parsed2);
-        } catch (e2) {
-          console.log(e2);
-          setInsightsError("Could not load insights. Please try again.");
-          setResultsLoading(false);
-        }
-      } else {
-        console.log(e);
-        setInsightsError("Could not load insights. Please try again.");
-        setResultsLoading(false);
-      }
+      console.log(e);
+      setInsightsError("Could not load insights. Please try again.");
+      setResultsLoading(false);
     } finally {
       setResultsLoading(false);
     }
@@ -775,46 +709,14 @@ export default function Localization() {
     setError(null);
     var prompt = buildAnalysisPrompt();
     try {
-      var res = await fetch("/api/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-6",
-          max_tokens: 1000,
-          messages: [{ role: "user", content: prompt }],
-        }),
+      var data = await callGenerateWithRetry({
+        model: "claude-sonnet-4-6",
+        max_tokens: 1000,
+        messages: [{ role: "user", content: prompt }],
       });
-      var data = await res.json();
-      if (!data.content) throw new Error(data.error || data.error_description || "API error: " + JSON.stringify(data));
-      var raw = data.content.map(function (b) { return b.text || ""; }).join("");
-      var m = raw.match(/\{[\s\S]*\}/);
-      if (!m) throw new Error("No JSON in response");
-      applyAnalysisResult(JSON.parse(m[0]));
+      applyAnalysisResult(parseGenerateJson(data));
     } catch (e) {
-      if (e.message && e.message.indexOf("overloaded") !== -1) {
-        await new Promise(function (r) { setTimeout(r, 2000); });
-        try {
-          var res2 = await fetch("/api/generate", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              model: "claude-sonnet-4-6",
-              max_tokens: 1000,
-              messages: [{ role: "user", content: prompt }],
-            }),
-          });
-          var data2 = await res2.json();
-          if (!data2.content) throw new Error(typeof data2.error === "object" ? JSON.stringify(data2) : (data2.error || JSON.stringify(data2)));
-          var raw2 = data2.content.map(function (b) { return b.text || ""; }).join("");
-          var m2 = raw2.match(/\{[\s\S]*\}/);
-          if (!m2) throw new Error("No JSON in response");
-          applyAnalysisResult(JSON.parse(m2[0]));
-        } catch (e2) {
-          setError("Something went wrong — please try again in a moment.");
-        }
-      } else {
-        setError("Something went wrong — please try again in a moment.");
-      }
+      setError("Something went wrong — please try again in a moment.");
     } finally {
       setLoading(false);
     }
@@ -1342,9 +1244,6 @@ export default function Localization() {
 
   // ── STEP 3: Landscape + affinity sliders ──────────────────────────────
   if (step === 3) {
-    var dzSliderCSS =
-      "input[type=range].dz-slider{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:3px;outline:none;cursor:pointer;border:none} input[type=range].dz-slider::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:#d97706;border:2px solid white;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.18)} input[type=range].dz-slider::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:#d97706;border:2px solid white;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.18)} input[type=range].conscience-sl::-webkit-slider-thumb{background:#7c3aed} input[type=range].conscience-sl::-moz-range-thumb{background:#7c3aed} input[type=range].pull-sl::-webkit-slider-thumb{background:#0891b2} input[type=range].pull-sl::-moz-range-thumb{background:#0891b2}";
-
     if (!loading && skills.length === 0) {
       var track3 = getTrack(roleType);
       var affinityCopy = AFFINITY_LABELS[track3] || AFFINITY_LABELS.A;
@@ -1354,7 +1253,7 @@ export default function Localization() {
       return (
         <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font, padding: "32px 20px", boxSizing: "border-box" }}>
           <DZNavBar />
-          <style dangerouslySetInnerHTML={{ __html: dzSliderCSS }} />
+          <style dangerouslySetInnerHTML={{ __html: DZ_SLIDER_CSS_LOCALIZATION }} />
           <div style={containerInner}>
             <button type="button" onClick={function () { setStep(2); setError(null); }} style={backBtnStyle}>
               ← back
@@ -1528,7 +1427,7 @@ export default function Localization() {
     return (
       <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font, padding: "32px 20px", boxSizing: "border-box" }}>
         <DZNavBar />
-        <style dangerouslySetInnerHTML={{ __html: dzSliderCSS }} />
+        <style dangerouslySetInnerHTML={{ __html: DZ_SLIDER_CSS_LOCALIZATION }} />
         <div style={containerInner}>
           <button type="button" onClick={function () { setStep(2); setError(null); }} style={backBtnStyle}>
             ← back

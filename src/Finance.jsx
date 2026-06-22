@@ -1,4 +1,6 @@
 import { DZNavBar, DZFooter } from "./SharedComponents";
+import { snapToStop, getSeed, computeAffinity, calcDZ } from "./SharedScoring";
+import { DZ_SLIDER_CSS_FINANCE } from "./SharedStyles";
 import { useEffect, useRef, useState } from "react";
 import PDFButton from "./PDFButton";
 
@@ -729,29 +731,6 @@ export default function Finance(props) {
     { id: "big4_consulting", label: "Big 4 / Consulting", desc: "Deloitte, PwC, EY, KPMG, McKinsey, Bain, BCG" },
     { id: "fintech", label: "Fintech / AI-native Firm", desc: "Stripe, Robinhood, Plaid, and AI-first financial companies" },
   ];
-
-  function snapToStop(val) {
-    var stops = [0, 3, 5, 7, 10];
-    return stops.reduce(function (prev, curr) {
-      return Math.abs(curr - val) < Math.abs(prev - val) ? curr : prev;
-    });
-  }
-
-  function calcDZ(aff, aiR, mkt) {
-    return Math.min(100, Math.round(100 * Math.pow(aff / 10, 0.35) * Math.pow((10 - aiR) / 10, 0.40) * Math.pow(mkt / 10, 0.25)));
-  }
-
-  function computeAffinity(c, p, f) {
-    return Math.round((c * 0.35 + p * 0.35 + f * 0.3) * 10) / 10;
-  }
-
-  function getSeed(c, p) {
-    var raw = Math.round((c * 0.5 + p * 0.5) * 10) / 10;
-    var stops = [0, 3, 5, 7, 10];
-    return stops.reduce(function (prev, curr) {
-      return Math.abs(curr - raw) < Math.abs(prev - raw) ? curr : prev;
-    });
-  }
 
   function markAdjusted(id) {
     adjustedSkillsRef.current.add(id);
@@ -1934,8 +1913,7 @@ export default function Finance(props) {
         <DZNavBar />
         <style
           dangerouslySetInnerHTML={{
-            __html:
-              "input[type=range].dz-slider { -webkit-appearance: none; appearance: none; width: 100%; height: 6px; border-radius: 3px; outline: none; cursor: pointer; border: none; } input[type=range].dz-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 24px; height: 24px; border-radius: 50%; border: 3px solid white; cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,0.18); } input[type=range].conscience-sl::-webkit-slider-thumb { background: #7c3aed; } input[type=range].pull-sl::-webkit-slider-thumb { background: #0891b2; } input[type=range].fluency-sl::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%; background: #d97706; border: 2px solid white; cursor: pointer; }",
+            __html: DZ_SLIDER_CSS_FINANCE,
           }}
         />
         <div style={{ maxWidth: 680, margin: "0 auto" }}>

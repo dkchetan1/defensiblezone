@@ -1,4 +1,8 @@
 import { DZNavBar, DZFooter } from "./SharedComponents";
+import { snapToStop, getSeed, compAff, calcDZ } from "./SharedScoring";
+import { callGenerateWithRetry, parseGenerateJson } from "./SharedApi";
+import { UX_FLUENCY_SLIDER_CSS } from "./SharedStyles";
+import { skillsFromGeneratedList } from "./SharedSkillEditor";
 import { useState, useEffect, useRef } from "react";
 
 // ── UX ROLE TYPES ─────────────────────────────────────────────────────
@@ -490,29 +494,6 @@ var S = {
 
 var PROMO_CODES = ["DZFRIEND", "DZPREVIEW", "DZTEST"];
 var TEST_CODES = ["DZONE"];
-
-// ── MATH HELPERS ──────────────────────────────────────────────────────
-var AFFINITY_STOPS = [0, 3, 5, 7, 10];
-
-function snapToStop(val) {
-  return AFFINITY_STOPS.reduce(function (prev, curr) {
-    return Math.abs(curr - val) < Math.abs(prev - val) ? curr : prev;
-  });
-}
-
-function getSeed(c, p) {
-  var raw = (c + p) / 2;
-  return snapToStop(raw);
-}
-
-function compAff(conscience, pull, fluency) {
-  return Math.round((conscience * 0.35 + pull * 0.35 + fluency * 0.3) * 10) / 10;
-}
-
-function calcDZ(aff, aiR, mkt) {
-  var v = 100 * Math.pow(aff / 10, 0.35) * Math.pow((10 - aiR) / 10, 0.40) * Math.pow(mkt / 10, 0.25);
-  return Math.min(100, Math.round(v));
-}
 
 function dzScoreColor(score) {
   if (score < 40) return S.red;
@@ -1041,28 +1022,13 @@ export default function UX() {
       " level.\n\nReturn ONLY valid JSON:\n{\"landscape\":\"...\",\"skills\":[\"skill1\",\"skill2\",\"skill3\",\"skill4\",\"skill5\",\"skill6\",\"skill7\",\"skill8\"]}";
 
     try {
-      var res = await fetch("/api/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-6",
-          max_tokens: 1000,
-          messages: [{ role: "user", content: prompt }],
-        }),
+      var data = await callGenerateWithRetry({
+        model: "claude-sonnet-4-6",
+        max_tokens: 1000,
+        messages: [{ role: "user", content: prompt }],
       });
-      var data = await res.json();
-      if (!data.content) throw new Error(data.error || data.error_description || "API error");
-      var raw = data.content
-        .map(function (b) {
-          return b.text || "";
-        })
-        .join("");
-      var m = raw.match(/\{[\s\S]*\}/);
-      if (!m) throw new Error("No JSON in response");
-      var parsed = JSON.parse(m[0]);
-      var loaded = parsed.skills.map(function (text, i) {
-        return { id: "s" + i, text: text, editing: false };
-      });
+      var parsed = parseGenerateJson(data);
+      var loaded = skillsFromGeneratedList(parsed.skills);
       setLandscape(parsed.landscape);
       setSkills(loaded);
       setFluencies({});
@@ -1072,47 +1038,7 @@ export default function UX() {
       adjustedSkillsRef.current = new Set();
       setStep(3);
     } catch (e) {
-      if (e.message && e.message.indexOf("overloaded") !== -1) {
-        await new Promise(function (r) {
-          setTimeout(r, 2000);
-        });
-        try {
-          var res2 = await fetch("/api/generate", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              model: "claude-sonnet-4-6",
-              max_tokens: 1000,
-              messages: [{ role: "user", content: prompt }],
-            }),
-          });
-          var data2 = await res2.json();
-          if (!data2.content) throw new Error(data2.error || "API error");
-          var raw2 = data2.content
-            .map(function (b) {
-              return b.text || "";
-            })
-            .join("");
-          var m2 = raw2.match(/\{[\s\S]*\}/);
-          if (!m2) throw new Error("No JSON in response");
-          var parsed2 = JSON.parse(m2[0]);
-          var loaded2 = parsed2.skills.map(function (text, i) {
-            return { id: "s" + i, text: text, editing: false };
-          });
-          setLandscape(parsed2.landscape);
-          setSkills(loaded2);
-          setFluencies({});
-          setSkillConscience({});
-          setSkillPull({});
-          setAdjustedSkills(new Set());
-          adjustedSkillsRef.current = new Set();
-          setStep(3);
-        } catch (e2) {
-          setError("Something went wrong — please try again in a moment.");
-        }
-      } else {
-        setError("Something went wrong — please try again in a moment.");
-      }
+      setError("Something went wrong — please try again in a moment.");
     } finally {
       setLoading(false);
     }
@@ -1162,28 +1088,9 @@ export default function UX() {
       skillSummary +
       "\n\nFor each skill, return:\n- ai_replaceability: 1-10 (10 = AI is already doing this or will within 12 months; 1 = deeply human, irreplaceable)\n- market_demand: 1-10 (10 = extremely high market value right now for this UX role and seniority)\n\nBe honest and precise. Score for this exact profile — do not default to middle values.\n\nReturn ONLY valid JSON:\n{\"scores\":[{\"id\":\"s0\",\"name\":\"skill name\",\"ai_replaceability\":N,\"market_demand\":N},{...}]}";
 
-    try {
-      var res = await fetch("/api/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-6",
-          max_tokens: 800,
-          messages: [{ role: "user", content: prompt }],
-        }),
-      });
-      var data = await res.json();
-      if (!data.content) throw new Error(data.error || "API error");
-      var raw = data.content
-        .map(function (b) {
-          return b.text || "";
-        })
-        .join("");
-      var m = raw.match(/\{[\s\S]*\}/);
-      if (!m) throw new Error("No JSON in response");
-      var parsed = JSON.parse(m[0]);
+    function enrichUxScores(parsed) {
       if (!parsed.scores || !Array.isArray(parsed.scores)) throw new Error("No scores in response");
-      var enriched = parsed.scores.map(function (scored, i) {
+      return parsed.scores.map(function (scored, i) {
         var found =
           skills.find(function (s) {
             return s.id === scored.id;
@@ -1214,77 +1121,21 @@ export default function UX() {
           dz: dz,
         };
       });
+    }
+    try {
+      var data = await callGenerateWithRetry({
+        model: "claude-sonnet-4-6",
+        max_tokens: 800,
+        messages: [{ role: "user", content: prompt }],
+      });
+      var parsed = parseGenerateJson(data);
+      var enriched = enrichUxScores(parsed);
       var resultsPayload = { skills: enriched, profile: profile, landscape: landscape };
       setResults(resultsPayload);
       saveStateForReturn({ results: resultsPayload });
       setStep(4);
     } catch (e) {
-      if (e.message && e.message.indexOf("overloaded") !== -1) {
-        await new Promise(function (r) {
-          setTimeout(r, 2000);
-        });
-        try {
-          var res2 = await fetch("/api/generate", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              model: "claude-sonnet-4-6",
-              max_tokens: 800,
-              messages: [{ role: "user", content: prompt }],
-            }),
-          });
-          var data2 = await res2.json();
-          if (!data2.content) throw new Error(data2.error || "API error");
-          var raw2 = data2.content
-            .map(function (b) {
-              return b.text || "";
-            })
-            .join("");
-          var m2 = raw2.match(/\{[\s\S]*\}/);
-          if (!m2) throw new Error("No JSON in response");
-          var parsed2 = JSON.parse(m2[0]);
-          if (!parsed2.scores || !Array.isArray(parsed2.scores)) throw new Error("No scores in response");
-          var enriched2 = parsed2.scores.map(function (scored, i) {
-            var found2 =
-              skills.find(function (s) {
-                return s.id === scored.id;
-              }) ||
-              skills.find(function (s) {
-                return scored.name === s.text;
-              }) ||
-              skills.find(function (s) {
-                return scored.name && scored.name.indexOf(s.text.slice(0, 20)) !== -1;
-              });
-            var id2 = found2 ? found2.id : scored.id || "s" + i;
-            var fluencyVal2 = fluencies[id2] !== undefined ? fluencies[id2] : getSeed(conscience, pull);
-            var sc2 = skillConscience[id2] !== undefined ? skillConscience[id2] : conscience;
-            var sp2 = skillPull[id2] !== undefined ? skillPull[id2] : pull;
-            var aff2 = compAff(sc2, sp2, fluencyVal2);
-            var aiR2 = typeof scored.ai_replaceability === "number" ? scored.ai_replaceability : 5;
-            var mkt2 = typeof scored.market_demand === "number" ? scored.market_demand : 7;
-            var dz2 = calcDZ(aff2, aiR2, mkt2);
-            return {
-              id: id2,
-              text: found2 ? found2.text : scored.name,
-              conscience: sc2,
-              pull: sp2,
-              fluency: fluencyVal2,
-              affinity: aff2,
-              ai_replaceability: aiR2,
-              market_demand: mkt2,
-              dz: dz2,
-            };
-          });
-          var resultsPayload2 = { skills: enriched2, profile: profile, landscape: landscape };
-          setResults(resultsPayload2);
-          saveStateForReturn({ results: resultsPayload2 });
-          setStep(4);
-        } catch (e2) {
-          setError("Something went wrong — please try again in a moment.");
-        }
-      } else {
-        setError("Something went wrong — please try again in a moment.");
-      }
+      setError("Something went wrong — please try again in a moment.");
     } finally {
       setLoading(false);
     }
@@ -1333,58 +1184,15 @@ export default function UX() {
       '\n\nReturn ONLY valid JSON:\n{"recommendations":[{"id":"s0","phase":1,"phaseLabel":"Anchor","headline":"...","action":"...","why":"..."},{...}]}';
 
     try {
-      var res = await fetch("/api/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-6",
-          max_tokens: 2000,
-          messages: [{ role: "user", content: prompt }],
-        }),
+      var data = await callGenerateWithRetry({
+        model: "claude-sonnet-4-6",
+        max_tokens: 2000,
+        messages: [{ role: "user", content: prompt }],
       });
-      var data = await res.json();
-      if (!data.content) throw new Error(data.error || "API error");
-      var raw = data.content
-        .map(function (b) {
-          return b.text || "";
-        })
-        .join("");
-      var m = raw.match(/\{[\s\S]*\}/);
-      if (!m) throw new Error("No JSON in response");
-      var parsed = JSON.parse(m[0]);
+      var parsed = parseGenerateJson(data);
       setRecommendations(parsed);
     } catch (e) {
-      if (e.message && e.message.indexOf("overloaded") !== -1) {
-        await new Promise(function (r) {
-          setTimeout(r, 2000);
-        });
-        try {
-          var res2 = await fetch("/api/generate", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              model: "claude-sonnet-4-6",
-              max_tokens: 2000,
-              messages: [{ role: "user", content: prompt }],
-            }),
-          });
-          var data2 = await res2.json();
-          if (!data2.content) throw new Error(data2.error || "API error");
-          var raw2 = data2.content
-            .map(function (b) {
-              return b.text || "";
-            })
-            .join("");
-          var m2 = raw2.match(/\{[\s\S]*\}/);
-          if (!m2) throw new Error("No JSON in response");
-          var parsed2 = JSON.parse(m2[0]);
-          setRecommendations(parsed2);
-        } catch (e2) {
-          setRecsError("Something went wrong — please try again in a moment.");
-        }
-      } else {
-        setRecsError("Something went wrong — please try again in a moment.");
-      }
+      setRecsError("Something went wrong — please try again in a moment.");
     } finally {
       setRecsLoading(false);
     }
@@ -1415,9 +1223,7 @@ export default function UX() {
             ".ux-role-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}" +
             "@media(min-width:768px){.ux-role-grid{grid-template-columns:repeat(3,1fr)}}" +
             ".ux-company-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}" +
-            "input[type=range].ux-dz-slider{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:3px;outline:none;cursor:pointer;border:none}" +
-            "input[type=range].ux-dz-slider::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:#d97706;border:3px solid white;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.18)}" +
-            "input[type=range].ux-dz-slider::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:#d97706;border:3px solid white;cursor:pointer}",
+            UX_FLUENCY_SLIDER_CSS,
         }}
       />
 

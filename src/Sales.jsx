@@ -1,4 +1,8 @@
 import { useState, useEffect, useRef } from "react";
+import { snapToStop, getSeed, compAff, calcDZ } from "./SharedScoring";
+import { callGenerateWithRetry, parseGenerateJson } from "./SharedApi";
+import { DZ_SLIDER_CSS_STANDARD } from "./SharedStyles";
+import { createSkillEditorHandlers, skillsFromGeneratedList } from "./SharedSkillEditor";
 
 // ── SALES TYPES ─────────────────────────────────────────────────────
 var OFFER_FREE_SESSION = true;
@@ -140,31 +144,6 @@ var S = {
 var PROMO_CODES    = ["DZFRIEND","DZPREVIEW","DZTEST","DZSALESPRE"];
 var DISCOUNT_CODES = ["DZHALF","DZSALESHALF"];
 var TEST_CODES     = ["DZONE"];
-
-// ── MATH ────────────────────────────────────────────────────────────
-var AFFINITY_STOPS = [0, 3, 5, 7, 10];
-
-function snapToStop(val) {
-  return AFFINITY_STOPS.reduce(function(prev, curr) {
-    return Math.abs(curr - val) < Math.abs(prev - val) ? curr : prev;
-  });
-}
-
-function getSeed(c, p) {
-  var raw = Math.round((c * 0.5 + p * 0.5) * 10) / 10;
-  return AFFINITY_STOPS.reduce(function(prev, curr) {
-    return Math.abs(curr - raw) < Math.abs(prev - raw) ? curr : prev;
-  });
-}
-
-function compAff(conscience, pull, fluency) {
-  return Math.round((conscience * 0.35 + pull * 0.35 + fluency * 0.3) * 10) / 10;
-}
-
-function calcDZ(aff, aiR, mkt) {
-  var v = 100 * Math.pow(aff / 10, 0.35) * Math.pow((10 - aiR) / 10, 0.40) * Math.pow(mkt / 10, 0.25);
-  return Math.min(100, Math.round(v));
-}
 
 function dzScoreColor(score) {
   if (score < 40) return S.red;
@@ -750,27 +729,19 @@ export default function Sales({ reportMode }) {
     });
   }
 
-  function startEditing(id) {
-    setSkills(function (p) { return p.map(function (s) { return s.id === id ? Object.assign({}, s, { editing: true }) : s; }); });
-  }
-  function updateText(id, text) {
-    setSkills(function (p) { return p.map(function (s) { return s.id === id ? Object.assign({}, s, { text: text }) : s; }); });
-  }
-  function commitEdit(id) {
-    setSkills(function (p) { return p.map(function (s) { return s.id === id ? Object.assign({}, s, { editing: false }) : s; }); });
-  }
-  function removeSkill(id) {
-    setSkills(function (p) { return p.filter(function (s) { return s.id !== id; }); });
-    setFluencies(function (p) { var n = Object.assign({}, p); delete n[id]; return n; });
-    adjustedSkillsRef.current.delete(id);
-    setAdjustedSkills(new Set(adjustedSkillsRef.current));
-  }
+  var skillEditor = createSkillEditorHandlers({
+    setSkills: setSkills,
+    setFluencies: setFluencies,
+    setCustomSkill: setCustomSkill,
+    adjustedSkillsRef: adjustedSkillsRef,
+    setAdjustedSkills: setAdjustedSkills,
+  });
+  var startEditing = skillEditor.startEditing;
+  var updateText = skillEditor.updateText;
+  var commitEdit = skillEditor.commitEdit;
+  var removeSkill = skillEditor.removeSkill;
   function addSkill() {
-    var t = customSkill.trim();
-    if (!t) return;
-    var id = "s" + Date.now();
-    setSkills(function (p) { return p.concat([{ id: id, text: t, editing: false }]); });
-    setCustomSkill("");
+    skillEditor.addSkill(customSkill);
   }
 
   function resetAll() {
@@ -889,18 +860,9 @@ export default function Sales({ reportMode }) {
       (profile.industryVerticalLabel || "horizontal / various industries") +
       "\n\nWrite a 3–4 sentence 'AI Landscape' narrative for this seller. Be specific about how AI is affecting this exact role at this kind of company in this vertical. Name specific tools where relevant (Gong, Apollo, Clay, Outreach, Salesforce Einstein, etc.). Be direct, not alarmist. Speak in the second person ('You...').\n\nThen, identify 7–10 specific skills this seller likely uses. Be SPECIFIC to their role — do not produce generic 'communication' or 'negotiation' entries. A good skill is 'Multi-thread stakeholder mapping in 6–18 month enterprise cycles,' not 'Stakeholder management.'\n\nFor SDRs/BDRs: skills should be activity-oriented and outbound.\nFor Enterprise AEs: skills should center on complex deal mechanics.\nFor CSMs: skills should center on adoption, value realization, expansion.\nFor Sales Engineers: skills should be technical-presales focused.\nFor Managers (any track): include team-leadership skills.\n\nReturn ONLY valid JSON:\n{\"landscape\":\"...\",\"skills\":[\"...\",\"...\"]}";
     try {
-      var res = await fetch("/api/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 800, messages: [{ role: "user", content: prompt }] }),
-      });
-      var data = await res.json();
-      if (!data.content) throw new Error(data.error || data.error_description || "API error");
-      var raw = data.content.map(function (b) { return b.text || ""; }).join("");
-      var m = raw.match(/\{[\s\S]*\}/);
-      if (!m) throw new Error("No JSON in response");
-      var parsed = JSON.parse(m[0]);
-      var loaded = parsed.skills.map(function (text, i) { return { id: "s" + i, text: text, editing: false }; });
+      var data = await callGenerateWithRetry({ model: "claude-sonnet-4-6", max_tokens: 800, messages: [{ role: "user", content: prompt }] });
+      var parsed = parseGenerateJson(data);
+      var loaded = skillsFromGeneratedList(parsed.skills);
       setLandscape(parsed.landscape);
       setSkills(loaded);
       setFluencies({});
@@ -908,33 +870,7 @@ export default function Sales({ reportMode }) {
       adjustedSkillsRef.current = new Set();
       setStep(3);
     } catch (e) {
-      if (e.message && e.message.indexOf("overloaded") !== -1) {
-        await new Promise(function (r) { setTimeout(r, 2000); });
-        try {
-          var res2 = await fetch("/api/generate", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 800, messages: [{ role: "user", content: prompt }] }),
-          });
-          var data2 = await res2.json();
-          if (!data2.content) throw new Error(data2.error || "API error");
-          var raw2 = data2.content.map(function (b) { return b.text || ""; }).join("");
-          var m2 = raw2.match(/\{[\s\S]*\}/);
-          if (!m2) throw new Error("No JSON in response");
-          var parsed2 = JSON.parse(m2[0]);
-          var loaded2 = parsed2.skills.map(function (text, i) { return { id: "s" + i, text: text, editing: false }; });
-          setLandscape(parsed2.landscape);
-          setSkills(loaded2);
-          setFluencies({});
-          setAdjustedSkills(new Set());
-          adjustedSkillsRef.current = new Set();
-          setStep(3);
-        } catch (e2) {
-          setError("Something went wrong — please try again in a moment.");
-        }
-      } else {
-        setError("Something went wrong — please try again in a moment.");
-      }
+      setError("Something went wrong — please try again in a moment.");
     } finally {
       setLoading(false);
     }
@@ -968,20 +904,9 @@ export default function Sales({ reportMode }) {
       "\n\nSkills to score:\n" +
       skillLines +
       "\n\nFor each skill return:\n- ai_replaceability: 1-10 (10=AI doing this already, 1=deeply human)\n- market_demand: 1-10 (10=extremely high demand, 1=declining)\n\nSCORING GUARDRAILS:\n- Activity-based work (volume calls, sequences, list building) → high AI risk (7–10)\n- Outcome-based work (closing complex deals, expanding accounts) → lower AI risk (2–5)\n- Cycle complexity matters: $5K SMB sale is 90% AI-replaceable; 18-month $5M enterprise deal is 15%\n- Vertical specialization gives defensibility — adjust aiR down 1–2 points where domain knowledge matters\n- Manager-track skills: AI augments forecasting/coaching but cannot replace people leadership\n- AI-first companies: stable-to-rising demand. PLG sales-assist: declining. Enterprise AE: stable. SDR: declining.\n\nAlso return phase1_teaser: one specific Phase 1 action this seller can start this week (2–3 sentences, very specific to their role and vertical).\n\nBe honest. Do not default to middle values.\n\nReturn ONLY valid JSON:\n{\"scores\":[{\"id\":\"s0\",\"name\":\"skill name\",\"ai_replaceability\":N,\"market_demand\":N}],\"phase1_teaser\":\"...\"}";
-    try {
-      var res = await fetch("/api/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, messages: [{ role: "user", content: prompt }] }),
-      });
-      var data = await res.json();
-      if (!data.content) throw new Error(data.error || "API error");
-      var raw = data.content.map(function (b) { return b.text || ""; }).join("");
-      var m = raw.match(/\{[\s\S]*\}/);
-      if (!m) throw new Error("No JSON in response");
-      var parsed = JSON.parse(m[0]);
+    function enrichSalesScores(parsed) {
       if (!parsed.scores || !Array.isArray(parsed.scores)) throw new Error("No scores");
-      var enriched = parsed.scores.map(function (scored, i) {
+      return parsed.scores.map(function (scored, i) {
         var found =
           skills.find(function (s) { return s.id === scored.id; }) ||
           skills.find(function (s) { return scored.name === s.text; }) ||
@@ -1002,52 +927,15 @@ export default function Sales({ reportMode }) {
           dz: calcDZ(aff, aiR, mkt),
         };
       });
+    }
+    try {
+      var data = await callGenerateWithRetry({ model: "claude-sonnet-4-6", max_tokens: 1000, messages: [{ role: "user", content: prompt }] });
+      var parsed = parseGenerateJson(data);
+      var enriched = enrichSalesScores(parsed);
       setResults({ skills: enriched, profile: profile, landscape: landscape, phase1Teaser: parsed.phase1_teaser });
       setStep(4);
     } catch (e) {
-      if (e.message && e.message.indexOf("overloaded") !== -1) {
-        await new Promise(function (r) { setTimeout(r, 2000); });
-        try {
-          var res2 = await fetch("/api/generate", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, messages: [{ role: "user", content: prompt }] }),
-          });
-          var data2 = await res2.json();
-          if (!data2.content) throw new Error(data2.error || "API error");
-          var raw2 = data2.content.map(function (b) { return b.text || ""; }).join("");
-          var m2 = raw2.match(/\{[\s\S]*\}/);
-          if (!m2) throw new Error("No JSON");
-          var parsed2 = JSON.parse(m2[0]);
-          var enriched2 = parsed2.scores.map(function (scored, i) {
-            var found2 =
-              skills.find(function (s) { return s.id === scored.id; }) ||
-              skills.find(function (s) { return scored.name === s.text; }) ||
-              skills.find(function (s) { return scored.name && scored.name.indexOf(s.text.slice(0, 20)) !== -1; });
-            var id2 = found2 ? found2.id : scored.id || "s" + i;
-            var fluencyVal2 = fluencies[id2] !== undefined ? fluencies[id2] : getSeed(conscience, pull);
-            var aff2 = compAff(conscience, pull, fluencyVal2);
-            var aiR2 = typeof scored.ai_replaceability === "number" ? scored.ai_replaceability : 5;
-            var mkt2 = typeof scored.market_demand === "number" ? scored.market_demand : 7;
-            return {
-              id: id2,
-              text: found2 ? found2.text : scored.name,
-              name: found2 ? found2.text : scored.name,
-              fluency: fluencyVal2,
-              affinity: aff2,
-              ai_replaceability: aiR2,
-              market_demand: mkt2,
-              dz: calcDZ(aff2, aiR2, mkt2),
-            };
-          });
-          setResults({ skills: enriched2, profile: profile, landscape: landscape, phase1Teaser: parsed2.phase1_teaser });
-          setStep(4);
-        } catch (e2) {
-          setError("Something went wrong — please try again in a moment.");
-        }
-      } else {
-        setError("Something went wrong — please try again in a moment.");
-      }
+      setError("Something went wrong — please try again in a moment.");
     } finally {
       setLoading(false);
     }
@@ -1110,8 +998,6 @@ export default function Sales({ reportMode }) {
   var scoreStepBarPct = (4 / 6) * 100;
   var resultsStepBarPct = (5 / 6) * 100;
   var unlockStepBarPct = 100;
-  var dzSliderCSS =
-    "input[type=range].dz-slider{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:3px;outline:none;cursor:pointer;border:none} input[type=range].dz-slider::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;border-radius:50%;border:3px solid white;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.18)} input[type=range].dz-slider::-moz-range-thumb{width:24px;height:24px;border-radius:50%;border:3px solid white;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.18)} input[type=range].conscience-sl::-webkit-slider-thumb{background:#7c3aed} input[type=range].conscience-sl::-moz-range-thumb{background:#7c3aed} input[type=range].pull-sl::-webkit-slider-thumb{background:#0891b2} input[type=range].pull-sl::-moz-range-thumb{background:#0891b2} input[type=range].fluency-sl::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:#d97706;border:2px solid white;cursor:pointer} input[type=range].fluency-sl::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:#d97706;border:2px solid white;cursor:pointer}";
 
   var inputStyle = {
     width: "100%",
@@ -1485,7 +1371,7 @@ export default function Sales({ reportMode }) {
     return (
       <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font, padding: "40px 20px", boxSizing: "border-box" }}>
         <SalesNavBar />
-        <style dangerouslySetInnerHTML={{ __html: dzSliderCSS }} />
+        <style dangerouslySetInnerHTML={{ __html: DZ_SLIDER_CSS_STANDARD }} />
         <div style={{ maxWidth: 680, margin: "0 auto" }}>
           <div style={{ marginBottom: 28 }}>
             <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.1em", marginBottom: 10, fontWeight: 600 }}>STEP 4 OF 6 — CALIBRATE YOUR SKILLS</div>

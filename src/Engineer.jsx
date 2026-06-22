@@ -1,4 +1,8 @@
 import { DZNavBar, DZFooter } from "./SharedComponents";
+import { snapToStop, getSeed, compAff, calcDZ } from "./SharedScoring";
+import { callGenerateWithRetry, parseGenerateJson } from "./SharedApi";
+import { DZ_SLIDER_CSS_STANDARD, ProgressiveRevealStyles } from "./SharedStyles";
+import { createSkillEditorHandlers, SkillCountBadge, skillsFromGeneratedList } from "./SharedSkillEditor";
 import { useState, useEffect, useRef } from "react";
 import PDFButton from "./PDFButton";
 
@@ -94,26 +98,6 @@ var S = {
   serif:"'Playfair Display',Georgia,serif",
 };
 
-// ── MATH ───────────────────────────────────────────────────────────────
-var AFFINITY_STOPS = [0, 3, 5, 7, 10];
-function snapToStop(val) {
-  return AFFINITY_STOPS.reduce(function(prev, curr) {
-    return Math.abs(curr - val) < Math.abs(prev - val) ? curr : prev;
-  });
-}
-function getSeed(c, p) {
-  var raw = Math.round((c * 0.5 + p * 0.5) * 10) / 10;
-  return AFFINITY_STOPS.reduce(function(prev, curr) {
-    return Math.abs(curr - raw) < Math.abs(prev - raw) ? curr : prev;
-  });
-}
-function compAff(conscience, pull, fluency) {
-  return Math.round((conscience * 0.35 + pull * 0.35 + fluency * 0.3) * 10) / 10;
-}
-function calcDZ(aff, aiR, mkt) {
-  var v = 100 * Math.pow(aff / 10, 0.35) * Math.pow((10 - aiR) / 10, 0.40) * Math.pow(mkt / 10, 0.25);
-  return Math.min(100, Math.round(v));
-}
 function buildProfile(devType, devTypeOther, seniority, workContexts, companyType) {
   var dt = DEV_TYPES.find(function(d) { return d.id === devType; });
   var sl = SENIORITY_LEVELS.find(function(s) { return s.id === seniority; });
@@ -560,15 +544,16 @@ export default function Engineer() {
     setError(null); setTier(0); setPromoUsed(false); setPromoCode(""); setPromoError("");
   }
 
-  function startEditing(id) { setSkills(function(p) { return p.map(function(s) { return s.id===id ? Object.assign({},s,{editing:true}) : s; }); }); }
-  function updateText(id, text) { setSkills(function(p) { return p.map(function(s) { return s.id===id ? Object.assign({},s,{text:text}) : s; }); }); }
-  function commitEdit(id) { setSkills(function(p) { return p.map(function(s) { return s.id===id ? Object.assign({},s,{editing:false}) : s; }); }); }
-  function removeSkill(id) {
-    setSkills(function(p) { return p.filter(function(s) { return s.id!==id; }); });
-    setFluencies(function(p) { var n=Object.assign({},p); delete n[id]; return n; });
-    adjustedSkillsRef.current.delete(id);
-    setAdjustedSkills(new Set(adjustedSkillsRef.current));
-  }
+  var skillEditor = createSkillEditorHandlers({
+    setSkills: setSkills,
+    setFluencies: setFluencies,
+    adjustedSkillsRef: adjustedSkillsRef,
+    setAdjustedSkills: setAdjustedSkills,
+  });
+  var startEditing = skillEditor.startEditing;
+  var updateText = skillEditor.updateText;
+  var commitEdit = skillEditor.commitEdit;
+  var removeSkill = skillEditor.removeSkill;
 
   var canProceed = devType !== "" && seniority !== "" && workContexts.length > 0 && (devType !== "other" || devTypeOther.trim() !== "");
 
@@ -581,17 +566,9 @@ export default function Engineer() {
     var sl = SENIORITY_LEVELS.find(function(s) { return s.id === seniority; });
     var prompt = "You are a senior engineering career strategist specializing in AI labor market analysis for software engineers.\n\nENGINEER PROFILE:\n- Type: " + profile.devLabel + " Engineer\n- Seniority: " + profile.seniorityLabel + " — " + (sl ? sl.note : "") + "\n- Work context: " + wcStr + "\n- Company: " + (profile.companyLabel || "not specified") + "\n\nTask 1 — LANDSCAPE SNAPSHOT: Write 2-3 precise sentences about the AI threat to this exact engineer profile RIGHT NOW (April 2026). Name specific tools (GitHub Copilot, Cursor, Devin, Claude, Gemini Code Assist), specific tasks being automated, and where the real exposure is at this seniority level doing this work. Do not write generic AI commentary — be specific to this combination.\n\nTask 2 — SKILL SUGGESTIONS: Generate exactly 8 skills that are the most strategically important for a " + profile.seniorityLabel + " " + profile.devLabel + " Engineer working on " + wcStr + " to assess for AI defensibility right now. Be precise — not 'coding' but 'designing distributed transaction systems across eventual consistency boundaries'. Include a realistic mix: some that are defensible and some genuinely at risk. Weight toward skills that actually differentiate at the " + profile.seniorityLabel + " level, not junior-level skills.\n\nReturn ONLY valid JSON:\n{\"landscape\":\"...\",\"skills\":[\"skill1\",\"skill2\",\"skill3\",\"skill4\",\"skill5\",\"skill6\",\"skill7\",\"skill8\"]}";
     try {
-      var res = await fetch("/api/generate", {
-        method:"POST", headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({ model:"claude-sonnet-4-6", max_tokens:1000, messages:[{role:"user",content:prompt}] })
-      });
-      var data = await res.json();
-      if (!data.content) throw new Error(data.error || data.error_description || "API error: " + JSON.stringify(data));
-      var raw = data.content.map(function(b) { return b.text||""; }).join("");
-      var m = raw.match(/\{[\s\S]*\}/);
-      if (!m) throw new Error("No JSON in response");
-      var parsed = JSON.parse(m[0]);
-      var loaded = parsed.skills.map(function(text, i) { return {id:"s"+i,text:text,editing:false}; });
+      var data = await callGenerateWithRetry({ model:"claude-sonnet-4-6", max_tokens:1000, messages:[{role:"user",content:prompt}] });
+      var parsed = parseGenerateJson(data);
+      var loaded = skillsFromGeneratedList(parsed.skills);
       setLandscape(parsed.landscape);
       setSkills(loaded);
       setFluencies({});
@@ -599,25 +576,7 @@ export default function Engineer() {
       adjustedSkillsRef.current = new Set();
       setStep(1);
     } catch(e) {
-      if (e.message && e.message.indexOf("overloaded") !== -1) {
-        await new Promise(function(r) { setTimeout(r, 2000); });
-        try {
-          var res2 = await fetch("/api/generate", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ model:"claude-sonnet-4-6", max_tokens:1000, messages:[{role:"user",content:prompt}] }) });
-          var data2 = await res2.json();
-          if (!data2.content) throw new Error(typeof data2.error === "object" ? JSON.stringify(data2) : (data2.error || JSON.stringify(data2)));
-          var raw2 = data2.content.map(function(b) { return b.text||""; }).join("");
-          var m2 = raw2.match(/\{[\s\S]*\}/);
-          if (!m2) throw new Error("No JSON in response");
-          var parsed2 = JSON.parse(m2[0]);
-          var loaded2 = parsed2.skills.map(function(text, i) { return {id:"s"+i,text:text,editing:false}; });
-          setLandscape(parsed2.landscape);
-          setSkills(loaded2);
-          setFluencies({});
-          setAdjustedSkills(new Set());
-          adjustedSkillsRef.current = new Set();
-          setStep(1);
-        } catch(e2) { setError("Something went wrong — please try again in a moment."); }
-      } else { setError("Something went wrong — please try again in a moment."); }
+      setError("Something went wrong — please try again in a moment.");
     }
     finally { setLoading(false); }
   }
@@ -719,18 +678,8 @@ export default function Engineer() {
       return '"'+s.text+'": conscience='+conscience+'/10, pull='+pull+'/10, fluency='+fluencyVal+'/10, composite='+w+'/10';
     }).join("\n");
     var prompt = "You are a senior engineering career strategist and AI labor market analyst.\n\nENGINEER PROFILE:\n- Type: " + profile.devLabel + " Engineer\n- Seniority: " + profile.seniorityLabel + " — " + (sl ? sl.note : "") + "\n- Work context: " + wcStr + "\n- Company: " + (profile.companyLabel||"not specified") + "\n\nSKILLS:\n" + skillList + "\n\nAFFINITY SCORES:\n" + affinityList + "\n\nScore each skill:\n\nai_replaceability (0-10) — calibrated to THIS specific profile:\n0-2: Requires sustained judgment, cross-system context, or org relationships that take years to build. AI cannot approximate.\n3-4: AI accelerates this substantially but the judgment, architecture decisions, or oversight still requires this seniority level.\n5-6: AI handles most execution. The engineer adds framing, edge case handling, and quality judgment.\n7-8: AI does this adequately today for this role. The engineer is reviewing, not creating.\n9-10: A junior prompt engineer outperforms this person's contribution on this skill right now.\n\nCRITICAL: A " + profile.seniorityLabel + " engineer doing " + wcStr + " should NOT have the same scores as a junior CRUD developer. Calibrate to seniority and work context. Staff-level system design, compliance judgment, and cross-team technical leadership should score 2-4 max.\n\nmarket_demand (0-10) — for " + profile.seniorityLabel + " " + profile.devLabel + " engineers at " + (profile.companyLabel||"this company type") + ":\n0-2: Declining or commoditized\n3-4: Steady\n5-6: Growing, competitive\n7-8: High demand, premium comp\n9-10: Critical shortage, top-of-market\n\ninterface_span: true ONLY if skill requires fluency in 2+ distinct professional disciplines simultaneously (eng + security compliance, eng + ML research, eng + product strategy, eng + hardware).\n\nrationale: one precise sentence calibrated to this specific profile. Explain the replaceability score given this person's seniority and work context.\n\nBENCHMARK vs other " + profile.seniorityLabel + " " + profile.devLabel + " engineers:\n- percentile: 0-100 AI defensibility\n- summary: one sentence\n- insights: 2-3 strategic observations specific to this profile\n\nReturn ONLY valid JSON:\n{\"skills\":[{\"name\":\"exact skill text\",\"ai_replaceability\":5,\"market_demand\":7,\"interface_span\":false,\"rationale\":\"one sentence\"}],\"benchmark\":{\"percentile\":65,\"summary\":\"...\",\"insights\":[\"...\",\"...\"]}}";
-    try {
-      var res = await fetch("/api/generate", {
-        method:"POST", headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({ model:"claude-sonnet-4-6", max_tokens:2000, messages:[{role:"user",content:prompt}] })
-      });
-      var data = await res.json();
-      if (!data.content) throw new Error(data.error || data.error_description || "API error: " + JSON.stringify(data));
-      var raw = data.content.map(function(b) { return b.text||""; }).join("");
-      var m = raw.match(/\{[\s\S]*\}/);
-      if (!m) throw new Error("No JSON in response");
-      var parsed = JSON.parse(m[0]);
-      var enriched = parsed.skills.map(function(skill, i) {
+    function enrichScoredSkills(parsed) {
+      return parsed.skills.map(function(skill, i) {
         var found = skills.find(function(s) { return s.text===skill.name; }) || skills.find(function(s) { return skill.name.indexOf(s.text.slice(0,20))!==-1; });
         var id = found ? found.id : ("s" + i);
         var fluencyVal = found && fluencies[id] !== undefined ? fluencies[id] : getSeed(conscience, pull);
@@ -738,6 +687,11 @@ export default function Engineer() {
         var dz  = calcDZ(aff, skill.ai_replaceability, skill.market_demand);
         return Object.assign({}, skill, { id: id, naturalAffinity:aff, investment:fluencyVal, affinity:aff, dz:dz });
       });
+    }
+    try {
+      var data = await callGenerateWithRetry({ model:"claude-sonnet-4-6", max_tokens:2000, messages:[{role:"user",content:prompt}] });
+      var parsed = parseGenerateJson(data);
+      var enriched = enrichScoredSkills(parsed);
       setBenchmark(parsed.benchmark);
       setResults(enriched);
       setStep(4);
@@ -750,37 +704,7 @@ export default function Engineer() {
       } catch (_e) {}
       fetchRecommendations(enriched);
     } catch(e) {
-      if (e.message && e.message.indexOf("overloaded") !== -1) {
-        await new Promise(function(r) { setTimeout(r, 2000); });
-        try {
-          var res2 = await fetch("/api/generate", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ model:"claude-sonnet-4-6", max_tokens:2000, messages:[{role:"user",content:prompt}] }) });
-          var data2 = await res2.json();
-          if (!data2.content) throw new Error(typeof data2.error === "object" ? JSON.stringify(data2) : (data2.error || JSON.stringify(data2)));
-          var raw2 = data2.content.map(function(b) { return b.text||""; }).join("");
-          var m2 = raw2.match(/\{[\s\S]*\}/);
-          if (!m2) throw new Error("No JSON in response");
-          var parsed2 = JSON.parse(m2[0]);
-          var enriched2 = parsed2.skills.map(function(skill, i) {
-            var found2 = skills.find(function(s) { return s.text===skill.name; }) || skills.find(function(s) { return skill.name.indexOf(s.text.slice(0,20))!==-1; });
-            var id2 = found2 ? found2.id : ("s" + i);
-            var fluencyVal2 = found2 && fluencies[id2] !== undefined ? fluencies[id2] : getSeed(conscience, pull);
-            var aff2 = compAff(conscience, pull, fluencyVal2);
-            var dz2  = calcDZ(aff2, skill.ai_replaceability, skill.market_demand);
-            return Object.assign({}, skill, { id: id2, naturalAffinity:aff2, investment:fluencyVal2, affinity:aff2, dz:dz2 });
-          });
-          setBenchmark(parsed2.benchmark);
-          setResults(enriched2);
-          setStep(4);
-          try {
-            localStorage.setItem("dz_saved_report_engineer", JSON.stringify({
-              step: 3, devType, gateEmail, seniority, workContexts, customContexts,
-              companyType, skills, conscience, pull, fluencies,
-              benchmark: parsed2.benchmark, results: enriched2
-            }));
-          } catch (_e) {}
-          fetchRecommendations(enriched2);
-        } catch(e2) { setError("Analysis failed — please try again in a moment."); }
-      } else { setError("Analysis failed — please try again in a moment."); }
+      setError("Analysis failed — please try again in a moment.");
     }
     finally { setLoading(false); }
   }
@@ -854,7 +778,7 @@ export default function Engineer() {
     return (
      <div style={{background:S.bg,minHeight:"100vh",fontFamily:S.font,padding:"40px 20px"}}>
   <DZNavBar />
-  <style dangerouslySetInnerHTML={{__html:"@keyframes fadeSlide{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}} .reveal{animation:fadeSlide 0.25s ease-out both;}"}} />
+  <ProgressiveRevealStyles />
   <div style={{maxWidth:740,margin:"0 auto"}}>
 
           <div style={{marginBottom:32}}>
@@ -1014,7 +938,7 @@ export default function Engineer() {
           <Card style={{marginBottom:14}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:6}}>
               <Label style={{marginBottom:0}}>YOUR SKILLS TO ASSESS</Label>
-              <div style={{fontFamily:S.mono,fontSize:12,color:skills.length>=8?S.red:S.dim,fontWeight:700}}>{skills.length} / 8</div>
+              <SkillCountBadge count={skills.length} tokens={S} />
             </div>
             <p style={{color:S.muted,fontSize:16,margin:"0 0 16px",lineHeight:1.6}}>
               Generated for your exact profile. <strong style={{color:S.text}}>Edit any skill to be more specific</strong> — "React perf optimization for 50M MAU" scores better than "React".
@@ -1063,11 +987,10 @@ export default function Engineer() {
     var affinityStops = [0, 3, 5, 7, 10];
     var conscienceLabelTexts = ["Move on easily","Mildly bothered","Somewhat unsettled","Want to fix it","Can't let it go"];
     var pullLabelTexts = ["Almost never","Occasionally","Sometimes","Regularly","Constantly"];
-    var dzSliderCSS = "input[type=range].dz-slider{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:3px;outline:none;cursor:pointer;border:none} input[type=range].dz-slider::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;border-radius:50%;border:3px solid white;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.18)} input[type=range].dz-slider::-moz-range-thumb{width:24px;height:24px;border-radius:50%;border:3px solid white;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.18)} input[type=range].conscience-sl::-webkit-slider-thumb{background:#7c3aed} input[type=range].conscience-sl::-moz-range-thumb{background:#7c3aed} input[type=range].pull-sl::-webkit-slider-thumb{background:#0891b2} input[type=range].pull-sl::-moz-range-thumb{background:#0891b2} input[type=range].fluency-sl::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:#d97706;border:2px solid white;cursor:pointer} input[type=range].fluency-sl::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:#d97706;border:2px solid white;cursor:pointer}";
     return (
       <div style={{background:S.bg,minHeight:"100vh",fontFamily:S.font,padding:"32px 20px"}}>
         <DZNavBar />
-        <style dangerouslySetInnerHTML={{__html:dzSliderCSS}} />
+        <style dangerouslySetInnerHTML={{__html:DZ_SLIDER_CSS_STANDARD}} />
         <div style={{maxWidth:680,margin:"0 auto"}}>
           <div style={{marginBottom:24}}>
             <div style={{fontFamily:S.mono,fontSize:12,color:S.purple,letterSpacing:"0.1em",marginBottom:8,fontWeight:600}}>STEP 2 OF 2 · AFFINITY</div>
