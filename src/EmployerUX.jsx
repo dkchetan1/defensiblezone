@@ -1,5 +1,6 @@
 import { DZNavBar, DZFooter } from "./SharedComponents";
 import { useState, useEffect, useRef } from "react";
+import { isEmployerAccessGranted } from "./EmployerEdition.js";
 
 // ── UX ROLE TYPES ─────────────────────────────────────────────────────
 var UX_ROLE_TYPES = [
@@ -836,7 +837,7 @@ export default function EmployerUX() {
 
   useEffect(
     function () {
-      if (step === 5 && (tier >= 2 || promoUsed)) {
+      if (step === 5 && (tier >= 2 || promoUsed || isEmployerAccessGranted())) {
         setStep(6);
       }
     },
@@ -846,7 +847,7 @@ export default function EmployerUX() {
   useEffect(
     function () {
       if (step !== 6) return;
-      if (!(tier >= 2 || promoUsed)) return;
+      if (!(tier >= 2 || promoUsed || isEmployerAccessGranted())) return;
       if (!results) return;
       if (recommendations || recsLoading) return;
       fetchRecommendations();
@@ -910,7 +911,7 @@ export default function EmployerUX() {
 
   useEffect(
     function () {
-      if (!recommendations || tier < 2) return;
+      if (!recommendations || (tier < 2 && !isEmployerAccessGranted())) return;
       if (!results) return;
       if (paidEmailSentRef.current) return;
       if (!gateEmail.trim()) return;
@@ -2776,7 +2777,7 @@ export default function EmployerUX() {
             </div>
           ) : null}
 
-          {gateVerified && step === 6 && (tier >= 2 || promoUsed) && results ? (
+          {gateVerified && step === 6 && (tier >= 2 || promoUsed || isEmployerAccessGranted()) && results ? (
             (function () {
               if (!recommendations && recsLoading) {
                 return (

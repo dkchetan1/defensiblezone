@@ -1,6 +1,7 @@
 import { DZNavBar, DZFooter } from "./SharedComponents";
 import { useEffect, useRef, useState } from "react";
 import PDFButton from "./PDFButton";
+import { isEmployerAccessGranted } from "./EmployerEdition.js";
 
 // ── DATA CONSTANTS ──────────────────────────────────────────────────────
 var FINANCE_SECTORS = [
@@ -1060,13 +1061,13 @@ export default function EmployerFinance(props) {
   }
 
   useEffect(function () {
-    if (results && (tier >= 2 || promoUsed) && recommendations === null && !recsLoading) {
+    if (results && (tier >= 2 || promoUsed || isEmployerAccessGranted()) && recommendations === null && !recsLoading) {
       fetchRecommendations(results.skills, results.overallDZ);
     }
   }, [results, tier, promoUsed]); // eslint-disable-line react-hooks/exhaustive-deps -- intentional gating deps
 
   useEffect(function() {
-    if (!recommendations || tier < 2) return;
+    if (!recommendations || (tier < 2 && !isEmployerAccessGranted())) return;
     if (!results) return;
     if (!gateEmail || !gateEmail.trim()) return;
     if (paidEmailSentRef.current) return;
@@ -1562,7 +1563,7 @@ export default function EmployerFinance(props) {
                   Pay $1.00 to Unlock
                 </button>
               </div>
-            ) : tier === 0 && !promoUsed ? (
+            ) : tier === 0 && !promoUsed && !isEmployerAccessGranted() ? (
               (function () {
                 var recs = Array.isArray(recommendations) ? recommendations : [];
                 var first = recs[0];
@@ -1806,7 +1807,7 @@ export default function EmployerFinance(props) {
                   );
                 })}
 
-                {tier >= 3 || promoUsed ? (
+                {tier >= 3 || promoUsed || isEmployerAccessGranted() ? (
                   <div className="no-print" style={{ marginTop: 12 }}>
                     <PDFButton contentId="dz-finance-report" />
                   </div>
