@@ -1,6 +1,5 @@
 import { DZNavBar, DZFooter } from "./SharedComponents";
 import { useState, useEffect, useRef } from "react";
-import { isEmployerAccessGranted } from "./EmployerEdition.js";
 
 // ── PM TYPES ────────────────────────────────────────────────────────
 var PM_TYPES = [
@@ -440,7 +439,7 @@ export default function ProductManager() {
 
   useEffect(
     function () {
-      if (step === 5 && (tier >= 2 || promoUsed || isEmployerAccessGranted())) {
+      if (step === 5 && (tier >= 2 || promoUsed)) {
         setStep(6);
       }
     },
@@ -450,7 +449,7 @@ export default function ProductManager() {
   useEffect(
     function () {
       if (step !== 6) return;
-      if (!(tier >= 2 || promoUsed || isEmployerAccessGranted())) return;
+      if (!(tier >= 2 || promoUsed)) return;
       if (!results || !results.skills || results.skills.length === 0) return;
       if (recommendations || recsLoading) return;
       fetchRecommendations();
@@ -664,7 +663,7 @@ export default function ProductManager() {
 
   useEffect(
     function () {
-      if (!recommendations || (tier < 2 && !isEmployerAccessGranted())) return;
+      if (!recommendations || tier < 2) return;
       if (!results) return;
       if (paidEmailSentRef.current) return;
       if (!gateEmail.trim()) return;
@@ -2477,7 +2476,7 @@ export default function ProductManager() {
   }
 
   // ── STEP 5: Payment ──────────────────────────────────────────────────
-  if (step === 5 && tier < 2 && !promoUsed && !isEmployerAccessGranted()) {
+  if (step === 5 && tier < 2 && !promoUsed) {
     var unlockPriceLabel = discountApplied ? "$39.50" : "$79";
     return (
       <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font, padding: "40px 20px", boxSizing: "border-box" }}>
@@ -2626,7 +2625,7 @@ export default function ProductManager() {
   }
 
   // ── STEP 6: Unlocked 90-day Plan ─────────────────────────────────────
-  if (step === 6 && (tier >= 2 || promoUsed || isEmployerAccessGranted())) {
+  if (step === 6 && (tier >= 2 || promoUsed)) {
     if (recsError) {
       return (
         <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font, padding: "40px 20px", boxSizing: "border-box" }}>
