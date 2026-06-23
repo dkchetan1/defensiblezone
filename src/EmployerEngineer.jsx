@@ -236,6 +236,7 @@ export default function EmployerEngineer() {
   var [gateEmail, setGateEmail] = useState("");
   var [gateSent, setGateSent] = useState(false);
   var [gateVerified, setGateVerified] = useState(false);
+  var effectivelyVerified = gateVerified || isEmployerAccessGranted();
   var [gateError, setGateError] = useState("");
   var [gateLoading, setGateLoading] = useState(false);
   var [showResend, setShowResend] = useState(false);
@@ -279,8 +280,13 @@ export default function EmployerEngineer() {
             savedRaw = localStorage.getItem("dz_saved_report_engineer");
           } catch (e) {}
           if (savedRaw) {
+            var expired = false;
             try {
               var s = JSON.parse(savedRaw);
+              if (!s.savedAt || (Date.now() - s.savedAt) > 14 * 24 * 60 * 60 * 1000) {
+                localStorage.removeItem("dz_saved_report_engineer");
+                expired = true;
+              } else {
               if (s.devType) setDevType(s.devType);
               if (s.devTypeOther !== undefined) setDevTypeOther(s.devTypeOther);
               if (s.seniority) setSeniority(s.seniority);
@@ -296,10 +302,16 @@ export default function EmployerEngineer() {
               if (s.fluencies) setFluencies(s.fluencies);
               if (s.conscience !== undefined) setConscience(s.conscience);
               if (s.pull !== undefined) setPull(s.pull);
+              }
             } catch (e) {}
-            if (data.email) setGateEmail(data.email);
-            setGateVerified(true);
-            setStep(3);
+            if (expired) {
+              setStep(0);
+              setGateOnDifferentDevice(true);
+            } else {
+              if (data.email) setGateEmail(data.email);
+              setGateVerified(true);
+              setStep(3);
+            }
           } else {
             setStep(0);
             setGateOnDifferentDevice(true);
@@ -324,11 +336,11 @@ export default function EmployerEngineer() {
 
   useEffect(
     function () {
-      if (step === 3 && gateVerified === true && skills.length > 0) {
+      if (step === 3 && effectivelyVerified === true && skills.length > 0) {
         runAnalysis();
       }
     },
-    [step, gateVerified, skills]
+    [step, effectivelyVerified, skills]
   );
 
   useEffect(function() {
@@ -403,6 +415,10 @@ export default function EmployerEngineer() {
         var saved = localStorage.getItem("dz_saved_report_engineer");
         if (!saved) return;
         var s = JSON.parse(saved);
+        if (!s.savedAt || (Date.now() - s.savedAt) > 14 * 24 * 60 * 60 * 1000) {
+          localStorage.removeItem("dz_saved_report_engineer");
+          return;
+        }
         if (s.devType) setDevType(s.devType);
         if (s.seniority) setSeniority(s.seniority);
         if (s.workContexts) setWorkContexts(s.workContexts);
@@ -746,7 +762,8 @@ export default function EmployerEngineer() {
         localStorage.setItem("dz_saved_report_engineer", JSON.stringify({
           step: 3, devType, gateEmail, seniority, workContexts, customContexts: [],
           companyType, skills, conscience, pull, fluencies,
-          benchmark: parsed.benchmark, results: enriched
+          benchmark: parsed.benchmark, results: enriched,
+          savedAt: Date.now()
         }));
       } catch (_e) {}
       fetchRecommendations(enriched);
@@ -776,7 +793,8 @@ export default function EmployerEngineer() {
             localStorage.setItem("dz_saved_report_engineer", JSON.stringify({
               step: 3, devType, gateEmail, seniority, workContexts, customContexts,
               companyType, skills, conscience, pull, fluencies,
-              benchmark: parsed2.benchmark, results: enriched2
+              benchmark: parsed2.benchmark, results: enriched2,
+              savedAt: Date.now()
             }));
           } catch (_e) {}
           fetchRecommendations(enriched2);
@@ -1230,7 +1248,8 @@ export default function EmployerEngineer() {
                   skills,
                   conscience,
                   pull,
-                  fluencies
+                  fluencies,
+                  savedAt: Date.now()
                 }));
               } catch (_e) {}
               setStep(3);
@@ -1267,7 +1286,7 @@ export default function EmployerEngineer() {
       cursor: "pointer",
     };
 
-    if (gateVerified) {
+    if (effectivelyVerified) {
       return (
         <div style={fullScreenCenter}>
           <DZNavBar />
