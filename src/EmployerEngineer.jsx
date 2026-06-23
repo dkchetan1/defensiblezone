@@ -242,6 +242,10 @@ export default function EmployerEngineer() {
   var [showResend, setShowResend] = useState(false);
   var [gateOnDifferentDevice, setGateOnDifferentDevice] = useState(false);
   var [gateInputFocused, setGateInputFocused] = useState(false);
+  var [manualEmailSent, setManualEmailSent] = useState(false);
+  var [manualEmailInput, setManualEmailInput] = useState("");
+  var [manualEmailError, setManualEmailError] = useState("");
+  var [manualEmailLoading, setManualEmailLoading] = useState(false);
 
   function markAdjusted(skillId) {
     adjustedSkillsRef.current.add(skillId);
@@ -721,6 +725,42 @@ export default function EmployerEngineer() {
       setGateError("Something went wrong. Please try again.");
     } finally {
       setGateLoading(false);
+    }
+  }
+
+  async function handleManualEmailCopy() {
+    var trimmed = manualEmailInput.trim();
+    if (!isValidEmail(trimmed)) {
+      setManualEmailError("Please enter a valid email address.");
+      return;
+    }
+    setManualEmailError("");
+    setManualEmailLoading(true);
+    try {
+      var prof = buildProfile(devType, devTypeOther, seniority, workContexts, companyType);
+      var res = await fetch("/api/send-results-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: trimmed,
+          product: "engineer",
+          type: "free",
+          results: {
+            profile: { roleLabel: prof.devLabel + " Engineer", seniorityLabel: prof.seniorityLabel },
+            landscape: landscape,
+            skills: results,
+          },
+        }),
+      });
+      var data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Request failed");
+      setGateEmail(trimmed);
+      freeEmailSentRef.current = true;
+      setManualEmailSent(true);
+    } catch (e) {
+      setManualEmailError("Something went wrong. Please try again.");
+    } finally {
+      setManualEmailLoading(false);
     }
   }
 
@@ -2324,6 +2364,87 @@ export default function EmployerEngineer() {
               Scores are estimates based on publicly available research and LLM calibration — not a definitive evaluation of your skills or employability.
             </div>
           </div>
+
+          {manualEmailSent || !gateEmail || !gateEmail.trim() ? (
+            <div
+              className="no-print"
+              style={{
+                background: "#ffffff",
+                border: "1px solid #d0d7e8",
+                borderRadius: 14,
+                padding: "24px 22px",
+                marginBottom: 28,
+              }}
+            >
+              {manualEmailSent ? (
+                <div style={{ fontSize: 15, color: S.green, lineHeight: 1.6, textAlign: "center" }}>
+                  ✓ Sent — check your inbox for a copy of your results.
+                </div>
+              ) : (
+                <div>
+                  <div
+                    style={{
+                      fontFamily: S.serif,
+                      fontSize: 22,
+                      fontWeight: 600,
+                      color: S.text,
+                      marginBottom: 10,
+                      lineHeight: 1.25,
+                    }}
+                  >
+                    Want a copy of this?
+                  </div>
+                  <p style={{ fontSize: 15, color: "#6b7280", lineHeight: 1.65, margin: "0 0 18px" }}>
+                    This report only lives in this browser tab right now. If you&apos;d like it saved somewhere you can find later, enter your email below and
+                    we&apos;ll send you a copy — it&apos;s never shared with your employer.
+                  </p>
+                  <input
+                    type="email"
+                    placeholder="your@email.com"
+                    value={manualEmailInput}
+                    disabled={manualEmailLoading}
+                    onChange={function (e) {
+                      setManualEmailInput(e.target.value);
+                      if (manualEmailError) setManualEmailError("");
+                    }}
+                    style={{
+                      width: "100%",
+                      padding: "14px 16px",
+                      fontSize: 16,
+                      fontFamily: S.font,
+                      border: "1px solid " + S.border,
+                      borderRadius: 10,
+                      outline: "none",
+                      boxSizing: "border-box",
+                      background: "#ffffff",
+                      color: S.text,
+                    }}
+                  />
+                  {manualEmailError ? <div style={{ color: S.red, fontSize: 13, marginTop: 8 }}>{manualEmailError}</div> : null}
+                  <button
+                    type="button"
+                    onClick={handleManualEmailCopy}
+                    disabled={manualEmailLoading}
+                    style={{
+                      width: "100%",
+                      padding: 14,
+                      fontSize: 16,
+                      fontWeight: 600,
+                      fontFamily: S.font,
+                      background: manualEmailLoading ? "#e5a820" : S.gold,
+                      color: "#ffffff",
+                      border: "none",
+                      borderRadius: 10,
+                      cursor: manualEmailLoading ? "not-allowed" : "pointer",
+                      marginTop: 12,
+                    }}
+                  >
+                    {manualEmailLoading ? "Sending…" : "Email me a copy"}
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : null}
 
           <DZFooter />
         </div>
