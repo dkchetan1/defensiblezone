@@ -11,6 +11,11 @@ import SmallBusiness from "./SmallBusiness.jsx";
 import Sales from "./Sales.jsx";
 import Localization from "./Localization.jsx";
 import Employer from "./Employer.jsx";
+import EmployerEngineer from "./EmployerEngineer.jsx";
+import EmployerProductManager from "./EmployerProductManager.jsx";
+import EmployerSales from "./EmployerSales.jsx";
+import EmployerUX from "./EmployerUX.jsx";
+import EmployerFinance from "./EmployerFinance.jsx";
 
 export default function App() {
   var [path, setPath] = useState(window.location.pathname);
@@ -45,5 +50,10 @@ export default function App() {
   if (path === "/sales/report" || path === "/sales/report/") return <Sales reportMode={true} />;
   if (path === "/localization" || path === "/localization/") return <Localization />;
   if (path === "/employer" || path === "/employer/") return <Employer />;
+  if (path === "/employer/engineer" || path === "/employer/engineer/") return <EmployerEngineer />;
+  if (path === "/employer/productmanager" || path === "/employer/productmanager/") return <EmployerProductManager />;
+  if (path === "/employer/sales" || path === "/employer/sales/") return <EmployerSales />;
+  if (path === "/employer/ux" || path === "/employer/ux/") return <EmployerUX />;
+  if (path === "/employer/finance" || path === "/employer/finance/") return <EmployerFinance />;
   return <Landing />;
 }

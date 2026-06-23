@@ -16,9 +16,11 @@ var LS = {
 };
 
 var ROLES = [
-  { label: "Software Engineer", path: "/engineer" },
-  { label: "Product Manager", path: "/pm" },
-  { label: "Sales Professional", path: "/sales" },
+  { label: "Software Engineer", path: "/employer/engineer" },
+  { label: "Product Manager", path: "/employer/productmanager" },
+  { label: "Sales Professional", path: "/employer/sales" },
+  { label: "UX Professional", path: "/employer/ux" },
+  { label: "Finance Professional", path: "/employer/finance" },
 ];
 
 export default function Employer() {
