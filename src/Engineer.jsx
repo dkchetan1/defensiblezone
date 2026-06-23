@@ -1,7 +1,6 @@
 import { DZNavBar, DZFooter } from "./SharedComponents";
 import { useState, useEffect, useRef } from "react";
 import PDFButton from "./PDFButton";
-import { isEmployerAccessGranted } from "./EmployerEdition.js";
 
 // ── ENGINEER TYPES ─────────────────────────────────────────────────────
 var DEV_TYPES = [
@@ -469,14 +468,14 @@ export default function Engineer() {
   }, []);
 
   useEffect(function() {
-    if (results && (tier >= 2 || promoUsed || isEmployerAccessGranted()) && !recommendations &&
+    if (results && (tier >= 2 || promoUsed) && !recommendations &&
         !recsLoading && devType && seniority) {
       fetchRecommendations(results);
     }
   }, [results, tier, promoUsed, devType, seniority]);
 
   useEffect(function() {
-    if (!recommendations || (tier < 2 && !isEmployerAccessGranted())) return;
+    if (!recommendations || tier < 2) return;
     if (!results) return;
     if (!gateEmail || !gateEmail.trim()) return;
     if (paidEmailSentRef.current) return;
@@ -1963,8 +1962,8 @@ export default function Engineer() {
 
                 var hasPhases = groupedByPhase.length > 1;
 
-                var showAllRecs = tier >= 2 || promoUsed || isEmployerAccessGranted();
-                var showUpsell = tier === 0 && !promoUsed && !isEmployerAccessGranted();
+                var showAllRecs = tier >= 2 || promoUsed;
+                var showUpsell = tier === 0 && !promoUsed;
 
                 var rec59Url = (testModeApplied ? "https://buy.stripe.com/00weVd9Rg4YX1H7bc2dQQ0f" : "https://buy.stripe.com/6oU28rbZo9fd85vdkadQQ0e") + (discountApplied ? "?prefilled_promo_code=DZHALF" : "");
 
@@ -2102,7 +2101,7 @@ export default function Engineer() {
                       })}
                     </div>
 
-                    {tier >= 2 || promoUsed || isEmployerAccessGranted() ? (
+                    {tier >= 2 || promoUsed ? (
                       <div style={{ marginTop: 20, marginBottom: 4, textAlign: "center" }} className="no-print">
                         <PDFButton contentId="dz-engineer-report" label="Save as PDF" />
                       </div>
