@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from "react";
-import { isEmployerAccessGranted } from "./EmployerEdition.js";
 
 // ── SALES TYPES ─────────────────────────────────────────────────────
 var OFFER_FREE_SESSION = true;
@@ -555,7 +554,7 @@ export default function Sales({ reportMode }) {
 
   useEffect(
     function () {
-      if (step === 5 && (tier >= 2 || promoUsed || isEmployerAccessGranted())) {
+      if (step === 5 && (tier >= 2 || promoUsed)) {
         setStep(6);
       }
     },
@@ -565,7 +564,7 @@ export default function Sales({ reportMode }) {
   useEffect(
     function () {
       if (step !== 6) return;
-      if (!(tier >= 2 || promoUsed || isEmployerAccessGranted())) return;
+      if (!(tier >= 2 || promoUsed)) return;
       if (!results) return;
       if (recommendations || recsLoading) return;
       fetchRecommendations();
@@ -698,7 +697,7 @@ export default function Sales({ reportMode }) {
 
   useEffect(
     function () {
-      if (!recommendations || (tier < 2 && !isEmployerAccessGranted())) return;
+      if (!recommendations || tier < 2) return;
       if (!results) return;
       if (paidEmailSentRef.current) return;
       if (!gateEmail.trim()) return;
@@ -1810,7 +1809,7 @@ export default function Sales({ reportMode }) {
   }
 
   // ── STEP 5: PAYWALL ──────────────────────────────────────────────────
-  if (step === 5 && tier < 2 && !promoUsed && !isEmployerAccessGranted()) {
+  if (step === 5 && tier < 2 && !promoUsed) {
     var unlockPrice5 = discountApplied ? "$39.50" : "$79";
     return (
       <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font, padding: "40px 20px", boxSizing: "border-box" }}>
@@ -1950,7 +1949,7 @@ export default function Sales({ reportMode }) {
   }
 
   // ── STEP 6: 90-DAY PLAN ──────────────────────────────────────────────
-  if (step === 6 && (tier >= 2 || promoUsed || isEmployerAccessGranted())) {
+  if (step === 6 && (tier >= 2 || promoUsed)) {
     var rawRecs6 = recommendations && Array.isArray(recommendations.recommendations) ? recommendations.recommendations.slice() : [];
     var PHASE_HEADERS_6 = [
       { phase: 1, label: "PHASE 1: WEEKS 1–4 — START NOW" },
