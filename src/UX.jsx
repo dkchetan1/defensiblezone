@@ -789,9 +789,12 @@ export default function UX() {
         if (data && data.valid === true) {
           if (data.email) setGateEmail(data.email);
           var restored = restoreSavedReport();
-          setGateVerified(true);
           setGateLoading(false);
-          if (!restored) {
+          if (restored) {
+            setGateVerified(true);
+            setStep(4);
+          } else {
+            setStep(4);
             setGateOnDifferentDevice(true);
           }
           return;
@@ -801,9 +804,11 @@ export default function UX() {
         } else {
           setGateError("invalid");
         }
+        setStep(4);
         setGateLoading(false);
       } catch (e) {
         setGateError("invalid");
+        setStep(4);
         setGateLoading(false);
       }
     })();
@@ -950,7 +955,10 @@ export default function UX() {
       if (s.fluencies) setFluencies(s.fluencies);
       if (s.skillConscience) setSkillConscience(s.skillConscience);
       if (s.skillPull) setSkillPull(s.skillPull);
-      if (s.results) setResults(s.results);
+      if (s.results) {
+        setResults(s.results);
+        setStep(4);
+      }
       if (s.tier !== undefined) setTier(s.tier);
       if (s.promoUsed) setPromoUsed(s.promoUsed);
       if (s.discountApplied) setDiscountApplied(s.discountApplied);
