@@ -2166,7 +2166,7 @@ export default function EmployerEngineer() {
                       })}
                     </div>
 
-                    {tier >= 2 || promoUsed || isEmployerAccessGranted() ? (
+                    {(tier >= 2 || promoUsed) && !isEmployerAccessGranted() ? (
                       <div style={{ marginTop: 20, marginBottom: 4, textAlign: "center" }} className="no-print">
                         <PDFButton contentId="dz-engineer-report" label="Save as PDF" />
                       </div>
