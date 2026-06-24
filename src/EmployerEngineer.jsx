@@ -729,6 +729,10 @@ export default function EmployerEngineer() {
   }
 
   async function handleManualEmailCopy() {
+    if (!recommendations) {
+      setManualEmailError("Your full report is still being prepared — please try again in a few seconds.");
+      return;
+    }
     var trimmed = manualEmailInput.trim();
     if (!isValidEmail(trimmed)) {
       setManualEmailError("Please enter a valid email address.");
@@ -744,11 +748,12 @@ export default function EmployerEngineer() {
         body: JSON.stringify({
           email: trimmed,
           product: "engineer",
-          type: "free",
+          type: "paid",
           results: {
             profile: { roleLabel: prof.devLabel + " Engineer", seniorityLabel: prof.seniorityLabel },
             landscape: landscape,
             skills: results,
+            recommendations: recommendations,
           },
         }),
       });
