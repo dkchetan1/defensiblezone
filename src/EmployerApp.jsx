@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import Navbar from "./Navbar.jsx";
 import { grantEmployerAccess, isEmployerAccessGranted } from "./EmployerEdition.js";
 
 var LS = {
@@ -60,7 +59,13 @@ export default function EmployerApp() {
 
   return (
     <div style={{ background: LS.bg, minHeight: "100vh", fontFamily: LS.font, color: LS.text }}>
-      <Navbar />
+      <div style={{ background: "#FFFFFF", borderBottom: "1px solid " + LS.border, padding: "0 32px", position: "sticky", top: 0, zIndex: 100 }}>
+        <div style={{ maxWidth: 1160, margin: "0 auto", display: "flex", alignItems: "center", height: 60 }}>
+          <span style={{ fontFamily: LS.serif, fontSize: 18, fontWeight: 700, color: LS.text }}>
+            Defensible Zone™
+          </span>
+        </div>
+      </div>
 
       <div style={{ maxWidth: 520, margin: "0 auto", padding: "72px 24px 48px" }}>
         <div style={{ fontFamily: LS.mono, fontSize: 11, color: LS.muted, letterSpacing: "0.12em", marginBottom: 12, fontWeight: 600 }}>
