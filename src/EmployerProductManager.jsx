@@ -274,6 +274,7 @@ export default function EmployerProductManager() {
   var [gateEmail, setGateEmail]             = useState("");
   var [gateSent, setGateSent]               = useState(false);
   var [gateVerified, setGateVerified]       = useState(false);
+  var effectivelyVerified = gateVerified || isEmployerAccessGranted();
   var [gateError, setGateError]             = useState("");
   var [gateLoading, setGateLoading]         = useState(false);
   var [showResend, setShowResend]           = useState(false);
@@ -358,11 +359,11 @@ export default function EmployerProductManager() {
 
   useEffect(
     function () {
-      if (!gateVerified) return;
+      if (!effectivelyVerified) return;
       if (skills.length > 0 || loading) return;
       fetchLandscapeAndSkills();
     },
-    [gateVerified]
+    [effectivelyVerified]
   );
 
   function restoreSavedReport() {
@@ -1195,7 +1196,7 @@ export default function EmployerProductManager() {
     );
   }
 
-  if (loading) {
+  if (loading || (step === 1 && effectivelyVerified)) {
     var loadingStepLabel = step === 3 ? "STEP 4 OF 6 — CALCULATING YOUR ZONE" : "STEP 3 OF 6 — READING YOUR LANDSCAPE";
     var loadingBarPct = step === 3 ? scoreStepBarPct : skillStepBarPct;
     return (
@@ -1435,7 +1436,7 @@ export default function EmployerProductManager() {
     );
   }
 
-  if (step === 1) {
+  if (step === 1 && !effectivelyVerified) {
     var gateTryAgainBtn = {
       width: "100%",
       marginTop: 16,
