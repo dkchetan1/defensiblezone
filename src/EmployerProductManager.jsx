@@ -371,6 +371,10 @@ export default function EmployerProductManager() {
       var savedRaw = localStorage.getItem("dz_saved_report_pm");
       if (!savedRaw) return false;
       var s = JSON.parse(savedRaw);
+      if (!s.savedAt || Date.now() - s.savedAt > 14 * 24 * 60 * 60 * 1000) {
+        localStorage.removeItem("dz_saved_report_pm");
+        return false;
+      }
       if (s.pmType) setPmType(s.pmType);
       if (s.seniority) setSeniority(s.seniority);
       if (s.companyType) setCompanyType(s.companyType);
@@ -414,6 +418,7 @@ export default function EmployerProductManager() {
           tier: tier,
           promoUsed: promoUsed,
           discountApplied: discountApplied,
+          savedAt: Date.now(),
         })
       );
     } catch (_e) {}
@@ -479,19 +484,30 @@ export default function EmployerProductManager() {
             savedRaw = localStorage.getItem("dz_saved_report_pm");
           } catch (e) {}
           if (savedRaw) {
+            var expired = false;
             try {
               var s = JSON.parse(savedRaw);
-              if (s.pmType) setPmType(s.pmType);
-              if (s.seniority) setSeniority(s.seniority);
-              if (s.companyType) setCompanyType(s.companyType);
-              if (s.workContexts) setWorkContexts(s.workContexts);
-              if (s.conscience !== undefined) setConscience(s.conscience);
-              if (s.pull !== undefined) setPull(s.pull);
-              if (s.gateEmail) setGateEmail(s.gateEmail);
+              if (!s.savedAt || Date.now() - s.savedAt > 14 * 24 * 60 * 60 * 1000) {
+                expired = true;
+                localStorage.removeItem("dz_saved_report_pm");
+              } else {
+                if (s.pmType) setPmType(s.pmType);
+                if (s.seniority) setSeniority(s.seniority);
+                if (s.companyType) setCompanyType(s.companyType);
+                if (s.workContexts) setWorkContexts(s.workContexts);
+                if (s.conscience !== undefined) setConscience(s.conscience);
+                if (s.pull !== undefined) setPull(s.pull);
+                if (s.gateEmail) setGateEmail(s.gateEmail);
+              }
             } catch (e) {}
-            if (data.email) setGateEmail(data.email);
-            setGateVerified(true);
-            setStep(2);
+            if (expired) {
+              setStep(1);
+              setGateOnDifferentDevice(true);
+            } else {
+              if (data.email) setGateEmail(data.email);
+              setGateVerified(true);
+              setStep(2);
+            }
           } else {
             setStep(1);
             setGateOnDifferentDevice(true);
@@ -545,6 +561,7 @@ export default function EmployerProductManager() {
             conscience: conscience,
             pull: pull,
             gateEmail: gateEmail,
+            savedAt: Date.now(),
           })
         );
       } catch (_e) {}
