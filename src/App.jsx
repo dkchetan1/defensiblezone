@@ -10,7 +10,7 @@ import UX from "./UX.jsx";
 import SmallBusiness from "./SmallBusiness.jsx";
 import Sales from "./Sales.jsx";
 import Localization from "./Localization.jsx";
-import Employer from "./Employer.jsx";
+import EmployerApp from "./EmployerApp.jsx";
 import EmployerEngineer from "./EmployerEngineer.jsx";
 import EmployerProductManager from "./EmployerProductManager.jsx";
 import EmployerSales from "./EmployerSales.jsx";
@@ -49,7 +49,7 @@ export default function App() {
   if (path === "/sales" || path === "/sales/") return <Sales />;
   if (path === "/sales/report" || path === "/sales/report/") return <Sales reportMode={true} />;
   if (path === "/localization" || path === "/localization/") return <Localization />;
-  if (path === "/employer" || path === "/employer/") return <Employer />;
+  if (path === "/employer" || path === "/employer/") return <EmployerApp />;
   if (path === "/employer/engineer" || path === "/employer/engineer/") return <EmployerEngineer />;
   if (path === "/employer/productmanager" || path === "/employer/productmanager/") return <EmployerProductManager />;
   if (path === "/employer/sales" || path === "/employer/sales/") return <EmployerSales />;
