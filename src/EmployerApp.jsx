@@ -2499,9 +2499,6 @@ function buildPMProfile(pmType, seniority, workContexts, companyType) {
   };
 }
 
-    </button>
-  );
-}
 var PM_DISCLAIMER =
   "This tool is for professional reflection and educational purposes only. It does not constitute career advice or any professional assessment. Scores are estimates based on publicly available research and LLM calibration — not a definitive evaluation of your skills or employability.";
 
