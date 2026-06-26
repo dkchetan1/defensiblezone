@@ -2639,11 +2639,12 @@ function ProductManagerFlow() {
 
   useEffect(
     function () {
+      if (step === 0) return;
       if (!effectivelyVerified) return;
       if (skills.length > 0 || loading) return;
       fetchLandscapeAndSkills();
     },
-    [effectivelyVerified]
+    [effectivelyVerified, pmType, seniority, workContexts, step]
   );
 
 
@@ -3344,6 +3345,63 @@ function ProductManagerFlow() {
   var hiddenCount = PM_WORK_CONTEXTS.length - visibleCtx.length;
   var progressPct = ((step + 1) / 6) * 100;
 
+  if (error && (step === 1 || step === 2 || step === 3)) {
+    var errStepLabel = step === 3 ? "STEP 4 OF 6 — CALCULATING YOUR ZONE" : "STEP 3 OF 6 — READING YOUR LANDSCAPE";
+    var errBarPct = step === 3 ? scoreStepBarPct : skillStepBarPct;
+    return (
+      <div
+        style={{
+          background: S.bg,
+          minHeight: "100vh",
+          fontFamily: S.font,
+          padding: "40px 20px",
+          boxSizing: "border-box",
+        }}
+      >        <div style={{ maxWidth: 680, margin: "0 auto" }}>
+          <div style={{ marginBottom: 28 }}>
+            <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.1em", marginBottom: 10, fontWeight: 600 }}>
+              {errStepLabel}
+            </div>
+            <div style={{ height: 4, background: S.border, borderRadius: 2, overflow: "hidden" }}>
+              <div style={{ height: "100%", width: errBarPct + "%", background: S.accent, borderRadius: 2 }} />
+            </div>
+          </div>
+          <Card style={{ textAlign: "center" }}>
+            <p style={{ color: S.red, fontSize: 15, margin: "0 0 20px", lineHeight: 1.5 }}>{error}</p>
+            <PrimaryBtn
+              onClick={function () {
+                setError(null);
+                if (step === 3) fetchScores();
+                else fetchLandscapeAndSkills();
+              }}
+            >
+              TRY AGAIN
+            </PrimaryBtn>
+          </Card>
+          <button
+            type="button"
+            onClick={resetAll}
+            style={{
+              marginTop: 20,
+              background: "transparent",
+              border: "1px solid " + S.border,
+              color: S.dim,
+              borderRadius: 10,
+              padding: "10px 16px",
+              fontFamily: S.mono,
+              fontSize: 12,
+              fontWeight: 600,
+              cursor: "pointer",
+              letterSpacing: "0.06em",
+              width: "100%",
+            }}
+          >
+            START OVER
+          </button>        </div>
+      </div>
+    );
+  }
+
   if (loading || (step === 1 && effectivelyVerified)) {
     var loadingStepLabel = step === 3 ? "STEP 4 OF 6 — CALCULATING YOUR ZONE" : "STEP 3 OF 6 — READING YOUR LANDSCAPE";
     var loadingBarPct = step === 3 ? scoreStepBarPct : skillStepBarPct;
@@ -3409,63 +3467,6 @@ function ProductManagerFlow() {
               </div>
             </div>
           </div>        </div>
-      </div>
-    );
-  }
-
-  if (error && (step === 2 || step === 3)) {
-    var errStepLabel = step === 3 ? "STEP 4 OF 6 — CALCULATING YOUR ZONE" : "STEP 3 OF 6 — READING YOUR LANDSCAPE";
-    var errBarPct = step === 3 ? scoreStepBarPct : skillStepBarPct;
-    return (
-      <div
-        style={{
-          background: S.bg,
-          minHeight: "100vh",
-          fontFamily: S.font,
-          padding: "40px 20px",
-          boxSizing: "border-box",
-        }}
-      >        <div style={{ maxWidth: 680, margin: "0 auto" }}>
-          <div style={{ marginBottom: 28 }}>
-            <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.1em", marginBottom: 10, fontWeight: 600 }}>
-              {errStepLabel}
-            </div>
-            <div style={{ height: 4, background: S.border, borderRadius: 2, overflow: "hidden" }}>
-              <div style={{ height: "100%", width: errBarPct + "%", background: S.accent, borderRadius: 2 }} />
-            </div>
-          </div>
-          <Card style={{ textAlign: "center" }}>
-            <p style={{ color: S.red, fontSize: 15, margin: "0 0 20px", lineHeight: 1.5 }}>{error}</p>
-            <PrimaryBtn
-              onClick={function () {
-                setError(null);
-                if (step === 3) fetchScores();
-                else fetchLandscapeAndSkills();
-              }}
-            >
-              TRY AGAIN
-            </PrimaryBtn>
-          </Card>
-          <button
-            type="button"
-            onClick={resetAll}
-            style={{
-              marginTop: 20,
-              background: "transparent",
-              border: "1px solid " + S.border,
-              color: S.dim,
-              borderRadius: 10,
-              padding: "10px 16px",
-              fontFamily: S.mono,
-              fontSize: 12,
-              fontWeight: 600,
-              cursor: "pointer",
-              letterSpacing: "0.06em",
-              width: "100%",
-            }}
-          >
-            START OVER
-          </button>        </div>
       </div>
     );
   }
