@@ -461,6 +461,11 @@ function EngineerFlow() {
   var [manualEmailInput, setManualEmailInput] = useState("");
   var [manualEmailError, setManualEmailError] = useState("");
   var [manualEmailLoading, setManualEmailLoading] = useState(false);
+  var [resumeFileName, setResumeFileName] = useState("");
+  var [resumeText, setResumeText] = useState("");
+  var [resumeUploading, setResumeUploading] = useState(false);
+  var [resumeUploadError, setResumeUploadError] = useState("");
+  var resumeInputRef = useRef(null);
 
   function markAdjusted(skillId) {
     adjustedSkillsRef.current.add(skillId);
@@ -704,6 +709,98 @@ function EngineerFlow() {
   }
 
   var canProceed = devType !== "" && seniority !== "" && workContexts.length > 0 && (devType !== "other" || devTypeOther.trim() !== "");
+
+  function clearResumeInput() {
+    if (resumeInputRef.current) resumeInputRef.current.value = "";
+  }
+
+  function removeResume() {
+    setResumeFileName("");
+    setResumeText("");
+    setResumeUploadError("");
+    clearResumeInput();
+  }
+
+  function fileToBase64(file) {
+    return new Promise(function(resolve, reject) {
+      var reader = new FileReader();
+      reader.onload = function() {
+        var result = reader.result;
+        var comma = typeof result === "string" ? result.indexOf(",") : -1;
+        resolve(comma !== -1 ? result.slice(comma + 1) : "");
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function handleResumeFileSelect(e) {
+    var file = e.target.files && e.target.files[0];
+    if (!file) return;
+
+    setResumeUploadError("");
+
+    var lowerName = file.name.toLowerCase();
+    var validExt = lowerName.endsWith(".pdf") || lowerName.endsWith(".docx");
+    if (!validExt) {
+      setResumeUploadError("Only PDF and DOCX files are supported.");
+      clearResumeInput();
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setResumeUploadError("File is too large. Please upload a file under 5MB.");
+      clearResumeInput();
+      return;
+    }
+
+    setResumeUploading(true);
+    try {
+      var fileData = await fileToBase64(file);
+      var res = await fetch("/api/parse-resume", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fileName: file.name,
+          fileData: fileData,
+          mimeType: file.type,
+        }),
+      });
+      var data = await res.json();
+
+      if (!data || data.success !== true) {
+        setResumeUploadError(
+          (data && data.error) ||
+          "Something went wrong reading this file — you can continue without it, or try again."
+        );
+        setResumeUploading(false);
+        clearResumeInput();
+        return;
+      }
+
+      if (data.extractable === false || !data.text || !String(data.text).trim()) {
+        setResumeText("");
+        setResumeFileName("");
+        setResumeUploadError(
+          "We couldn't read text from this file — you can continue without it, or try a different file."
+        );
+        setResumeUploading(false);
+        clearResumeInput();
+        return;
+      }
+
+      setResumeText(data.text);
+      setResumeFileName(file.name);
+      setResumeUploadError("");
+      setResumeUploading(false);
+      clearResumeInput();
+    } catch (err) {
+      setResumeUploadError(
+        "Something went wrong reading this file — you can continue without it, or try again."
+      );
+      setResumeUploading(false);
+      clearResumeInput();
+    }
+  }
 
   // ── API CALL 1 ────────────────────────────────────────────────────────
   async function fetchLandscapeAndSkills() {
@@ -1132,6 +1229,44 @@ function EngineerFlow() {
                   );
                 })}
               </div>
+            </Card>
+          )}
+
+          {/* ── SECTION 5: Resume — optional, after company context ── */}
+          {contextsReady && (
+            <Card style={{marginBottom:12}} className="reveal">
+              <Label style={{marginBottom:8}}>
+                RESUME <span style={{color:S.dim,fontWeight:400,textTransform:"none"}}>— optional — upload to personalize your skill list</span>
+              </Label>
+              {resumeText ? (
+                <div style={{display:"flex",alignItems:"center",gap:12}}>
+                  <span style={{fontFamily:S.mono,fontSize:12,color:S.green,fontWeight:700}}>✓ {resumeFileName}</span>
+                  <button
+                    type="button"
+                    onClick={removeResume}
+                    style={{background:"none",border:"none",padding:0,cursor:"pointer",fontFamily:S.mono,fontSize:12,color:S.dim,textDecoration:"underline"}}
+                  >
+                    Remove
+                  </button>
+                </div>
+              ) : (
+                <div>
+                  <input
+                    ref={resumeInputRef}
+                    type="file"
+                    accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                    onChange={handleResumeFileSelect}
+                    disabled={resumeUploading}
+                    style={{...inputStyle, padding:"10px 12px", fontSize:14}}
+                  />
+                  {resumeUploading && (
+                    <p style={{color:S.muted,fontSize:14,margin:"8px 0 0",fontFamily:S.mono}}>Reading your resume…</p>
+                  )}
+                </div>
+              )}
+              {resumeUploadError && (
+                <p style={{color:S.muted,fontSize:14,margin:"8px 0 0",lineHeight:1.5}}>{resumeUploadError}</p>
+              )}
             </Card>
           )}
 
