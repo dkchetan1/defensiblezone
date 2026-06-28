@@ -463,6 +463,7 @@ function EngineerFlow() {
   var [manualEmailLoading, setManualEmailLoading] = useState(false);
   var [resumeFileName, setResumeFileName] = useState("");
   var [resumeText, setResumeText] = useState("");
+  var [skillsGroundedInResume, setSkillsGroundedInResume] = useState(false);
   var [resumeUploading, setResumeUploading] = useState(false);
   var [resumeUploadError, setResumeUploadError] = useState("");
   var resumeInputRef = useRef(null);
@@ -822,6 +823,7 @@ function EngineerFlow() {
     } else {
       prompt = promptPrefix + "\n\n" + promptTaskSuffix;
     }
+    var usedResume = !!resumeText;
     try {
       var res = await fetch("/api/generate", {
         method:"POST", headers:{"Content-Type":"application/json"},
@@ -836,6 +838,7 @@ function EngineerFlow() {
       var loaded = parsed.skills.map(function(text, i) { return {id:"s"+i,text:text,editing:false}; });
       setLandscape(parsed.landscape);
       setSkills(loaded);
+      setSkillsGroundedInResume(usedResume);
       setFluencies({});
       setAdjustedSkills(new Set());
       adjustedSkillsRef.current = new Set();
@@ -854,6 +857,7 @@ function EngineerFlow() {
           var loaded2 = parsed2.skills.map(function(text, i) { return {id:"s"+i,text:text,editing:false}; });
           setLandscape(parsed2.landscape);
           setSkills(loaded2);
+          setSkillsGroundedInResume(usedResume);
           setFluencies({});
           setAdjustedSkills(new Set());
           adjustedSkillsRef.current = new Set();
@@ -1335,6 +1339,11 @@ function EngineerFlow() {
             <p style={{color:S.muted,fontSize:16,margin:"0 0 16px",lineHeight:1.6}}>
               Generated for your exact profile. <strong style={{color:S.text}}>Edit any skill to be more specific</strong> — "React perf optimization for 50M MAU" scores better than "React".
             </p>
+            {skillsGroundedInResume ? (
+              <div style={{fontSize:15,color:S.green,lineHeight:1.6,margin:"-8px 0 16px"}}>
+                ✓ Personalized using your resume
+              </div>
+            ) : null}
             <div style={{display:"flex",flexDirection:"column",gap:10}}>
               {skills.map(function(s, i) {
                 return (
