@@ -467,6 +467,8 @@ function EngineerFlow() {
   var [resumeUploading, setResumeUploading] = useState(false);
   var [resumeUploadError, setResumeUploadError] = useState("");
   var resumeInputRef = useRef(null);
+  var [aiUsageSkillIds, setAiUsageSkillIds] = useState([]);
+  var [aiUsageDescription, setAiUsageDescription] = useState("");
 
   function markAdjusted(skillId) {
     adjustedSkillsRef.current.add(skillId);
@@ -527,6 +529,8 @@ function EngineerFlow() {
               if (s.fluencies) setFluencies(s.fluencies);
               if (s.conscience !== undefined) setConscience(s.conscience);
               if (s.pull !== undefined) setPull(s.pull);
+              if (s.aiUsageSkillIds) setAiUsageSkillIds(s.aiUsageSkillIds);
+              if (s.aiUsageDescription !== undefined) setAiUsageDescription(s.aiUsageDescription);
               }
             } catch (e) {}
             if (expired) {
@@ -697,6 +701,21 @@ function EngineerFlow() {
     setResults(null); setBenchmark(null);
     setRecommendations(null); setRecsLoading(false); setRecsError(null);
     setError(null);
+    setAiUsageSkillIds([]); setAiUsageDescription("");
+  }
+
+  function toggleAiUsageSkill(skillId) {
+    setAiUsageSkillIds(function(prev) {
+      var idx = prev.indexOf(skillId);
+      if (idx !== -1) {
+        var next = prev.slice();
+        next.splice(idx, 1);
+        if (next.length === 0) setAiUsageDescription("");
+        return next;
+      }
+      if (prev.length >= 2) return prev;
+      return prev.concat([skillId]);
+    });
   }
 
   function startEditing(id) { setSkills(function(p) { return p.map(function(s) { return s.id===id ? Object.assign({},s,{editing:true}) : s; }); }); }
@@ -705,6 +724,7 @@ function EngineerFlow() {
   function removeSkill(id) {
     setSkills(function(p) { return p.filter(function(s) { return s.id!==id; }); });
     setFluencies(function(p) { var n=Object.assign({},p); delete n[id]; return n; });
+    setAiUsageSkillIds(function(prev) { return prev.filter(function(x) { return x !== id; }); });
     adjustedSkillsRef.current.delete(id);
     setAdjustedSkills(new Set(adjustedSkillsRef.current));
   }
@@ -842,6 +862,8 @@ function EngineerFlow() {
       setFluencies({});
       setAdjustedSkills(new Set());
       adjustedSkillsRef.current = new Set();
+      setAiUsageSkillIds([]);
+      setAiUsageDescription("");
       setStep(1);
     } catch(e) {
       if (e.message && e.message.indexOf("overloaded") !== -1) {
@@ -861,6 +883,8 @@ function EngineerFlow() {
           setFluencies({});
           setAdjustedSkills(new Set());
           adjustedSkillsRef.current = new Set();
+          setAiUsageSkillIds([]);
+          setAiUsageDescription("");
           setStep(1);
         } catch(e2) { setError("Something went wrong — please try again in a moment."); }
       } else { setError("Something went wrong — please try again in a moment."); }
@@ -1032,6 +1056,7 @@ function EngineerFlow() {
         localStorage.setItem("dz_saved_report_engineer", JSON.stringify({
           step: 3, devType, gateEmail, seniority, workContexts, customContexts: [],
           companyType, skills, conscience, pull, fluencies,
+          aiUsageSkillIds, aiUsageDescription,
           benchmark: parsed.benchmark, results: enriched,
           savedAt: Date.now()
         }));
@@ -1063,6 +1088,7 @@ function EngineerFlow() {
             localStorage.setItem("dz_saved_report_engineer", JSON.stringify({
               step: 3, devType, gateEmail, seniority, workContexts, customContexts,
               companyType, skills, conscience, pull, fluencies,
+              aiUsageSkillIds, aiUsageDescription,
               benchmark: parsed2.benchmark, results: enriched2,
               savedAt: Date.now()
             }));
@@ -1370,6 +1396,35 @@ function EngineerFlow() {
               })}
             </div>
           </Card>
+          <Card style={{marginBottom:14}}>
+            <Label style={{marginBottom:8}}>
+              AI USAGE <span style={{color:S.dim,fontWeight:400,textTransform:"none"}}>— optional — tell us if you&apos;ve already used AI as part of this work</span>
+            </Label>
+            <p style={{color:S.muted,fontSize:16,margin:"0 0 14px",lineHeight:1.6}}>
+              Pick one or two skills above where you&apos;ve actually used AI as part of your job, and briefly describe how.
+            </p>
+            <div style={{display:"flex",flexWrap:"wrap",gap:8,marginBottom:aiUsageSkillIds.length>0?14:0}}>
+              {skills.map(function(s) {
+                return (
+                  <Chip
+                    key={s.id}
+                    label={s.text}
+                    active={aiUsageSkillIds.indexOf(s.id)!==-1}
+                    onClick={function(){toggleAiUsageSkill(s.id);}}
+                  />
+                );
+              })}
+            </div>
+            {aiUsageSkillIds.length > 0 ? (
+              <textarea
+                value={aiUsageDescription}
+                onChange={function(e){setAiUsageDescription(e.target.value);}}
+                placeholder="e.g. Used GitHub Copilot to draft the first pass of integration tests, then reviewed and corrected the edge cases myself."
+                rows={3}
+                style={Object.assign({}, inputStyle, {resize:"vertical", minHeight:80, lineHeight:1.5})}
+              />
+            ) : null}
+          </Card>
           <div style={{display:"flex",gap:12}}>
             <button onClick={function(){setStep(0);}} style={{flex:1,background:"transparent",border:"1px solid "+S.border,color:S.muted,borderRadius:12,padding:"15px 0",fontSize:14,fontFamily:S.mono,cursor:"pointer",letterSpacing:"0.06em",fontWeight:600}}>← BACK</button>
             <PrimaryBtn onClick={function(){setStep(2);}} disabled={skills.length===0} style={{flex:3}}>
@@ -1553,6 +1608,8 @@ function EngineerFlow() {
                   conscience,
                   pull,
                   fluencies,
+                  aiUsageSkillIds,
+                  aiUsageDescription,
                   savedAt: Date.now()
                 }));
               } catch (_e) {}
