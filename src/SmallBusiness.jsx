@@ -2292,7 +2292,7 @@ export default function SmallBusiness(props) {
                 Generating your Defensibility Report…
               </p>
               <p style={{ fontSize: 15, color: S.dim, lineHeight: 1.6, margin: 0, maxWidth: 420, marginLeft: "auto", marginRight: "auto" }}>
-                This takes about 15 seconds — we are analyzing your full profile.
+                This takes about a minute — we are doing a deep analysis of your specific business.
               </p>
             </div>
           ) : null}
