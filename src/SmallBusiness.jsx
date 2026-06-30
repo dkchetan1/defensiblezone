@@ -681,10 +681,6 @@ export default function SmallBusiness(props) {
   }
 
   useEffect(function() {
-    if (step === 5) fetchSnapshot();
-  }, [step]);
-
-  useEffect(function() {
     if (step === 8 && gateVerified && !report && !reportLoading) {
       fetchReport();
     }
@@ -1629,7 +1625,7 @@ export default function SmallBusiness(props) {
           </div>
 
           <button
-            onClick={function() { setStep(5); }}
+            onClick={function() { fetchSnapshot(); setStep(5); }}
             disabled={!allAnswered}
             style={{
               background: !allAnswered ? S.card2 : S.accent,
@@ -1898,7 +1894,7 @@ export default function SmallBusiness(props) {
             </>
           ) : null}
 
-          {!snapshotLoading ? (
+          {!snapshotLoading && !snapshotError && snapshot.length > 0 ? (
             <>
               <p style={{ fontSize: 13, color: S.dim, lineHeight: 1.5, margin: "0 0 16px", fontStyle: "italic" }}>
                 Your edits will recalibrate the scoring in the next step.
