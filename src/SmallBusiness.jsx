@@ -337,6 +337,7 @@ export default function SmallBusiness(props) {
   var [bizTech, setBizTech] = useState("");
   var [bizCustomerSpread, setBizCustomerSpread] = useState("");
   var [bizDiff, setBizDiff] = useState("");
+  var [refSource, setRefSource] = useState("");
 
   var sessionBriefSentRef = useRef(false);
   var sendPaidOnNextReport = useRef(false);
@@ -587,6 +588,7 @@ export default function SmallBusiness(props) {
             bizDiff: _bizDiff,
           },
           report: reportData,
+          ref: refSource,
         }),
       });
     } catch(e) {
@@ -744,6 +746,18 @@ export default function SmallBusiness(props) {
         setGateLoading(false);
       }
     })();
+  }, []);
+
+  useEffect(function() {
+    var params = new URLSearchParams(window.location.search);
+    var ref = params.get("ref");
+    if (ref) {
+      localStorage.setItem("dz_sb_ref", ref);
+      setRefSource(ref);
+    } else {
+      var stored = localStorage.getItem("dz_sb_ref");
+      if (stored) setRefSource(stored);
+    }
   }, []);
 
   useEffect(function() {
