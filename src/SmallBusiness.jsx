@@ -622,8 +622,7 @@ export default function SmallBusiness(props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           model: "claude-sonnet-4-6",
-          max_tokens: 4000,
-          tools: [{ type: "web_search_20250305", name: "web_search" }],
+          max_tokens: 8000,
           messages: [{ role: "user", content: prompt }],
         }),
       });
