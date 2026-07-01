@@ -240,6 +240,7 @@ export default function Engineer() {
   var [showResend, setShowResend] = useState(false);
   var [gateOnDifferentDevice, setGateOnDifferentDevice] = useState(false);
   var [gateInputFocused, setGateInputFocused] = useState(false);
+  var [refSource, setRefSource] = useState("");
 
   function markAdjusted(skillId) {
     adjustedSkillsRef.current.add(skillId);
@@ -321,6 +322,18 @@ export default function Engineer() {
     })();
   }, []);
 
+  useEffect(function() {
+    var params = new URLSearchParams(window.location.search);
+    var ref = params.get("ref");
+    if (ref) {
+      localStorage.setItem("dz_engineer_ref", ref);
+      setRefSource(ref);
+    } else {
+      var stored = localStorage.getItem("dz_engineer_ref");
+      if (stored) setRefSource(stored);
+    }
+  }, []);
+
   useEffect(
     function () {
       if (step === 3 && gateVerified === true && skills.length > 0) {
@@ -348,6 +361,7 @@ export default function Engineer() {
           landscape: landscape,
           skills: results,
         },
+        ref: refSource,
       }),
     }).catch(function() {});
   }, [step, results]);
@@ -494,6 +508,7 @@ export default function Engineer() {
           skills: results,
           recommendations: recommendations,
         },
+        ref: refSource,
       }),
     }).catch(function() {});
   }, [recommendations, tier]);

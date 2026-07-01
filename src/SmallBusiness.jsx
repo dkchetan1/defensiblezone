@@ -425,6 +425,7 @@ export default function SmallBusiness(props) {
       }));
       setSnapshotLoading(false);
     } catch(e) {
+      console.error("SNAPSHOT ERROR:", e.message, e);
       setSnapshotError("Something went wrong. Please try again.");
       setSnapshotLoading(false);
     }
