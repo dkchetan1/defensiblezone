@@ -1,6 +1,5 @@
 import { DZNavBar, DZFooter } from "./SharedComponents";
 import { useState, useEffect, useRef } from "react";
-import PDFButton from "./PDFButton";
 
 // ── ENGINEER TYPES ─────────────────────────────────────────────────────
 var DEV_TYPES = [
@@ -2115,12 +2114,6 @@ export default function Engineer() {
                         );
                       })}
                     </div>
-
-                    {tier >= 2 || promoUsed ? (
-                      <div style={{ marginTop: 20, marginBottom: 4, textAlign: "center" }} className="no-print">
-                        <PDFButton contentId="dz-engineer-report" label="Save as PDF" />
-                      </div>
-                    ) : null}
 
                     {showUpsell ? (
                       <div
