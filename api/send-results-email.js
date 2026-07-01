@@ -247,7 +247,7 @@ function buildResultsHtml({ productCfg, type, results }) {
   ).trim();
 }
 
-function buildLeadCardHtml({ productCfg, trimmedEmail, results }) {
+function buildLeadCardHtml({ productCfg, trimmedEmail, results, ref }) {
   const profile = results && results.profile && typeof results.profile === "object" ? results.profile : {};
   const skills = results && results.skills;
   const recommendations = results && results.recommendations;
@@ -304,6 +304,15 @@ function buildLeadCardHtml({ productCfg, trimmedEmail, results }) {
       "</p></div>"
     : "";
 
+  const refBlock =
+    typeof ref === "string" && ref.trim()
+      ? "<div style='margin:0 0 18px;padding:14px 16px;background:#064e3b;border-radius:12px;'>" +
+        "<div style='color:#f9fafb;font-size:14px;letter-spacing:0.06em;font-weight:700;margin-bottom:6px;'>REFERRAL SOURCE</div>" +
+        "<div style='color:#ffffff;font-size:18px;font-weight:800;'>" +
+        escapeHtml(ref.trim()) +
+        "</div></div>"
+      : "";
+
   return (
     "<div style='font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Arial,sans-serif;line-height:1.5;color:#0d1117;max-width:720px;'>" +
     "<div style='padding:18px 18px 0;'>" +
@@ -317,6 +326,7 @@ function buildLeadCardHtml({ productCfg, trimmedEmail, results }) {
     escapeHtml(trimmedEmail) +
     "</div>" +
     "</div>" +
+    refBlock +
     profileBlock +
     skillsBlock +
     recsBlock +
@@ -858,8 +868,8 @@ export default async function handler(req, res) {
 
       if (type === "paid" || type === "free") {
         try {
-          const leadHtml = buildLeadCardHtml({ productCfg, trimmedEmail, results });
-          const leadSubject = "[Lead Card] " + productCfg.productName + " — " + trimmedEmail;
+          const leadHtml = buildLeadCardHtml({ productCfg, trimmedEmail, results, ref: body.ref });
+          const leadSubject = (body.ref ? "[ref: " + body.ref + "] " : "") + "[Lead Card] " + productCfg.productName + " — " + trimmedEmail;
           const leadResponse = await fetch("https://api.resend.com/emails", {
             method: "POST",
             headers: {
