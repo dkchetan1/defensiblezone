@@ -866,7 +866,7 @@ export default async function handler(req, res) {
       }
       console.log("send-results-email: sent", type, "email to:", trimmedEmail, "product:", productKey);
 
-      if (type === "paid" || type === "free") {
+      if (type === "paid") {
         try {
           const leadHtml = buildLeadCardHtml({ productCfg, trimmedEmail, results, ref: body.ref });
           const leadSubject = (body.ref ? "[ref: " + body.ref + "] " : "") + "[Lead Card] " + productCfg.productName + " — " + trimmedEmail;
