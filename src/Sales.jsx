@@ -1964,6 +1964,12 @@ export default function Sales({ reportMode }) {
 
   // ── STEP 6: 90-DAY PLAN ──────────────────────────────────────────────
   if (step === 6 && (tier >= 2 || promoUsed)) {
+    var landscapeText6 = (results && results.landscape) || landscape;
+    var scoredSkills6 = (results && Array.isArray(results.skills)) ? results.skills : [];
+    var totalDZ6 = scoredSkills6.length > 0
+      ? Math.round(scoredSkills6.reduce(function(sum, s) { return sum + (typeof s.dz === "number" ? s.dz : 0); }, 0) / scoredSkills6.length)
+      : 0;
+    var overallColor6 = dzScoreColor(totalDZ6);
     var rawRecs6 = recommendations && Array.isArray(recommendations.recommendations) ? recommendations.recommendations.slice() : [];
     var PHASE_HEADERS_6 = [
       { phase: 1, label: "PHASE 1: WEEKS 1–4 — START NOW" },
@@ -2003,6 +2009,74 @@ export default function Sales({ reportMode }) {
           >
             START OVER
           </button>
+
+          <div style={{ background: S.accent, borderRadius: 14, padding: 22, marginBottom: 24, position: "relative", overflow: "hidden" }}>
+            <div style={{ fontFamily: S.mono, fontSize: 12, color: "rgba(217,119,6,.85)", letterSpacing: "0.1em", marginBottom: 10, fontWeight: 600 }}>
+              YOUR AI LANDSCAPE
+            </div>
+            <p style={{ color: "#ffffff", fontSize: 16, lineHeight: 1.75, margin: 0, fontStyle: "italic" }}>{landscapeText6}</p>
+          </div>
+
+          <Card style={{ marginBottom: 28, textAlign: "center" }}>
+            <div style={{ fontFamily: S.mono, fontSize: 12, color: S.dim, letterSpacing: "0.08em", marginBottom: 12, fontWeight: 600 }}>
+              YOUR DEFENSIBLE ZONE SCORE
+            </div>
+            <div style={{ fontFamily: S.mono, fontSize: 72, fontWeight: 700, color: overallColor6, lineHeight: 1, marginBottom: 12 }}>
+              {totalDZ6}
+            </div>
+            <p style={{ fontSize: 15, color: S.dim, lineHeight: 1.6, margin: 0, maxWidth: 480, marginLeft: "auto", marginRight: "auto" }}>
+              {getOverallSubLabel(totalDZ6)}
+            </p>
+          </Card>
+
+          <div style={{ fontFamily: S.mono, fontSize: 12, color: S.dim, letterSpacing: "0.08em", marginBottom: 14, fontWeight: 600 }}>
+            SKILL-BY-SKILL BREAKDOWN
+          </div>
+          {scoredSkills6.map(function (sk) {
+            var dz = typeof sk.dz === "number" ? sk.dz : 0;
+            var aiR = typeof sk.ai_replaceability === "number" ? sk.ai_replaceability : 5;
+            var mkt = typeof sk.market_demand === "number" ? sk.market_demand : 7;
+            var aff = typeof sk.affinity === "number" ? sk.affinity : 5;
+            var col = dzScoreColor(dz);
+            var skillName = sk.text || sk.name || "—";
+            return (
+              <div key={sk.id || skillName} style={{ background: S.card, border: "1px solid " + S.border, borderRadius: 12, padding: "18px 20px", marginBottom: 10 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14, gap: 12 }}>
+                  <div style={{ fontSize: 16, fontWeight: 600, color: S.text, lineHeight: 1.35, flex: 1 }}>{skillName}</div>
+                  <div style={{ fontFamily: S.mono, fontSize: 28, fontWeight: 700, color: col, flexShrink: 0, lineHeight: 1 }}>{dz}</div>
+                </div>
+                <div style={{ marginBottom: 10 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                    <span style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.06em", fontWeight: 600 }}>AI EXPOSURE</span>
+                    <span style={{ fontFamily: S.mono, fontSize: 11, color: S.red, fontWeight: 700 }}>{aiR}/10</span>
+                  </div>
+                  <div style={{ height: 6, background: S.card2, borderRadius: 3, overflow: "hidden" }}>
+                    <div style={{ width: (aiR / 10) * 100 + "%", height: "100%", background: S.red, borderRadius: 3 }} />
+                  </div>
+                </div>
+                <div style={{ marginBottom: 10 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                    <span style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.06em", fontWeight: 600 }}>MARKET VALUE</span>
+                    <span style={{ fontFamily: S.mono, fontSize: 11, color: S.green, fontWeight: 700 }}>{mkt}/10</span>
+                  </div>
+                  <div style={{ height: 6, background: S.card2, borderRadius: 3, overflow: "hidden" }}>
+                    <div style={{ width: (mkt / 10) * 100 + "%", height: "100%", background: S.green, borderRadius: 3 }} />
+                  </div>
+                </div>
+                <div style={{ marginBottom: 10 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                    <span style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.06em", fontWeight: 600 }}>YOUR AFFINITY</span>
+                    <span style={{ fontFamily: S.mono, fontSize: 11, color: S.purple, fontWeight: 700 }}>{aff}/10</span>
+                  </div>
+                </div>
+                <p style={{ fontSize: 14, color: S.dim, lineHeight: 1.55, margin: 0, fontStyle: "italic" }}>
+                  {getSkillInterpretation(aiR, mkt, aff)}
+                </p>
+              </div>
+            );
+          })}
+
+          <div style={{ height: 1, background: S.border, margin: "32px 0" }} />
 
           <div style={{ fontFamily: S.mono, fontSize: 11, color: S.gold, letterSpacing: "0.12em", marginBottom: 12, fontWeight: 600 }}>
             YOUR DEFENSIBLE ZONE PLAN
