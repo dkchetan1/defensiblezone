@@ -1808,12 +1808,11 @@ export default function Sales({ reportMode }) {
           ) : null}
 
           <PrimaryBtn
-            onClick={function () {
-              setStep(5);
-            }}
+            onClick={handleUnlockCheckout}
+            disabled={checkoutLoading}
             style={{ marginBottom: 28 }}
           >
-            UNLOCK MY FULL PLAN — {unlockPrice4}
+            {checkoutLoading ? "Redirecting…" : "UNLOCK MY FULL PLAN — " + unlockPrice4}
           </PrimaryBtn>
 
           <SalesDisclaimer />
