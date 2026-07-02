@@ -411,6 +411,7 @@ export default function Sales({ reportMode }) {
   var [gateOnDifferentDevice, setGateOnDifferentDevice] = useState(false);
   var [gateInputFocused, setGateInputFocused] = useState(false);
   var [showCalibration, setShowCalibration] = useState(false);
+  var [refSource, setRefSource] = useState("");
 
   var SALES_LOADING_MSGS = ["Mapping your sales landscape…", "Identifying your exposure points…", "Calibrating skill defensibility…", "Almost ready…"];
   var SALES_SCORING_MSGS = ["Scoring your skills…", "Calculating AI exposure…", "Building your defensible zone…", "Almost there…"];
@@ -629,6 +630,18 @@ export default function Sales({ reportMode }) {
     })();
   }, []);
 
+  useEffect(function() {
+    var params = new URLSearchParams(window.location.search);
+    var ref = params.get("ref");
+    if (ref) {
+      localStorage.setItem("dz_sales_ref", ref);
+      setRefSource(ref);
+    } else {
+      var stored = localStorage.getItem("dz_sales_ref");
+      if (stored) setRefSource(stored);
+    }
+  }, []);
+
   useEffect(
     function () {
       if (!gateSent) {
@@ -689,6 +702,7 @@ export default function Sales({ reportMode }) {
             skills: skillsList,
             overallScore: computeOverallScore(skillsList),
           },
+          ref: refSource,
         }),
       }).catch(function () {});
     },
@@ -717,6 +731,7 @@ export default function Sales({ reportMode }) {
             overallScore: computeOverallScore(skillsList),
             recommendations: recommendations,
           },
+          ref: refSource,
         }),
       }).catch(function () {});
     },
