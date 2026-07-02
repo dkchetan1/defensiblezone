@@ -2406,15 +2406,15 @@ export default function ProductManager() {
                   You have {planActionCount} personalised actions across 3 phases. Unlock them now — and we&apos;ll email the complete plan to{" "}
                   {gateEmail || "your email"}.
                 </p>
-                <div style={{ fontFamily: S.mono, fontSize: 28, fontWeight: 700, color: "#ffffff", marginBottom: 16 }}>$79</div>
+                <div style={{ fontFamily: S.mono, fontSize: 28, fontWeight: 700, color: "#ffffff", marginBottom: 16 }}>
+                  {testModeApplied ? "$1" : discountApplied ? "$39.50" : "$79"}
+                </div>
                 <PrimaryBtn
-                  onClick={function () {
-                    saveStateForReturn();
-                    setStep(5);
-                  }}
+                  onClick={handleUnlockCheckout}
+                  disabled={checkoutLoading}
                   style={{ marginBottom: 16 }}
                 >
-                  UNLOCK MY PLAN → $79
+                  {checkoutLoading ? "Redirecting…" : "UNLOCK MY PLAN → " + (testModeApplied ? "$1" : discountApplied ? "$39.50" : "$79")}
                 </PrimaryBtn>
                 <div style={{ fontFamily: S.mono, fontSize: 12, color: "rgba(255,255,255,0.75)", letterSpacing: "0.08em", marginBottom: 10, fontWeight: 600 }}>
                   HAVE A PROMO CODE?
@@ -2462,6 +2462,12 @@ export default function ProductManager() {
                 {promoError ? <div style={{ color: "#fca5a5", fontSize: 14, marginTop: 8 }}>{promoError}</div> : null}
                 {discountApplied ? (
                   <div style={{ color: "#6ee7b7", fontSize: 14, marginTop: 8 }}>50% discount applied — your price is $39.50</div>
+                ) : null}
+                {testModeApplied ? (
+                  <div style={{ color: "#6ee7b7", fontSize: 14, marginTop: 8 }}>Test mode active — price is $1</div>
+                ) : null}
+                {checkoutError ? (
+                  <div style={{ color: "#fca5a5", fontSize: 14, marginTop: 8 }}>{checkoutError}</div>
                 ) : null}
               </div>
             </div>
