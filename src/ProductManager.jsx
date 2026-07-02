@@ -281,6 +281,7 @@ export default function ProductManager() {
   var [checkoutLoading, setCheckoutLoading] = useState(false);
   var [checkoutError, setCheckoutError] = useState(null);
   var [paymentCanceled, setPaymentCanceled] = useState(false);
+  var [refSource, setRefSource] = useState("");
 
   function markAdjusted(skillId) {
     adjustedSkillsRef.current.add(skillId);
@@ -512,6 +513,18 @@ export default function ProductManager() {
     })();
   }, []);
 
+  useEffect(function() {
+    var params = new URLSearchParams(window.location.search);
+    var ref = params.get("ref");
+    if (ref) {
+      localStorage.setItem("dz_pm_ref", ref);
+      setRefSource(ref);
+    } else {
+      var stored = localStorage.getItem("dz_pm_ref");
+      if (stored) setRefSource(stored);
+    }
+  }, []);
+
   useEffect(
     function () {
       if (!gateSent) {
@@ -655,6 +668,7 @@ export default function ProductManager() {
             skills: skillsList,
             overallScore: computeOverallScore(skillsList),
           },
+          ref: refSource,
         }),
       }).catch(function () {});
     },
@@ -683,6 +697,7 @@ export default function ProductManager() {
             overallScore: computeOverallScore(skillsList),
             recommendations: recommendations,
           },
+          ref: refSource,
         }),
       }).catch(function () {});
     },
