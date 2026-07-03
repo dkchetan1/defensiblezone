@@ -1674,48 +1674,6 @@ export default function Finance(props) {
                           Unlock My Action Plan — $59
                         </button>
 
-                        <div style={{ position: "relative" }}>
-                          <div
-                            style={{
-                              position: "absolute",
-                              top: -10,
-                              right: -10,
-                              background: S.gold,
-                              color: "#ffffff",
-                              borderRadius: 20,
-                              padding: "2px 10px",
-                              fontSize: 11,
-                              fontWeight: 700,
-                              fontFamily: S.mono,
-                            }}
-                          >
-                            BEST VALUE
-                          </div>
-                          <button
-                            type="button"
-                            onClick={function () {
-                              var url =
-                                "https://buy.stripe.com/7sYcN5bZobnlclL3JAdQQ0b" +
-                                (gateEmail ? "?prefilled_email=" + encodeURIComponent(gateEmail) : "");
-                              window.open(url, "_blank", "noopener,noreferrer");
-                            }}
-                            style={{
-                              width: "100%",
-                              background: S.gold,
-                              color: "#ffffff",
-                              borderRadius: 10,
-                              padding: 14,
-                              fontSize: 15,
-                              fontWeight: 600,
-                              cursor: "pointer",
-                              border: "none",
-                              fontFamily: S.font,
-                            }}
-                          >
-                            Unlock Plan + PDF — $64
-                          </button>
-                        </div>
-
                         <div style={{ color: S.dim, fontSize: 13, margin: "16px 0", lineHeight: 1 }}>or</div>
 
                         <div style={{ display: "flex", gap: 10, alignItems: "stretch" }}>
