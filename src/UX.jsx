@@ -678,6 +678,7 @@ export default function UX() {
   var [hoveredCard, setHoveredCard] = useState(null);
   var [customSkill, setCustomSkill] = useState("");
   var [showAllFocus, setShowAllFocus] = useState(false);
+  var [refSource, setRefSource] = useState("");
 
   var adjustedSkillsRef = useRef(new Set());
 
@@ -834,6 +835,18 @@ export default function UX() {
     }
   }, []);
 
+  useEffect(function() {
+    var params = new URLSearchParams(window.location.search);
+    var ref = params.get("ref");
+    if (ref) {
+      localStorage.setItem("dz_ux_ref", ref);
+      setRefSource(ref);
+    } else {
+      var stored = localStorage.getItem("dz_ux_ref");
+      if (stored) setRefSource(stored);
+    }
+  }, []);
+
   useEffect(
     function () {
       if (step === 5 && (tier >= 2 || promoUsed)) {
@@ -902,6 +915,7 @@ export default function UX() {
             skills: skillsList,
             overallScore: computeOverallScore(skillsList),
           },
+          ref: refSource,
         }),
       }).catch(function () {});
     },
@@ -931,6 +945,7 @@ export default function UX() {
             overallScore: computeOverallScore(skillsList),
             recommendations: recommendations,
           },
+          ref: refSource,
         }),
       }).catch(function () {});
     },
