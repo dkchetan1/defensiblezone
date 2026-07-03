@@ -388,6 +388,7 @@ export default function Finance(props) {
   var [testModeApplied, setTestModeApplied] = useState(false);
   var [testCheckoutError, setTestCheckoutError] = useState(null);
   var [promoUsed, setPromoUsed] = useState(false);
+  var [refSource, setRefSource] = useState("");
 
   function restoreReport() {
     try {
@@ -540,6 +541,18 @@ export default function Finance(props) {
       }
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps -- on-load only; restoreReport uses stable setters
+
+  useEffect(function() {
+    var params = new URLSearchParams(window.location.search);
+    var ref = params.get("ref");
+    if (ref) {
+      localStorage.setItem("dz_finance_ref", ref);
+      setRefSource(ref);
+    } else {
+      var stored = localStorage.getItem("dz_finance_ref");
+      if (stored) setRefSource(stored);
+    }
+  }, []);
 
   useEffect(
     function () {
@@ -1085,6 +1098,7 @@ export default function Finance(props) {
           overallScore: results.overallDZ,
           recommendations: recommendations,
         },
+        ref: refSource,
       }),
     }).catch(function() {});
   }, [recommendations, tier]);
@@ -1147,6 +1161,7 @@ export default function Finance(props) {
           skills: results.skills,
           overallScore: results.overallDZ,
         },
+        ref: refSource,
       }),
     }).catch(function() {});
   }, [step, results]);
