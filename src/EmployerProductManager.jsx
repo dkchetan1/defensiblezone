@@ -166,6 +166,14 @@ export default function EmployerProductManager() {
   var [manualEmailInput, setManualEmailInput] = useState("");
   var [manualEmailError, setManualEmailError] = useState("");
   var [manualEmailLoading, setManualEmailLoading] = useState(false);
+  var [resumeFileName, setResumeFileName] = useState("");
+  var [resumeText, setResumeText] = useState("");
+  var [resumeUploading, setResumeUploading] = useState(false);
+  var [resumeUploadError, setResumeUploadError] = useState("");
+  var [skillsGroundedInResume, setSkillsGroundedInResume] = useState(false);
+  var resumeInputRef = useRef(null);
+  var [aiUsageSkillIds, setAiUsageSkillIds] = useState([]);
+  var [aiUsageDescription, setAiUsageDescription] = useState("");
 
   function markAdjusted(skillId) {
     adjustedSkillsRef.current.add(skillId);
@@ -297,6 +305,10 @@ export default function EmployerProductManager() {
                 if (s.conscience !== undefined) setConscience(s.conscience);
                 if (s.pull !== undefined) setPull(s.pull);
                 if (s.gateEmail) setGateEmail(s.gateEmail);
+                if (s.resumeText !== undefined) setResumeText(s.resumeText);
+                if (s.resumeFileName !== undefined) setResumeFileName(s.resumeFileName);
+                if (s.aiUsageSkillIds) setAiUsageSkillIds(s.aiUsageSkillIds);
+                if (s.aiUsageDescription !== undefined) setAiUsageDescription(s.aiUsageDescription);
               }
             } catch (e) {}
             if (expired) {
@@ -360,12 +372,16 @@ export default function EmployerProductManager() {
             conscience: conscience,
             pull: pull,
             gateEmail: gateEmail,
+            resumeText: resumeText,
+            resumeFileName: resumeFileName,
+            aiUsageSkillIds: aiUsageSkillIds,
+            aiUsageDescription: aiUsageDescription,
             savedAt: Date.now(),
           })
         );
       } catch (_e) {}
     },
-    [step, pmType, seniority, companyType, workContexts, conscience, pull, gateEmail]
+    [step, pmType, seniority, companyType, workContexts, conscience, pull, gateEmail, resumeText, resumeFileName, aiUsageSkillIds, aiUsageDescription]
   );
 
   useEffect(function() {
@@ -477,6 +493,21 @@ export default function EmployerProductManager() {
     setGateLoading(false); setShowResend(false); setGateOnDifferentDevice(false); setGateInputFocused(false);
     freeEmailSentRef.current = false;
     paidEmailSentRef.current = false;
+    setAiUsageSkillIds([]); setAiUsageDescription("");
+  }
+
+  function toggleAiUsageSkill(skillId) {
+    setAiUsageSkillIds(function(prev) {
+      var idx = prev.indexOf(skillId);
+      if (idx !== -1) {
+        var next = prev.slice();
+        next.splice(idx, 1);
+        if (next.length === 0) setAiUsageDescription("");
+        return next;
+      }
+      if (prev.length >= 2) return prev;
+      return prev.concat([skillId]);
+    });
   }
 
   function computeOverallScore(skills) {
@@ -552,8 +583,101 @@ export default function EmployerProductManager() {
     setFluencies(function(p) { var n=Object.assign({},p); delete n[id]; return n; });
     setSkillConscience(function(p) { var n=Object.assign({},p); delete n[id]; return n; });
     setSkillPull(function(p) { var n=Object.assign({},p); delete n[id]; return n; });
+    setAiUsageSkillIds(function(prev) { return prev.filter(function(x) { return x !== id; }); });
     adjustedSkillsRef.current.delete(id);
     setAdjustedSkills(new Set(adjustedSkillsRef.current));
+  }
+
+  function clearResumeInput() {
+    if (resumeInputRef.current) resumeInputRef.current.value = "";
+  }
+
+  function removeResume() {
+    setResumeFileName("");
+    setResumeText("");
+    setResumeUploadError("");
+    clearResumeInput();
+  }
+
+  function fileToBase64(file) {
+    return new Promise(function(resolve, reject) {
+      var reader = new FileReader();
+      reader.onload = function() {
+        var result = reader.result;
+        var comma = typeof result === "string" ? result.indexOf(",") : -1;
+        resolve(comma !== -1 ? result.slice(comma + 1) : "");
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function handleResumeFileSelect(e) {
+    var file = e.target.files && e.target.files[0];
+    if (!file) return;
+
+    setResumeUploadError("");
+
+    var lowerName = file.name.toLowerCase();
+    var validExt = lowerName.endsWith(".pdf") || lowerName.endsWith(".docx");
+    if (!validExt) {
+      setResumeUploadError("Only PDF and DOCX files are supported.");
+      clearResumeInput();
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setResumeUploadError("File is too large. Please upload a file under 5MB.");
+      clearResumeInput();
+      return;
+    }
+
+    setResumeUploading(true);
+    try {
+      var fileData = await fileToBase64(file);
+      var res = await fetch("/api/parse-resume", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fileName: file.name,
+          fileData: fileData,
+          mimeType: file.type,
+        }),
+      });
+      var data = await res.json();
+
+      if (!data || data.success !== true) {
+        setResumeUploadError(
+          (data && data.error) ||
+          "Something went wrong reading this file — you can continue without it, or try again."
+        );
+        setResumeUploading(false);
+        clearResumeInput();
+        return;
+      }
+
+      if (data.extractable === false || !data.text || !String(data.text).trim()) {
+        setResumeText("");
+        setResumeFileName("");
+        setResumeUploadError(
+          "We couldn't read text from this file — you can continue without it, or try a different file."
+        );
+        setResumeUploading(false);
+        clearResumeInput();
+        return;
+      }
+
+      setResumeText(data.text);
+      setResumeFileName(file.name);
+      setResumeUploadError("");
+      setResumeUploading(false);
+      clearResumeInput();
+    } catch (err) {
+      setResumeUploadError(
+        "Something went wrong reading this file — you can continue without it, or try again."
+      );
+      setResumeUploading(false);
+      clearResumeInput();
+    }
   }
 
   function addSkill() {
@@ -593,7 +717,7 @@ export default function EmployerProductManager() {
     var sl = PM_SENIORITY_LEVELS.find(function (s) {
       return s.id === seniority;
     });
-    var prompt =
+    var promptPrefix =
       "You are a senior product management career strategist specializing in AI labor market analysis for product managers.\n\nPM PROFILE:\n- PM Type: " +
       profile.pmLabel +
       "\n- Seniority: " +
@@ -603,8 +727,9 @@ export default function EmployerProductManager() {
       "\n- Work contexts: " +
       wcStr +
       "\n- Company: " +
-      (profile.companyLabel || "not specified") +
-      "\n\nTask 1 — LANDSCAPE SNAPSHOT: Write 2-3 precise sentences about the AI threat to this exact PM profile RIGHT NOW (May 2026). Name specific tools (ChatPRD, Notion AI, Dovetail, Jira AI, Cursor, v0, Lovable), specific tasks being automated, and where the real exposure is at this seniority level doing this work. Do not write generic AI commentary — be specific to this combination of PM type, seniority, and work context.\n\nTask 2 — SKILL SUGGESTIONS: Generate exactly 8 skills that are the most strategically important for a " +
+      (profile.companyLabel || "not specified");
+    var promptTaskSuffix =
+      "Task 1 — LANDSCAPE SNAPSHOT: Write 2-3 precise sentences about the AI threat to this exact PM profile RIGHT NOW (May 2026). Name specific tools (ChatPRD, Notion AI, Dovetail, Jira AI, Cursor, v0, Lovable), specific tasks being automated, and where the real exposure is at this seniority level doing this work. Do not write generic AI commentary — be specific to this combination of PM type, seniority, and work context.\n\nTask 2 — SKILL SUGGESTIONS: Generate exactly 8 skills that are the most strategically important for a " +
       profile.seniorityLabel +
       " " +
       profile.pmLabel +
@@ -615,6 +740,18 @@ export default function EmployerProductManager() {
       " level'. Include a realistic mix: some that are defensible and some genuinely at risk from AI. Weight toward skills that actually differentiate at the " +
       profile.seniorityLabel +
       " level. Do not suggest generic skills.\n\nReturn ONLY valid JSON:\n{\"landscape\":\"...\",\"skills\":[\"skill1\",\"skill2\",\"skill3\",\"skill4\",\"skill5\",\"skill6\",\"skill7\",\"skill8\"]}";
+    var prompt;
+    if (resumeText) {
+      var truncatedResume = resumeText.length > 6000 ? (function() {
+        var cut = resumeText.slice(0, 6000);
+        var lastSpace = cut.lastIndexOf(" ");
+        return lastSpace > 0 ? cut.slice(0, lastSpace) : cut;
+      })() : resumeText;
+      prompt = promptPrefix + "\n\nCANDIDATE'S RESUME (use this to ground the skill list in their actual, evidenced work history — do not just repeat generic skills for this role/seniority level):\n" + truncatedResume + "\n\nWhen generating the 8 skills in Task 2: prioritize skills that are actually evidenced in the resume above. If the resume doesn't fully cover 8 strategically important skills for this profile, fill the remaining slots with additional role-appropriate skills not found in the resume. Do not list a skill twice just because it's phrased differently in two places — merge overlapping skills into one entry.\n\n" + promptTaskSuffix;
+    } else {
+      prompt = promptPrefix + "\n\n" + promptTaskSuffix;
+    }
+    var usedResume = !!resumeText;
     try {
       var res = await fetch("/api/generate", {
         method: "POST",
@@ -640,11 +777,14 @@ export default function EmployerProductManager() {
       });
       setLandscape(parsed.landscape);
       setSkills(loaded);
+      setSkillsGroundedInResume(usedResume);
       setFluencies({});
       setSkillConscience({});
       setSkillPull({});
       setAdjustedSkills(new Set());
       adjustedSkillsRef.current = new Set();
+      setAiUsageSkillIds([]);
+      setAiUsageDescription("");
       setStep(3);
     } catch (e) {
       if (e.message && e.message.indexOf("overloaded") !== -1) {
@@ -677,11 +817,14 @@ export default function EmployerProductManager() {
           });
           setLandscape(parsed2.landscape);
           setSkills(loaded2);
+          setSkillsGroundedInResume(usedResume);
           setFluencies({});
           setSkillConscience({});
           setSkillPull({});
           setAdjustedSkills(new Set());
           adjustedSkillsRef.current = new Set();
+          setAiUsageSkillIds([]);
+          setAiUsageDescription("");
           setStep(3);
         } catch (e2) {
           setError("Something went wrong — please try again in a moment.");
@@ -1161,6 +1304,41 @@ export default function EmployerProductManager() {
             )}
             <p style={{ fontFamily: S.mono, fontSize: 12, color: S.dim, margin: 0 }}>Select at least one</p>
           </Card>
+
+          <Card style={{marginBottom:12}} className="reveal">
+              <Label style={{marginBottom:8}}>
+                RESUME <span style={{color:S.dim,fontWeight:400,textTransform:"none"}}>— optional — upload to personalize your skill list</span>
+              </Label>
+              {resumeText ? (
+                <div style={{display:"flex",alignItems:"center",gap:12}}>
+                  <span style={{fontFamily:S.mono,fontSize:12,color:S.green,fontWeight:700}}>✓ {resumeFileName}</span>
+                  <button
+                    type="button"
+                    onClick={removeResume}
+                    style={{background:"none",border:"none",padding:0,cursor:"pointer",fontFamily:S.mono,fontSize:12,color:S.dim,textDecoration:"underline"}}
+                  >
+                    Remove
+                  </button>
+                </div>
+              ) : (
+                <div>
+                  <input
+                    ref={resumeInputRef}
+                    type="file"
+                    accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                    onChange={handleResumeFileSelect}
+                    disabled={resumeUploading}
+                    style={{...inputStyle, padding:"10px 12px", fontSize:14}}
+                  />
+                  {resumeUploading && (
+                    <p style={{color:S.muted,fontSize:14,margin:"8px 0 0",fontFamily:S.mono}}>Reading your resume…</p>
+                  )}
+                </div>
+              )}
+              {resumeUploadError && (
+                <p style={{color:S.muted,fontSize:14,margin:"8px 0 0",lineHeight:1.5}}>{resumeUploadError}</p>
+              )}
+            </Card>
 
           <PrimaryBtn onClick={function () { setStep(1); }} disabled={!canProceed}>
             ANALYSE MY PROFILE →
@@ -1744,6 +1922,42 @@ export default function EmployerProductManager() {
               );
             })}
           </div>
+
+          {skillsGroundedInResume ? (
+            <div style={{fontSize:15,color:S.green,lineHeight:1.6,margin:"-8px 0 16px"}}>
+              ✓ Personalized using your resume
+            </div>
+          ) : null}
+
+          <Card style={{marginBottom:14}}>
+            <Label style={{marginBottom:8}}>
+              AI USAGE <span style={{color:S.dim,fontWeight:400,textTransform:"none"}}>— optional — tell us if you&apos;ve already used AI as part of this work</span>
+            </Label>
+            <p style={{color:S.muted,fontSize:16,margin:"0 0 14px",lineHeight:1.6}}>
+              Pick one or two skills above where you&apos;ve actually used AI as part of your job, and briefly describe how.
+            </p>
+            <div style={{display:"flex",flexWrap:"wrap",gap:8,marginBottom:aiUsageSkillIds.length>0?14:0}}>
+              {skills.map(function(s) {
+                return (
+                  <Chip
+                    key={s.id}
+                    label={s.text}
+                    active={aiUsageSkillIds.indexOf(s.id)!==-1}
+                    onClick={function(){toggleAiUsageSkill(s.id);}}
+                  />
+                );
+              })}
+            </div>
+            {aiUsageSkillIds.length > 0 ? (
+              <textarea
+                value={aiUsageDescription}
+                onChange={function(e){setAiUsageDescription(e.target.value);}}
+                placeholder="e.g. Used GitHub Copilot to draft the first pass of integration tests, then reviewed and corrected the edge cases myself."
+                rows={3}
+                style={Object.assign({}, inputStyle, {resize:"vertical", minHeight:80, lineHeight:1.5})}
+              />
+            ) : null}
+          </Card>
 
           <Card style={{ marginBottom: 20 }}>
             <Label>ADD A SKILL</Label>
