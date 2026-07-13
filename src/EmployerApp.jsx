@@ -317,7 +317,7 @@ export function Chip(props) {
       border:"1px solid " + (active ? S.gold : S.border),
       borderRadius:20, padding:"6px 14px", cursor:"pointer",
       fontFamily:S.mono, fontSize:12, fontWeight: active ? 700 : 500,
-      transition:"all 0.15s", whiteSpace:"nowrap",
+      transition:"all 0.15s", maxWidth:"100%", textAlign:"left",
     }}>
       {props.label}
     </button>
