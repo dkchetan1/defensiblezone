@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { grantEmployerAccess, isEmployerAccessGranted } from "./EmployerEdition.js";
 
-var LS = {
+export var LS = {
   bg: "#F5F2EE",
   text: "#1C1917",
   muted: "#6B6560",
@@ -313,7 +313,7 @@ var COMPANY_TYPES = [
 ];
 
 // ── DESIGN TOKENS ──────────────────────────────────────────────────────
-var S = {
+export var S = {
   bg:"#f8f9fc", card:"#ffffff", card2:"#f2f4f8",
   border:"#d0d7e8", text:"#0d1117", muted:"#1e2a42", dim:"#4a5568",
   accent:"#1a1d2e", purple:"#7c3aed", gold:"#d97706",
@@ -324,22 +324,22 @@ var S = {
 };
 
 // ── MATH ───────────────────────────────────────────────────────────────
-var AFFINITY_STOPS = [0, 3, 5, 7, 10];
-function snapToStop(val) {
+export var AFFINITY_STOPS = [0, 3, 5, 7, 10];
+export function snapToStop(val) {
   return AFFINITY_STOPS.reduce(function(prev, curr) {
     return Math.abs(curr - val) < Math.abs(prev - val) ? curr : prev;
   });
 }
-function getSeed(c, p) {
+export function getSeed(c, p) {
   var raw = Math.round((c * 0.5 + p * 0.5) * 10) / 10;
   return AFFINITY_STOPS.reduce(function(prev, curr) {
     return Math.abs(curr - raw) < Math.abs(prev - raw) ? curr : prev;
   });
 }
-function compAff(conscience, pull, fluency) {
+export function compAff(conscience, pull, fluency) {
   return Math.round((conscience * 0.35 + pull * 0.35 + fluency * 0.3) * 10) / 10;
 }
-function calcDZ(aff, aiR, mkt) {
+export function calcDZ(aff, aiR, mkt) {
   var v = 100 * Math.pow(aff / 10, 0.35) * Math.pow((10 - aiR) / 10, 0.40) * Math.pow(mkt / 10, 0.25);
   return Math.min(100, Math.round(v));
 }
@@ -363,21 +363,21 @@ function buildProfile(devType, devTypeOther, seniority, workContexts, companyTyp
 }
 
 // ── SHARED UI ──────────────────────────────────────────────────────────
-function Card(props) {
+export function Card(props) {
   return (
     <div style={Object.assign({ background: S.card, border: "1px solid " + S.border, borderRadius: 16, padding: 28 }, props.style)}>
       {props.children}
     </div>
   );
 }
-function Label(props) {
+export function Label(props) {
   return (
     <div style={Object.assign({ fontFamily: S.mono, fontSize: 12, color: S.muted, letterSpacing: "0.06em", fontWeight: 600, marginBottom: 8 }, props.style)}>
       {props.children}
     </div>
   );
 }
-function PrimaryBtn(props) {
+export function PrimaryBtn(props) {
   var dis = props.disabled;
   return (
     <button onClick={props.onClick} disabled={dis} style={Object.assign({
@@ -390,7 +390,7 @@ function PrimaryBtn(props) {
     </button>
   );
 }
-function SelBtn(props) {
+export function SelBtn(props) {
   var active = props.active;
   return (
     <button onClick={props.onClick} style={{
@@ -405,7 +405,7 @@ function SelBtn(props) {
     </button>
   );
 }
-function Chip(props) {
+export function Chip(props) {
   var active = props.active;
   return (
     <button onClick={props.onClick} style={{
@@ -419,6 +419,31 @@ function Chip(props) {
       {props.label}
     </button>
   );
+}
+
+export function dzScoreColor(score) {
+  if (score < 40) return S.red;
+  if (score <= 65) return S.gold;
+  return S.green;
+}
+export function getOverallSubLabel(score) {
+  if (score <= 39) return "High exposure. Significant repositioning needed.";
+  if (score <= 59) return "Moderate exposure. Some strong anchors, gaps to address.";
+  if (score <= 74) return "Solid foundation. Targeted moves will strengthen your position.";
+  if (score <= 89) return "Well-positioned. Protect your anchors and extend your lead.";
+  return "Exceptional. You're operating in rare territory.";
+}
+export function getSkillInterpretation(aiRisk, mkt, aff) {
+  if (aiRisk >= 7) return "High AI exposure — your affinity is what keeps this defensible.";
+  if (aiRisk <= 3 && mkt >= 7) return "Low AI risk, high market value — a strong anchor.";
+  if (aff >= 7 && aiRisk >= 6) return "Your affinity is your edge here — lean into it.";
+  if (aff <= 3 && aiRisk >= 6) return "Vulnerable. Consider whether this is worth defending.";
+  return "Moderate position — context and execution matter here.";
+}
+export function isValidEmail(email) {
+  var at = email.indexOf("@");
+  if (at === -1) return false;
+  return email.indexOf(".", at + 1) !== -1;
 }
 
 // ── MAIN APP ───────────────────────────────────────────────────────────
@@ -945,12 +970,6 @@ function EngineerFlow() {
       setRecsError("Could not load recommendations. Please try again.");
       setRecsLoading(false);
     }
-  }
-
-  function isValidEmail(email) {
-    var at = email.indexOf("@");
-    if (at === -1) return false;
-    return email.indexOf(".", at + 1) !== -1;
   }
 
   async function handleGateSubmit() {
@@ -2674,26 +2693,6 @@ var PM_CONTEXT_MAP = {
   marketplace: ["consumer_exp","growth_exp","stakeholder","pricing","compliance","metrics"],
 };
 
-// ── PM SCORING HELPERS ───────────────────────────────────────────────
-function dzScoreColor(score) {
-  if (score < 40) return S.red;
-  if (score <= 65) return S.gold;
-  return S.green;
-}
-function getOverallSubLabel(score) {
-  if (score <= 39) return "High exposure. Significant repositioning needed.";
-  if (score <= 59) return "Moderate exposure. Some strong anchors, gaps to address.";
-  if (score <= 74) return "Solid foundation. Targeted moves will strengthen your position.";
-  if (score <= 89) return "Well-positioned. Protect your anchors and extend your lead.";
-  return "Exceptional. You're operating in rare territory.";
-}
-function getSkillInterpretation(aiRisk, mkt, aff) {
-  if (aiRisk >= 7) return "High AI exposure — your affinity is what keeps this defensible.";
-  if (aiRisk <= 3 && mkt >= 7) return "Low AI risk, high market value — a strong anchor.";
-  if (aff >= 7 && aiRisk >= 6) return "Your affinity is your edge here — lean into it.";
-  if (aff <= 3 && aiRisk >= 6) return "Vulnerable. Consider whether this is worth defending.";
-  return "Moderate position — context and execution matter here.";
-}
 function buildPMProfile(pmType, seniority, workContexts, companyType) {
   var pt = PM_TYPES.find(function(p) { return p.id === pmType; });
   var sl = PM_SENIORITY_LEVELS.find(function(s) { return s.id === seniority; });
@@ -3002,12 +3001,6 @@ function ProductManagerFlow() {
     setWorkContexts(function(prev) {
       return prev.indexOf(id) !== -1 ? prev.filter(function(x) { return x !== id; }) : prev.concat([id]);
     });
-  }
-
-  function isValidEmail(email) {
-    var at = email.indexOf("@");
-    if (at === -1) return false;
-    return email.indexOf(".", at + 1) !== -1;
   }
 
   async function handleGateSubmit() {
