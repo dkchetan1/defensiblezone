@@ -1,6 +1,6 @@
-import { DZNavBar, DZFooter } from "./SharedComponents";
 import { useState, useEffect, useRef } from "react";
 import { isEmployerAccessGranted } from "./EmployerEdition.js";
+import { S, LS, AFFINITY_STOPS, snapToStop, getSeed, compAff, calcDZ, dzScoreColor, getOverallSubLabel, getSkillInterpretation, isValidEmail, Card, Label, PrimaryBtn, SelBtn, Chip } from "./EmployerApp.jsx";
 
 // ── UX ROLE TYPES ─────────────────────────────────────────────────────
 var UX_ROLE_TYPES = [
@@ -468,59 +468,7 @@ var AFFINITY_COPY = {
   },
 };
 
-// ── DESIGN TOKENS ─────────────────────────────────────────────────────
-var S = {
-  bg: "#f8f9fc",
-  card: "#ffffff",
-  card2: "#f2f4f8",
-  border: "#d0d7e8",
-  text: "#0d1117",
-  muted: "#1e2a42",
-  dim: "#4a5568",
-  accent: "#1a1d2e",
-  purple: "#7c3aed",
-  gold: "#d97706",
-  green: "#059669",
-  red: "#dc2626",
-  blue: "#2563eb",
-  orange: "#ea580c",
-  font: "system-ui,-apple-system,sans-serif",
-  mono: "'Courier New',monospace",
-  serif: "'Playfair Display',Georgia,serif",
-};
-
-var PROMO_CODES = ["DZFRIEND", "DZPREVIEW", "DZTEST"];
-var TEST_CODES = ["DZONE"];
-
-// ── MATH HELPERS ──────────────────────────────────────────────────────
-var AFFINITY_STOPS = [0, 3, 5, 7, 10];
-
-function snapToStop(val) {
-  return AFFINITY_STOPS.reduce(function (prev, curr) {
-    return Math.abs(curr - val) < Math.abs(prev - val) ? curr : prev;
-  });
-}
-
-function getSeed(c, p) {
-  var raw = (c + p) / 2;
-  return snapToStop(raw);
-}
-
-function compAff(conscience, pull, fluency) {
-  return Math.round((conscience * 0.35 + pull * 0.35 + fluency * 0.3) * 10) / 10;
-}
-
-function calcDZ(aff, aiR, mkt) {
-  var v = 100 * Math.pow(aff / 10, 0.35) * Math.pow((10 - aiR) / 10, 0.40) * Math.pow(mkt / 10, 0.25);
-  return Math.min(100, Math.round(v));
-}
-
-function dzScoreColor(score) {
-  if (score < 40) return S.red;
-  if (score <= 65) return S.gold;
-  return S.green;
-}
-
+// ── UX-SPECIFIC OVERALL LABELS (differ from shared getOverallSubLabel) ──
 function getOverallLabel(score) {
   if (score <= 39) return "Needs Attention";
   if (score <= 59) return "Moderate Exposure";
@@ -535,14 +483,6 @@ function getOverallSublabel(score) {
   if (score <= 74) return "Solid foundation. Targeted moves will strengthen your position.";
   if (score <= 89) return "Well positioned. Protect your anchors and extend your lead.";
   return "Exceptional. You're operating in rare territory.";
-}
-
-function getSkillInterpretation(aiRisk, mkt, aff) {
-  if (aiRisk >= 7) return "High AI exposure — your affinity is what keeps this defensible.";
-  if (aiRisk <= 3 && mkt >= 7) return "Low AI risk, high market value — a strong anchor.";
-  if (aff >= 7 && aiRisk >= 6) return "Your affinity is your edge here — lean into it.";
-  if (aff <= 3 && aiRisk >= 6) return "Vulnerable. Consider whether this is worth defending.";
-  return "Moderate position — context and execution matter here.";
 }
 
 function buildProfile(roleType, seniority, isManager, companyTypeId, workFocus) {
@@ -561,53 +501,6 @@ function buildProfile(roleType, seniority, isManager, companyTypeId, workFocus) 
     workFocusLabels: workFocusLabels,
     summary: seniority + " " + roleLabel + (companyLabel ? " · " + companyLabel : ""),
   };
-}
-
-// ── SHARED UI COMPONENTS ──────────────────────────────────────────────
-function Card(props) {
-  return (
-    <div style={Object.assign({ background: S.card, border: "1px solid " + S.border, borderRadius: 16, padding: 28 }, props.style)}>
-      {props.children}
-    </div>
-  );
-}
-
-function Label(props) {
-  return (
-    <div style={Object.assign({ fontFamily: S.mono, fontSize: 12, color: S.muted, letterSpacing: "0.06em", fontWeight: 600, marginBottom: 8 }, props.style)}>
-      {props.children}
-    </div>
-  );
-}
-
-function PrimaryBtn(props) {
-  var dis = props.disabled;
-  return (
-    <button onClick={props.onClick} disabled={dis} style={Object.assign({
-      width: "100%", background: dis ? S.card : S.accent, color: dis ? S.dim : "white",
-      border: "1px solid " + (dis ? S.border : S.accent), borderRadius: 12, padding: "18px 0",
-      fontSize: 16, fontFamily: S.mono, fontWeight: 700, cursor: dis ? "not-allowed" : "pointer",
-      letterSpacing: "0.08em", transition: "all 0.2s",
-    }, props.style)}>
-      {props.children}
-    </button>
-  );
-}
-
-function Chip(props) {
-  var active = props.active;
-  return (
-    <button onClick={props.onClick} style={{
-      background: active ? S.gold : S.card,
-      color: active ? "white" : S.muted,
-      border: "1px solid " + (active ? S.gold : S.border),
-      borderRadius: 20, padding: "6px 14px", cursor: "pointer",
-      fontFamily: S.mono, fontSize: 12, fontWeight: active ? 700 : 500,
-      transition: "all 0.15s", whiteSpace: "nowrap",
-    }}>
-      {props.label}
-    </button>
-  );
 }
 
 function UXDisclaimer() {
@@ -654,31 +547,35 @@ export default function EmployerUX() {
   var [recsLoading, setRecsLoading] = useState(false);
   var [recsError, setRecsError] = useState(null);
   var [step, setStep] = useState(1);
-  var [tier, setTier] = useState(0);
-  var [promoCode, setPromoCode] = useState("");
-  var [promoError, setPromoError] = useState("");
-  var [promoUsed, setPromoUsed] = useState(false);
-  var [discountApplied, setDiscountApplied] = useState(false);
-  var [testModeApplied, setTestModeApplied] = useState(false);
   var [gateEmail, setGateEmail] = useState("");
   var [gateSent, setGateSent] = useState(false);
   var [gateVerified, setGateVerified] = useState(false);
+  var effectivelyVerified = gateVerified || isEmployerAccessGranted();
   var [gateError, setGateError] = useState("");
   var [gateLoading, setGateLoading] = useState(false);
   var [showResend, setShowResend] = useState(false);
   var [gateOnDifferentDevice, setGateOnDifferentDevice] = useState(false);
   var [gateInputFocused, setGateInputFocused] = useState(false);
-  var [checkoutLoading, setCheckoutLoading] = useState(false);
-  var [checkoutError, setCheckoutError] = useState(null);
-  var [paymentCanceled, setPaymentCanceled] = useState(false);
   var [resultsError, setResultsError] = useState(null);
+  var [roleError, setRoleError] = useState("");
+  var [focusError, setFocusError] = useState("");
   var freeEmailSentRef = useRef(false);
-  var [freeEmailSentDisplay, setFreeEmailSentDisplay] = useState(false);
   var paidEmailSentRef = useRef(false);
-  var [paidEmailSentDisplay, setPaidEmailSentDisplay] = useState(false);
   var [hoveredCard, setHoveredCard] = useState(null);
   var [customSkill, setCustomSkill] = useState("");
   var [showAllFocus, setShowAllFocus] = useState(false);
+  var [manualEmailSent, setManualEmailSent] = useState(false);
+  var [manualEmailInput, setManualEmailInput] = useState("");
+  var [manualEmailError, setManualEmailError] = useState("");
+  var [manualEmailLoading, setManualEmailLoading] = useState(false);
+  var [resumeFileName, setResumeFileName] = useState("");
+  var [resumeText, setResumeText] = useState("");
+  var [resumeUploading, setResumeUploading] = useState(false);
+  var [resumeUploadError, setResumeUploadError] = useState("");
+  var [skillsGroundedInResume, setSkillsGroundedInResume] = useState(false);
+  var resumeInputRef = useRef(null);
+  var [aiUsageSkillIds, setAiUsageSkillIds] = useState([]);
+  var [aiUsageDescription, setAiUsageDescription] = useState("");
 
   var adjustedSkillsRef = useRef(new Set());
 
@@ -759,7 +656,7 @@ export default function EmployerUX() {
   useEffect(
     function () {
       if (!loading && !recsLoading) return;
-      var msgs = recsLoading ? UX_RECS_MSGS : (step === 4 || step === 5) ? UX_SCORING_MSGS : UX_LOADING_MSGS;
+      var msgs = recsLoading ? UX_RECS_MSGS : step === 4 ? UX_SCORING_MSGS : UX_LOADING_MSGS;
       var i = 0;
       setLoadingMsg(msgs[0]);
       var t = setInterval(function () {
@@ -789,15 +686,50 @@ export default function EmployerUX() {
         var data = await res.json();
         if (data && data.valid === true) {
           if (data.email) setGateEmail(data.email);
-          var restored = restoreSavedReport();
-          setGateLoading(false);
-          if (restored) {
-            setGateVerified(true);
-            setStep(4);
+          var savedRaw = null;
+          try {
+            savedRaw = localStorage.getItem("dz_saved_report_ux");
+          } catch (e) {}
+          if (savedRaw) {
+            var expired = false;
+            try {
+              var s = JSON.parse(savedRaw);
+              if (!s.savedAt || Date.now() - s.savedAt > 14 * 24 * 60 * 60 * 1000) {
+                expired = true;
+                localStorage.removeItem("dz_saved_report_ux");
+              } else {
+                if (s.roleType) setRoleType(s.roleType);
+                if (s.seniority) setSeniority(s.seniority);
+                if (s.isManager !== undefined) setIsManager(s.isManager);
+                if (s.companyTypeId) setCompanyTypeId(s.companyTypeId);
+                if (s.workFocus) setWorkFocus(s.workFocus);
+                if (s.conscience !== undefined) setConscience(s.conscience);
+                if (s.pull !== undefined) setPull(s.pull);
+                if (s.gateEmail) setGateEmail(s.gateEmail);
+                if (s.landscape) setLandscape(s.landscape);
+                if (s.skills) setSkills(s.skills);
+                if (s.fluencies) setFluencies(s.fluencies);
+                if (s.skillConscience) setSkillConscience(s.skillConscience);
+                if (s.skillPull) setSkillPull(s.skillPull);
+                if (s.resumeText !== undefined) setResumeText(s.resumeText);
+                if (s.resumeFileName !== undefined) setResumeFileName(s.resumeFileName);
+                if (s.aiUsageSkillIds) setAiUsageSkillIds(s.aiUsageSkillIds);
+                if (s.aiUsageDescription !== undefined) setAiUsageDescription(s.aiUsageDescription);
+                if (s.results) setResults(s.results);
+              }
+            } catch (e) {}
+            if (expired) {
+              setStep(4);
+              setGateOnDifferentDevice(true);
+            } else {
+              setGateVerified(true);
+              setStep(4);
+            }
           } else {
             setStep(4);
             setGateOnDifferentDevice(true);
           }
+          setGateLoading(false);
           return;
         }
         if (data && data.valid === false && data.reason === "expired") {
@@ -815,70 +747,33 @@ export default function EmployerUX() {
     })();
   }, []);
 
-  useEffect(function () {
-    var params = new URLSearchParams(window.location.search);
-    if (params.get("success") === "true") {
-      window.history.replaceState({}, "", window.location.pathname);
-      restoreSavedReport();
-      setGateVerified(true);
-      setTier(2);
-      setPaymentCanceled(false);
-      setStep(6);
-      return;
-    }
-    if (params.get("canceled") === "true") {
-      window.history.replaceState({}, "", window.location.pathname);
-      restoreSavedReport();
-      setGateVerified(true);
-      setStep(5);
-      setPaymentCanceled(true);
-    }
-  }, []);
-
   useEffect(
     function () {
-      if (step === 5 && (tier >= 2 || promoUsed || isEmployerAccessGranted())) {
-        setStep(6);
-      }
-    },
-    [step, tier, promoUsed]
-  );
-
-  useEffect(
-    function () {
-      if (step !== 6) return;
-      if (!(tier >= 2 || promoUsed || isEmployerAccessGranted())) return;
-      if (!results) return;
+      if (step !== 4) return;
+      if (!results || !results.skills || results.skills.length === 0) return;
       if (recommendations || recsLoading) return;
       fetchRecommendations();
     },
-    [step, tier, promoUsed, results]
+    [step, results]
   );
-
-  useEffect(function () {
-    if (step !== 4) return;
-    if (!results || !results.skills || results.skills.length === 0) return;
-    if (recommendations || recsLoading) return;
-    fetchRecommendations();
-  }, [step, results]);
 
   useEffect(
     function () {
-      if (!gateVerified) return;
+      if (!effectivelyVerified) return;
       if (gateOnDifferentDevice) return;
       if (results || loading) return;
       if (!roleType || !seniority) return;
       fetchScores();
     },
-    [gateVerified, gateOnDifferentDevice, roleType, seniority]
+    [effectivelyVerified, gateOnDifferentDevice, roleType, seniority]
   );
 
-  function computeOverallScore(skills) {
-    if (!Array.isArray(skills) || skills.length === 0) return 0;
+  function computeOverallScore(skillsArr) {
+    if (!Array.isArray(skillsArr) || skillsArr.length === 0) return 0;
     return Math.round(
-      skills.reduce(function (sum, s) {
+      skillsArr.reduce(function (sum, s) {
         return sum + (typeof s.dz === "number" ? s.dz : 0);
-      }, 0) / skills.length
+      }, 0) / skillsArr.length
     );
   }
 
@@ -889,7 +784,6 @@ export default function EmployerUX() {
       if (!gateEmail.trim()) return;
       freeEmailSentRef.current = true;
       var skillsList = Array.isArray(results.skills) ? results.skills : [];
-      setFreeEmailSentDisplay(true);
       fetch("/api/send-results-email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -911,13 +805,12 @@ export default function EmployerUX() {
 
   useEffect(
     function () {
-      if (!recommendations || (tier < 2 && !isEmployerAccessGranted())) return;
+      if (!recommendations) return;
       if (!results) return;
       if (paidEmailSentRef.current) return;
       if (!gateEmail.trim()) return;
       paidEmailSentRef.current = true;
       var skillsList = Array.isArray(results.skills) ? results.skills : [];
-      setPaidEmailSentDisplay(true);
       fetch("/api/send-results-email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -935,42 +828,10 @@ export default function EmployerUX() {
         }),
       }).catch(function () {});
     },
-    [recommendations, tier]
+    [recommendations]
   );
 
-  function restoreSavedReport() {
-    try {
-      var savedRaw = localStorage.getItem("dz_saved_report_ux");
-      if (!savedRaw) return false;
-      var s = JSON.parse(savedRaw);
-      if (s.roleType) setRoleType(s.roleType);
-      if (s.seniority) setSeniority(s.seniority);
-      if (s.isManager !== undefined) setIsManager(s.isManager);
-      if (s.companyTypeId) setCompanyTypeId(s.companyTypeId);
-      if (s.workFocus) setWorkFocus(s.workFocus);
-      if (s.conscience !== undefined) setConscience(s.conscience);
-      if (s.pull !== undefined) setPull(s.pull);
-      if (s.gateEmail) setGateEmail(s.gateEmail);
-      if (s.landscape) setLandscape(s.landscape);
-      if (s.skills) setSkills(s.skills);
-      if (s.fluencies) setFluencies(s.fluencies);
-      if (s.skillConscience) setSkillConscience(s.skillConscience);
-      if (s.skillPull) setSkillPull(s.skillPull);
-      if (s.results) {
-        setResults(s.results);
-        setStep(4);
-      }
-      if (s.tier !== undefined) setTier(s.tier);
-      if (s.promoUsed) setPromoUsed(s.promoUsed);
-      if (s.discountApplied) setDiscountApplied(s.discountApplied);
-      return true;
-    } catch (e) {
-      return false;
-    }
-  }
-
-  function saveStateForReturn(overrides) {
-    overrides = overrides || {};
+  function saveProfileState() {
     try {
       localStorage.setItem(
         "dz_saved_report_ux",
@@ -988,45 +849,214 @@ export default function EmployerUX() {
           fluencies: fluencies,
           skillConscience: skillConscience,
           skillPull: skillPull,
-          results: overrides.results !== undefined ? overrides.results : results,
-          tier: tier,
-          promoUsed: promoUsed,
-          discountApplied: discountApplied,
+          resumeText: resumeText,
+          resumeFileName: resumeFileName,
+          aiUsageSkillIds: aiUsageSkillIds,
+          aiUsageDescription: aiUsageDescription,
+          results: results,
+          savedAt: Date.now(),
         })
       );
     } catch (_e) {}
   }
 
-  async function handleUnlockCheckout() {
-    setCheckoutLoading(true);
-    setCheckoutError(null);
-    saveStateForReturn();
+  function saveReportAfterScores(resultsVal) {
     try {
-      var res = await fetch("/api/create-checkout-session", {
+      localStorage.setItem(
+        "dz_saved_report_ux",
+        JSON.stringify({
+          roleType: roleType,
+          seniority: seniority,
+          isManager: isManager,
+          companyTypeId: companyTypeId,
+          workFocus: workFocus,
+          conscience: conscience,
+          pull: pull,
+          gateEmail: gateEmail,
+          landscape: landscape,
+          skills: skills,
+          fluencies: fluencies,
+          skillConscience: skillConscience,
+          skillPull: skillPull,
+          resumeText: resumeText,
+          resumeFileName: resumeFileName,
+          aiUsageSkillIds: aiUsageSkillIds,
+          aiUsageDescription: aiUsageDescription,
+          results: resultsVal,
+          savedAt: Date.now(),
+        })
+      );
+    } catch (_e) {}
+  }
+
+  async function handleManualEmailCopy() {
+    if (!recommendations) {
+      setManualEmailError("Your full report is still being prepared — please try again in a few seconds.");
+      return;
+    }
+    var trimmed = manualEmailInput.trim();
+    if (!isValidEmail(trimmed)) {
+      setManualEmailError("Please enter a valid email address.");
+      return;
+    }
+    setManualEmailError("");
+    setManualEmailLoading(true);
+    try {
+      var skillsList = Array.isArray(results.skills) ? results.skills : [];
+      var res = await fetch("/api/send-results-email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          email: trimmed,
           product: "ux",
-          email: gateEmail.trim(),
-          price: testModeApplied ? 100 : 7900,
-          testMode: testModeApplied,
+          type: "paid",
+          results: {
+            profile: results.profile,
+            landscape: results.landscape,
+            skills: skillsList,
+            overallScore: computeOverallScore(skillsList),
+            recommendations: recommendations,
+          },
         }),
       });
       var data = await res.json();
-      if (!res.ok || !data.url) throw new Error(data.error || "Could not start checkout");
-      window.location.href = data.url;
+      if (!res.ok) throw new Error(data.error || "Request failed");
+      setGateEmail(trimmed);
+      paidEmailSentRef.current = true;
+      freeEmailSentRef.current = true;
+      setManualEmailSent(true);
     } catch (e) {
-      setCheckoutError(e.message || "Could not start checkout. Please try again.");
-      setCheckoutLoading(false);
+      setManualEmailError("Something went wrong. Please try again.");
+    } finally {
+      setManualEmailLoading(false);
     }
   }
+
+  function toggleAiUsageSkill(skillId) {
+    setAiUsageSkillIds(function (prev) {
+      var idx = prev.indexOf(skillId);
+      if (idx !== -1) {
+        var next = prev.slice();
+        next.splice(idx, 1);
+        if (next.length === 0) setAiUsageDescription("");
+        return next;
+      }
+      if (prev.length >= 2) return prev;
+      return prev.concat([skillId]);
+    });
+  }
+
+  function clearResumeInput() {
+    if (resumeInputRef.current) resumeInputRef.current.value = "";
+  }
+
+  function removeResume() {
+    setResumeFileName("");
+    setResumeText("");
+    setResumeUploadError("");
+    clearResumeInput();
+  }
+
+  function fileToBase64(file) {
+    return new Promise(function (resolve, reject) {
+      var reader = new FileReader();
+      reader.onload = function () {
+        var result = reader.result;
+        var comma = typeof result === "string" ? result.indexOf(",") : -1;
+        resolve(comma !== -1 ? result.slice(comma + 1) : "");
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function handleResumeFileSelect(e) {
+    var file = e.target.files && e.target.files[0];
+    if (!file) return;
+
+    setResumeUploadError("");
+
+    var lowerName = file.name.toLowerCase();
+    var validExt = lowerName.endsWith(".pdf") || lowerName.endsWith(".docx");
+    if (!validExt) {
+      setResumeUploadError("Only PDF and DOCX files are supported.");
+      clearResumeInput();
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setResumeUploadError("File is too large. Please upload a file under 5MB.");
+      clearResumeInput();
+      return;
+    }
+
+    setResumeUploading(true);
+    try {
+      var fileData = await fileToBase64(file);
+      var res = await fetch("/api/parse-resume", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fileName: file.name,
+          fileData: fileData,
+          mimeType: file.type,
+        }),
+      });
+      var data = await res.json();
+
+      if (!data || data.success !== true) {
+        setResumeUploadError(
+          (data && data.error) ||
+          "Something went wrong reading this file — you can continue without it, or try again."
+        );
+        setResumeUploading(false);
+        clearResumeInput();
+        return;
+      }
+
+      if (data.extractable === false || !data.text || !String(data.text).trim()) {
+        setResumeText("");
+        setResumeFileName("");
+        setResumeUploadError(
+          "We couldn't read text from this file — you can continue without it, or try a different file."
+        );
+        setResumeUploading(false);
+        clearResumeInput();
+        return;
+      }
+
+      setResumeText(data.text);
+      setResumeFileName(file.name);
+      setResumeUploadError("");
+      setResumeUploading(false);
+      clearResumeInput();
+    } catch (err) {
+      setResumeUploadError(
+        "Something went wrong reading this file — you can continue without it, or try again."
+      );
+      setResumeUploading(false);
+      clearResumeInput();
+    }
+  }
+
+  var inputStyle = {
+    width: "100%",
+    background: "#f2f4f8",
+    border: "1px solid " + S.border,
+    borderRadius: 8,
+    padding: "12px 16px",
+    color: S.text,
+    fontSize: 16,
+    fontFamily: S.font,
+    outline: "none",
+    boxSizing: "border-box",
+  };
 
   async function fetchLandscapeAndSkills() {
     setLoading(true);
     setError(null);
     var profile = buildProfile(roleType, seniority, isManager, companyTypeId, workFocus);
     var wfStr = profile.workFocusLabels.join(", ");
-    var prompt =
+    var promptPrefix =
       "You are a senior UX and design career strategist specializing in AI labor market analysis for UX professionals.\n\nUX PROFILE:\n- Role: " +
       profile.roleLabel +
       "\n- Seniority: " +
@@ -1037,7 +1067,8 @@ export default function EmployerUX() {
       (profile.companyLabel || "not specified") +
       (profile.companySub ? " — " + profile.companySub : "") +
       "\n- Work focus: " +
-      wfStr +
+      wfStr;
+    var promptTaskSuffix =
       "\n\nTask 1 — LANDSCAPE SNAPSHOT: Write 2-3 precise sentences about the AI threat to this exact UX profile in 2026. Name specific tools (Figma AI, Adobe Firefly, Galileo AI, Midjourney, Claude, v0, Cursor), specific tasks being automated, and where the real exposure is at this seniority level doing this work. Do not write generic AI commentary — be specific to this combination of role, seniority, manager status, company type, and work focus.\n\nTask 2 — SKILL SUGGESTIONS: Generate exactly 8 skills that are the most strategically important for a " +
       profile.seniorityLabel +
       " " +
@@ -1048,6 +1079,18 @@ export default function EmployerUX() {
       " to assess for AI defensibility right now. Be precise and UX-specific — not generic. Include a realistic mix: some defensible, some genuinely at risk. Weight toward skills that differentiate at the " +
       profile.seniorityLabel +
       " level.\n\nReturn ONLY valid JSON:\n{\"landscape\":\"...\",\"skills\":[\"skill1\",\"skill2\",\"skill3\",\"skill4\",\"skill5\",\"skill6\",\"skill7\",\"skill8\"]}";
+    var prompt;
+    if (resumeText) {
+      var truncatedResume = resumeText.length > 6000 ? (function () {
+        var cut = resumeText.slice(0, 6000);
+        var lastSpace = cut.lastIndexOf(" ");
+        return lastSpace > 0 ? cut.slice(0, lastSpace) : cut;
+      })() : resumeText;
+      prompt = promptPrefix + "\n\nCANDIDATE'S RESUME (use this to ground the skill list in their actual, evidenced work history — do not just repeat generic skills for this role/seniority level):\n" + truncatedResume + "\n\nWhen generating the 8 skills in Task 2: prioritize skills that are actually evidenced in the resume above. If the resume doesn't fully cover 8 strategically important skills for this profile, fill the remaining slots with additional role-appropriate skills not found in the resume. Do not list a skill twice just because it's phrased differently in two places — merge overlapping skills into one entry." + promptTaskSuffix;
+    } else {
+      prompt = promptPrefix + promptTaskSuffix;
+    }
+    var usedResume = !!resumeText;
 
     try {
       var res = await fetch("/api/generate", {
@@ -1074,11 +1117,14 @@ export default function EmployerUX() {
       });
       setLandscape(parsed.landscape);
       setSkills(loaded);
+      setSkillsGroundedInResume(usedResume);
       setFluencies({});
       setSkillConscience({});
       setSkillPull({});
       setAdjustedSkills(new Set());
       adjustedSkillsRef.current = new Set();
+      setAiUsageSkillIds([]);
+      setAiUsageDescription("");
       setStep(3);
     } catch (e) {
       if (e.message && e.message.indexOf("overloaded") !== -1) {
@@ -1110,11 +1156,14 @@ export default function EmployerUX() {
           });
           setLandscape(parsed2.landscape);
           setSkills(loaded2);
+          setSkillsGroundedInResume(usedResume);
           setFluencies({});
           setSkillConscience({});
           setSkillPull({});
           setAdjustedSkills(new Set());
           adjustedSkillsRef.current = new Set();
+          setAiUsageSkillIds([]);
+          setAiUsageDescription("");
           setStep(3);
         } catch (e2) {
           setError("Something went wrong — please try again in a moment.");
@@ -1225,7 +1274,7 @@ export default function EmployerUX() {
       });
       var resultsPayload = { skills: enriched, profile: profile, landscape: landscape };
       setResults(resultsPayload);
-      saveStateForReturn({ results: resultsPayload });
+      saveReportAfterScores(resultsPayload);
       setStep(4);
     } catch (e) {
       if (e.message && e.message.indexOf("overloaded") !== -1) {
@@ -1286,7 +1335,7 @@ export default function EmployerUX() {
           });
           var resultsPayload2 = { skills: enriched2, profile: profile, landscape: landscape };
           setResults(resultsPayload2);
-          saveStateForReturn({ results: resultsPayload2 });
+          saveReportAfterScores(resultsPayload2);
           setStep(4);
         } catch (e2) {
           setError("Something went wrong — please try again in a moment.");
@@ -1442,7 +1491,6 @@ export default function EmployerUX() {
             boxSizing: "border-box",
           }}
         >
-          <DZNavBar />
           <div
             style={{
               width: 56,
@@ -1470,7 +1518,6 @@ export default function EmployerUX() {
             <span style={{ animation: "uxDots 1s ease-in-out 0.2s infinite" }}>.</span>
             <span style={{ animation: "uxDots 1s ease-in-out 0.4s infinite" }}>.</span>
           </div>
-          <DZFooter />
         </div>
       ) : error ? (
         <div
@@ -1483,7 +1530,6 @@ export default function EmployerUX() {
             boxSizing: "border-box",
           }}
         >
-          <DZNavBar />
           <Card style={{ maxWidth: 480, width: "100%", border: "1px solid " + S.red, textAlign: "center" }}>
             <p style={{ color: S.red, fontSize: 16, lineHeight: 1.6, margin: "0 0 20px" }}>{error}</p>
             <PrimaryBtn
@@ -1497,11 +1543,9 @@ export default function EmployerUX() {
               Try Again
             </PrimaryBtn>
           </Card>
-          <DZFooter />
         </div>
       ) : (
         <>
-          <DZNavBar />
           {step >= 1 && step <= 4 ? (
             <div style={{ padding: "0 20px", maxWidth: 720, margin: "0 auto" }}>
               <div style={{ height: 3, background: S.border, borderRadius: 2, overflow: "hidden", marginTop: 0 }}>
@@ -1531,7 +1575,7 @@ export default function EmployerUX() {
             </div>
           ) : null}
 
-          {step === 4 && !gateVerified ? (
+          {step === 4 && !effectivelyVerified ? (
             <div style={{ maxWidth: 480, margin: "0 auto", padding: "80px 20px 40px", boxSizing: "border-box" }}>
               {gateLoading ? (
                 <div style={{ textAlign: "center", padding: "48px 0" }}>
@@ -1724,14 +1768,14 @@ export default function EmployerUX() {
                         UX Professional AI Assessment
                       </h1>
                       <p style={{ fontSize: 15, color: S.dim, margin: "6px 0 0", lineHeight: 1.5 }}>
-                        Find out where you stand. Free skill-by-skill results, instantly.
+                        Find out where you stand. Full skill-by-skill results and a 90-day plan, instantly.
                       </p>
                     </div>
                   </div>
 
                   <ul style={{ margin: "0 0 24px", paddingLeft: 20, color: S.muted, fontSize: 14, lineHeight: 1.7 }}>
-                    <li>Free: personalised skill scores and AI exposure map</li>
-                    <li>Paid: full 90-day action plan across 3 phases — $79 one-time</li>
+                    <li>Personalised skill scores and AI exposure map</li>
+                    <li>Full 90-day action plan across 3 phases</li>
                     <li>Takes about 8 minutes — no account required</li>
                   </ul>
 
@@ -1846,7 +1890,7 @@ export default function EmployerUX() {
                         setRoleType(rt.id);
                         setSeniority("");
                         setWorkFocus([]);
-                        setPromoError("");
+                        setRoleError("");
                       }}
                       onMouseEnter={function () {
                         setHoveredCard(rt.id);
@@ -1919,16 +1963,16 @@ export default function EmployerUX() {
                 </div>
               </div>
 
-              {promoError ? <p style={{ color: S.red, fontSize: 14, margin: "0 0 16px" }}>{promoError}</p> : null}
+              {roleError ? <p style={{ color: S.red, fontSize: 14, margin: "0 0 16px" }}>{roleError}</p> : null}
 
               <PrimaryBtn
                 disabled={!roleType}
                 onClick={function () {
                   if (!roleType) {
-                    setPromoError("Please select a role type to continue.");
+                    setRoleError("Please select a role type to continue.");
                     return;
                   }
-                  setPromoError("");
+                  setRoleError("");
                   setStep(2);
                 }}
               >
@@ -2022,7 +2066,7 @@ export default function EmployerUX() {
                         label={opt}
                         active={active}
                         onClick={function () {
-                          setCheckoutError("");
+                          setFocusError("");
                           if (active) {
                             setWorkFocus(
                               workFocus.filter(function (x) {
@@ -2030,7 +2074,7 @@ export default function EmployerUX() {
                               })
                             );
                           } else if (workFocus.length >= 4) {
-                            setCheckoutError("Pick up to 4 areas");
+                            setFocusError("Pick up to 4 areas");
                           } else {
                             setWorkFocus(workFocus.concat([opt]));
                           }
@@ -2068,7 +2112,7 @@ export default function EmployerUX() {
                           label={opt}
                           active={active}
                           onClick={function () {
-                            setCheckoutError("");
+                            setFocusError("");
                             if (active) {
                               setWorkFocus(
                                 workFocus.filter(function (x) {
@@ -2076,7 +2120,7 @@ export default function EmployerUX() {
                                 })
                               );
                             } else if (workFocus.length >= 4) {
-                              setCheckoutError("Pick up to 4 areas");
+                              setFocusError("Pick up to 4 areas");
                             } else {
                               setWorkFocus(workFocus.concat([opt]));
                             }
@@ -2086,9 +2130,44 @@ export default function EmployerUX() {
                     })}
                   </div>
                 ) : null}
-                {checkoutError ? <p style={{ color: S.red, fontSize: 13, marginTop: 12, marginBottom: 0 }}>{checkoutError}</p> : null}
+                {focusError ? <p style={{ color: S.red, fontSize: 13, marginTop: 12, marginBottom: 0 }}>{focusError}</p> : null}
                 {step2WorkFocusErr ? (
                   <p style={{ color: S.red, fontSize: 13, marginTop: 8, marginBottom: 0 }}>Select at least one area.</p>
+                ) : null}
+              </Card>
+
+              <Card style={{ marginBottom: 20 }}>
+                <Label style={{ marginBottom: 8 }}>
+                  RESUME <span style={{ color: S.dim, fontWeight: 400, textTransform: "none" }}>— optional — upload to personalize your skill list</span>
+                </Label>
+                {resumeText ? (
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <span style={{ fontFamily: S.mono, fontSize: 12, color: S.green, fontWeight: 700 }}>✓ {resumeFileName}</span>
+                    <button
+                      type="button"
+                      onClick={removeResume}
+                      style={{ background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: S.mono, fontSize: 12, color: S.dim, textDecoration: "underline" }}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ) : (
+                  <div>
+                    <input
+                      ref={resumeInputRef}
+                      type="file"
+                      accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                      onChange={handleResumeFileSelect}
+                      disabled={resumeUploading}
+                      style={Object.assign({}, inputStyle, { padding: "10px 12px", fontSize: 14 })}
+                    />
+                    {resumeUploading ? (
+                      <p style={{ color: S.muted, fontSize: 14, margin: "8px 0 0", fontFamily: S.mono }}>Reading your resume…</p>
+                    ) : null}
+                  </div>
+                )}
+                {resumeUploadError ? (
+                  <p style={{ color: S.muted, fontSize: 14, margin: "8px 0 0", lineHeight: 1.5 }}>{resumeUploadError}</p>
                 ) : null}
               </Card>
 
@@ -2097,7 +2176,7 @@ export default function EmployerUX() {
                 onClick={function () {
                   setStep(1);
                   setResultsError("");
-                  setCheckoutError("");
+                  setFocusError("");
                 }}
                 style={{
                   background: "none",
@@ -2194,6 +2273,11 @@ export default function EmployerUX() {
                 <p style={{ fontSize: 14, color: S.dim, margin: "0 0 20px", lineHeight: 1.5 }}>
                   These are seeded from your global scores. Adjust any that feel off.
                 </p>
+                {skillsGroundedInResume ? (
+                  <div style={{ fontSize: 15, color: S.green, lineHeight: 1.6, margin: "-8px 0 20px" }}>
+                    ✓ Personalized using your resume
+                  </div>
+                ) : null}
                 {skills.map(function (skill) {
                   var fluencyVal = fluencies[skill.id] !== undefined ? fluencies[skill.id] : getSeed(conscience, pull);
                   return (
@@ -2356,6 +2440,40 @@ export default function EmployerUX() {
                 </div>
               </Card>
 
+              <Card style={{ marginBottom: 24 }}>
+                <Label style={{ marginBottom: 8 }}>
+                  AI USAGE <span style={{ color: S.dim, fontWeight: 400, textTransform: "none" }}>— optional — tell us if you&apos;ve already used AI as part of this work</span>
+                </Label>
+                <p style={{ color: S.muted, fontSize: 16, margin: "0 0 14px", lineHeight: 1.6 }}>
+                  Pick one or two skills above where you&apos;ve actually used AI as part of your job, and briefly describe how.
+                </p>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: aiUsageSkillIds.length > 0 ? 14 : 0 }}>
+                  {skills.map(function (s) {
+                    return (
+                      <Chip
+                        key={s.id}
+                        label={s.text}
+                        active={aiUsageSkillIds.indexOf(s.id) !== -1}
+                        onClick={function () {
+                          toggleAiUsageSkill(s.id);
+                        }}
+                      />
+                    );
+                  })}
+                </div>
+                {aiUsageSkillIds.length > 0 ? (
+                  <textarea
+                    value={aiUsageDescription}
+                    onChange={function (e) {
+                      setAiUsageDescription(e.target.value);
+                    }}
+                    placeholder="e.g. Used GitHub Copilot to draft the first pass of integration tests, then reviewed and corrected the edge cases myself."
+                    rows={3}
+                    style={Object.assign({}, inputStyle, { resize: "vertical", minHeight: 80, lineHeight: 1.5 })}
+                  />
+                ) : null}
+              </Card>
+
               <button
                 type="button"
                 onClick={function () {
@@ -2379,7 +2497,7 @@ export default function EmployerUX() {
               <PrimaryBtn
                 disabled={skills.length === 0}
                 onClick={function() {
-                  saveStateForReturn();
+                  saveProfileState();
                   setStep(4);
                 }}
               >
@@ -2388,7 +2506,7 @@ export default function EmployerUX() {
             </div>
           ) : null}
 
-          {gateVerified && (step === 4 || (step === 5 && results)) && results && !loading ? (
+          {effectivelyVerified && step === 4 && results && !loading ? (
             <div style={{ maxWidth: 720, margin: "0 auto", padding: "0 20px 48px", boxSizing: "border-box" }}>
               <div style={{ marginBottom: 28 }}>
                 <Label style={{ color: S.gold, marginBottom: 10 }}>STEP 4 OF 5 — YOUR RESULTS</Label>
@@ -2416,15 +2534,30 @@ export default function EmployerUX() {
                     ? recommendations
                     : recommendations.recommendations || []
                   : [];
-                var sortedRecs = recsList.slice().sort(function (a, b) {
-                  return (a.phase || 1) - (b.phase || 1);
+                var skillById = {};
+                scoredSkills.forEach(function (sk) {
+                  if (sk.id != null) skillById[sk.id] = sk;
                 });
                 var phaseMeta = [
-                  { phase: 1, pill: "Phase 1 — Anchor", color: S.green },
-                  { phase: 2, pill: "Phase 2 — Reposition", color: S.gold },
-                  { phase: 3, pill: "Phase 3 — Extend", color: S.purple },
+                  {
+                    phase: 1,
+                    pill: "Phase 1 — Anchor",
+                    color: S.green,
+                    desc: "Protect what's already working. These are your most defensible skills.",
+                  },
+                  {
+                    phase: 2,
+                    pill: "Phase 2 — Reposition",
+                    color: S.gold,
+                    desc: "Address your highest-exposure areas before AI commoditises them.",
+                  },
+                  {
+                    phase: 3,
+                    pill: "Phase 3 — Extend",
+                    color: S.purple,
+                    desc: "Build new capabilities to widen your zone over the next 90 days.",
+                  },
                 ];
-                var recGlobalIdx = 0;
 
                 function aiMetricColor(v) {
                   if (v >= 7) return S.red;
@@ -2442,6 +2575,10 @@ export default function EmployerUX() {
                         <div style={{ width: overallDZ + "%", height: "100%", background: S.gold, borderRadius: 2 }} />
                       </div>
                     </Card>
+
+                    <div style={{ fontFamily: S.mono, fontSize: 12, color: S.dim, letterSpacing: "0.08em", marginBottom: 14, fontWeight: 600 }}>
+                      SKILL-BY-SKILL BREAKDOWN
+                    </div>
 
                     {scoredSkills.map(function (skill) {
                       var dz = typeof skill.dz === "number" ? skill.dz : 0;
@@ -2510,27 +2647,10 @@ export default function EmployerUX() {
                       );
                     })}
 
-                    {freeEmailSentDisplay ? (
-                      <div
-                        style={{
-                          background: "rgba(5,150,105,0.08)",
-                          border: "1px solid rgba(5,150,105,0.35)",
-                          borderRadius: 10,
-                          padding: "12px 16px",
-                          marginBottom: 28,
-                          fontSize: 14,
-                          color: S.green,
-                          lineHeight: 1.5,
-                        }}
-                      >
-                        ✓ Your free results have been emailed to {gateEmail}
-                      </div>
-                    ) : null}
-
                     <div style={{ marginTop: 36, marginBottom: 24 }}>
                       <h2 style={{ fontFamily: S.serif, fontSize: 26, color: S.text, margin: "0 0 8px", fontWeight: 600 }}>Your 90-Day Defensible Zone Plan</h2>
                       <p style={{ fontSize: 15, color: S.dim, lineHeight: 1.6, margin: 0 }}>
-                        Based on your scores, we&apos;ve built a personalised action plan across 3 phases.
+                        Based on your scores, here&apos;s your personalised action plan across 3 phases.
                       </p>
                     </div>
 
@@ -2560,39 +2680,46 @@ export default function EmployerUX() {
                           Try Again
                         </PrimaryBtn>
                       </Card>
-                    ) : sortedRecs.length > 0 ? (
+                    ) : recsList.length > 0 ? (
                       <>
                         {phaseMeta.map(function (pm) {
-                          var phaseRecs = sortedRecs.filter(function (r) {
+                          var phaseRecs = recsList.filter(function (r) {
                             return (r.phase || 1) === pm.phase;
                           });
                           if (phaseRecs.length === 0) return null;
                           return (
-                            <div key={pm.phase} style={{ marginBottom: 28 }}>
+                            <div key={pm.phase} style={{ marginBottom: 32 }}>
                               <div
                                 style={{
                                   display: "inline-block",
                                   fontFamily: S.mono,
-                                  fontSize: 11,
+                                  fontSize: 12,
                                   fontWeight: 700,
                                   color: "#fff",
                                   background: pm.color,
-                                  padding: "6px 12px",
+                                  padding: "8px 14px",
                                   borderRadius: 20,
                                   letterSpacing: "0.04em",
-                                  marginBottom: 6,
+                                  marginBottom: 10,
                                 }}
                               >
                                 {pm.pill}
                               </div>
-                              <div style={{ fontFamily: S.mono, fontSize: 12, color: S.dim, marginBottom: 14 }}>
-                                {phaseRecs.length} action{phaseRecs.length !== 1 ? "s" : ""}
-                              </div>
-                              {phaseRecs.map(function (rec) {
-                                var isFirst = recGlobalIdx === 0;
-                                recGlobalIdx += 1;
-                                var cardInner = (
-                                  <>
+                              <p style={{ fontSize: 15, color: S.dim, lineHeight: 1.6, margin: "0 0 18px" }}>{pm.desc}</p>
+                              {phaseRecs.map(function (rec, idx) {
+                                var linkedSkill = rec.id != null ? skillById[rec.id] : null;
+                                return (
+                                  <div
+                                    key={rec.id || "rec-" + pm.phase + "-" + idx}
+                                    style={{
+                                      background: S.card,
+                                      border: "1px solid " + S.border,
+                                      borderLeft: "3px solid " + S.gold,
+                                      borderRadius: 12,
+                                      padding: "22px 24px",
+                                      marginBottom: 12,
+                                    }}
+                                  >
                                     <div
                                       style={{
                                         display: "inline-block",
@@ -2601,451 +2728,152 @@ export default function EmployerUX() {
                                         fontWeight: 700,
                                         color: pm.color,
                                         letterSpacing: "0.06em",
-                                        marginBottom: 10,
+                                        marginBottom: 12,
                                       }}
                                     >
                                       {pm.pill}
                                     </div>
-                                    <div style={{ fontFamily: S.serif, fontSize: 20, color: S.text, marginBottom: 10, lineHeight: 1.3, fontWeight: 600 }}>
+                                    <div style={{ fontFamily: S.serif, fontSize: 22, color: S.text, marginBottom: 16, lineHeight: 1.3, fontWeight: 600 }}>
                                       {rec.headline || "—"}
                                     </div>
-                                    <p style={{ fontSize: 15, color: S.text, lineHeight: 1.6, margin: "0 0 10px" }}>{rec.action || ""}</p>
-                                    <p style={{ fontSize: 14, color: S.dim, lineHeight: 1.55, margin: 0, fontStyle: "italic" }}>{rec.why || ""}</p>
-                                  </>
-                                );
-                                if (isFirst) {
-                                  return (
-                                    <div
-                                      key={rec.id || recGlobalIdx}
-                                      style={{
-                                        background: S.card,
-                                        border: "1px solid " + S.border,
-                                        borderLeft: "4px solid " + S.gold,
-                                        borderRadius: 12,
-                                        padding: "22px 24px",
-                                        marginBottom: 12,
-                                      }}
-                                    >
-                                      {cardInner}
-                                    </div>
-                                  );
-                                }
-                                return (
-                                  <div
-                                    key={rec.id || recGlobalIdx}
-                                    style={{
-                                      position: "relative",
-                                      background: S.card,
-                                      border: "1px solid " + S.border,
-                                      borderRadius: 12,
-                                      padding: "22px 24px",
-                                      marginBottom: 12,
-                                      overflow: "hidden",
-                                    }}
-                                  >
-                                    <div style={{ filter: "blur(6px)", userSelect: "none", pointerEvents: "none" }}>{cardInner}</div>
-                                    <div
-                                      style={{
-                                        position: "absolute",
-                                        inset: 0,
-                                        display: "flex",
-                                        alignItems: "center",
-                                        justifyContent: "center",
-                                        fontSize: 28,
-                                        pointerEvents: "none",
-                                      }}
-                                    >
-                                      🔒
-                                    </div>
+                                    <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.06em", fontWeight: 600, marginBottom: 6 }}>ACTION</div>
+                                    <p style={{ fontSize: 15, color: S.text, lineHeight: 1.6, margin: "0 0 16px" }}>{rec.action || ""}</p>
+                                    <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.06em", fontWeight: 600, marginBottom: 6 }}>WHY THIS MATTERS</div>
+                                    <p style={{ fontSize: 15, color: S.dim, lineHeight: 1.6, margin: "0 0 16px" }}>{rec.why || ""}</p>
+                                    {linkedSkill ? (
+                                      <div
+                                        style={{
+                                          display: "inline-block",
+                                          fontFamily: S.mono,
+                                          fontSize: 11,
+                                          color: S.muted,
+                                          background: S.card2,
+                                          border: "1px solid " + S.border,
+                                          borderRadius: 6,
+                                          padding: "4px 10px",
+                                        }}
+                                      >
+                                        {linkedSkill.text}
+                                      </div>
+                                    ) : null}
                                   </div>
                                 );
                               })}
                             </div>
                           );
                         })}
+                      </>
+                    ) : null}
 
-                        <div
-                          style={{
-                            position: "sticky",
-                            bottom: 16,
-                            background: S.card,
-                            border: "1px solid " + S.border,
-                            borderRadius: 16,
-                            padding: "28px 24px",
-                            marginTop: 8,
-                            boxShadow: "0 8px 32px rgba(0,0,0,0.1)",
-                            zIndex: 2,
-                          }}
-                        >
-                          <h3 style={{ fontFamily: S.serif, fontSize: 24, color: S.text, margin: "0 0 8px", fontWeight: 600 }}>Unlock Your Full 90-Day Plan</h3>
-                          <p style={{ fontSize: 15, color: S.dim, margin: "0 0 20px", lineHeight: 1.6 }}>One payment. Yours to keep.</p>
-                          <div style={{ fontFamily: S.mono, fontSize: 42, fontWeight: 700, color: S.text, lineHeight: 1, marginBottom: 2 }}>$79</div>
-                          <div style={{ fontFamily: S.mono, fontSize: 12, color: S.dim, marginBottom: 20 }}>one-time</div>
-                          <ul style={{ margin: "0 0 24px", paddingLeft: 20, fontSize: 15, color: S.text, lineHeight: 1.7 }}>
-                            <li>Full 8-recommendation plan across 3 phases</li>
-                            <li>Personalised to your exact role, level, and company type</li>
-                            <li>Emailed to you immediately after payment</li>
-                          </ul>
-                          {paymentCanceled ? (
+                    <UXDisclaimer />
+
+                    {gateEmail && gateEmail.trim() && !manualEmailSent ? (
+                      <div
+                        style={{
+                          background: S.card2,
+                          border: "1px solid " + S.border,
+                          borderRadius: 12,
+                          padding: "14px 18px",
+                          marginBottom: 28,
+                          textAlign: "center",
+                        }}
+                      >
+                        <p style={{ fontFamily: S.mono, fontSize: 12, color: S.dim, margin: 0, lineHeight: 1.6 }}>
+                          {recommendations && (Array.isArray(recommendations) ? recommendations.length > 0 : recommendations.recommendations)
+                            ? "A copy of this plan has been sent to "
+                            : "A copy of these results has been sent to "}
+                          {gateEmail}
+                        </p>
+                      </div>
+                    ) : null}
+
+                    {manualEmailSent || !gateEmail || !gateEmail.trim() ? (
+                      <div
+                        className="no-print"
+                        style={{
+                          background: "#ffffff",
+                          border: "1px solid #d0d7e8",
+                          borderRadius: 14,
+                          padding: "24px 22px",
+                          marginBottom: 28,
+                        }}
+                      >
+                        {manualEmailSent ? (
+                          <div style={{ fontSize: 15, color: S.green, lineHeight: 1.6, textAlign: "center" }}>
+                            ✓ Sent — check your inbox for a copy of your results.
+                          </div>
+                        ) : (
+                          <div>
                             <div
                               style={{
-                                background: "#fef9ec",
-                                border: "1px solid #f0c060",
-                                borderRadius: 8,
-                                padding: "10px 14px",
-                                fontSize: 13,
-                                color: "#92400e",
-                                marginBottom: 16,
-                                lineHeight: 1.5,
+                                fontFamily: S.serif,
+                                fontSize: 22,
+                                fontWeight: 600,
+                                color: S.text,
+                                marginBottom: 10,
+                                lineHeight: 1.25,
                               }}
                             >
-                              Payment was canceled — your progress is saved.
+                              Want a copy of this?
                             </div>
-                          ) : null}
-                          <PrimaryBtn
-                            disabled={checkoutLoading}
-                            onClick={function () { handleUnlockCheckout(); }}
-                          >
-                            {checkoutLoading ? "Redirecting…" : "Unlock My Plan — $79"}
-                          </PrimaryBtn>
-                          {checkoutError ? (
-                            <p style={{ color: S.red, fontSize: 14, marginTop: 12, marginBottom: 0 }}>{checkoutError}</p>
-                          ) : null}
-                          <div style={{ marginTop: 24 }}>
-                            <p style={{ fontFamily: S.mono, fontSize: 12, color: S.dim, margin: "0 0 10px" }}>Have a promo code?</p>
-                            <div style={{ display: "flex", gap: 10 }}>
-                              <input
-                                type="text"
-                                value={promoCode}
-                                onChange={function (e) {
-                                  setPromoCode(e.target.value.toUpperCase());
-                                  if (promoError) setPromoError("");
-                                }}
-                                style={{
-                                  flex: 1,
-                                  padding: "12px 14px",
-                                  fontSize: 15,
-                                  fontFamily: S.mono,
-                                  textTransform: "uppercase",
-                                  border: "1px solid " + S.border,
-                                  borderRadius: 10,
-                                  boxSizing: "border-box",
-                                }}
-                              />
-                              <button
-                                type="button"
-                                onClick={function () {
-                                  var code = promoCode.trim().toUpperCase();
-                                  if (PROMO_CODES.indexOf(code) !== -1) {
-                                    setTier(2);
-                                    setPromoUsed(true);
-                                    setDiscountApplied(true);
-                                    setPromoError("");
-                                    setStep(6);
-                                  } else if (TEST_CODES.indexOf(code) !== -1) {
-                                    setTestModeApplied(true);
-                                    setPromoError("");
-                                  } else {
-                                    setPromoError("Invalid promo code");
-                                  }
-                                }}
-                                style={{
-                                  padding: "12px 18px",
-                                  fontFamily: S.mono,
-                                  fontSize: 13,
-                                  fontWeight: 700,
-                                  background: S.accent,
-                                  color: "#fff",
-                                  border: "none",
-                                  borderRadius: 10,
-                                  cursor: "pointer",
-                                }}
-                              >
-                                Apply
-                              </button>
-                            </div>
-                            {promoError ? <p style={{ color: S.red, fontSize: 13, marginTop: 8, marginBottom: 0 }}>{promoError}</p> : null}
+                            <p style={{ fontSize: 15, color: "#6b7280", lineHeight: 1.65, margin: "0 0 18px" }}>
+                              This report only lives in this browser tab right now. If you&apos;d like it saved somewhere you can find later, enter your email below and
+                              we&apos;ll send you a copy — it&apos;s never shared with your employer.
+                            </p>
+                            <input
+                              type="email"
+                              placeholder="your@email.com"
+                              value={manualEmailInput}
+                              disabled={manualEmailLoading}
+                              onChange={function (e) {
+                                setManualEmailInput(e.target.value);
+                                if (manualEmailError) setManualEmailError("");
+                              }}
+                              style={{
+                                width: "100%",
+                                padding: "14px 16px",
+                                fontSize: 16,
+                                fontFamily: S.font,
+                                border: "1px solid " + S.border,
+                                borderRadius: 10,
+                                outline: "none",
+                                boxSizing: "border-box",
+                                background: "#ffffff",
+                                color: S.text,
+                              }}
+                            />
+                            {manualEmailError ? <div style={{ color: S.red, fontSize: 13, marginTop: 8 }}>{manualEmailError}</div> : null}
+                            <button
+                              type="button"
+                              onClick={handleManualEmailCopy}
+                              disabled={manualEmailLoading}
+                              style={{
+                                width: "100%",
+                                padding: 14,
+                                fontSize: 16,
+                                fontWeight: 600,
+                                fontFamily: S.font,
+                                background: manualEmailLoading ? "#e5a820" : S.gold,
+                                color: "#ffffff",
+                                border: "none",
+                                borderRadius: 10,
+                                cursor: manualEmailLoading ? "not-allowed" : "pointer",
+                                marginTop: 12,
+                              }}
+                            >
+                              {manualEmailLoading ? "Sending…" : "Email me a copy"}
+                            </button>
                           </div>
-                        </div>
-
-                        <UXDisclaimer />
-                      </>
+                        )}
+                      </div>
                     ) : null}
                   </>
                 );
               })()}
             </div>
           ) : null}
-
-          {gateVerified && step === 6 && (tier >= 2 || promoUsed || isEmployerAccessGranted()) && results ? (
-            (function () {
-              if (!recommendations && recsLoading) {
-                return (
-                  <div
-                    style={{
-                      minHeight: "100vh",
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      padding: "40px 20px",
-                      boxSizing: "border-box",
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: 56,
-                        height: 56,
-                        borderRadius: 12,
-                        background: S.purple,
-                        color: "#fff",
-                        fontFamily: S.mono,
-                        fontWeight: 700,
-                        fontSize: 20,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        animation: "uxDZPulse 1.4s ease-in-out infinite",
-                        marginBottom: 24,
-                      }}
-                    >
-                      DZ
-                    </div>
-                    <div style={{ fontFamily: S.mono, fontSize: 14, color: S.muted, letterSpacing: "0.06em", marginBottom: 16 }}>
-                      {loadingMsg}
-                    </div>
-                    <div style={{ display: "flex", gap: 6, fontFamily: S.mono, fontSize: 22, color: S.dim, lineHeight: 1 }}>
-                      <span style={{ animation: "uxDots 1s ease-in-out infinite" }}>.</span>
-                      <span style={{ animation: "uxDots 1s ease-in-out 0.2s infinite" }}>.</span>
-                      <span style={{ animation: "uxDots 1s ease-in-out 0.4s infinite" }}>.</span>
-                    </div>
-                  </div>
-                );
-              }
-
-              if (recsError && !recommendations) {
-                return (
-                  <div
-                    style={{
-                      minHeight: "60vh",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      padding: "60px 20px",
-                      boxSizing: "border-box",
-                    }}
-                  >
-                    <Card style={{ maxWidth: 480, width: "100%", border: "1px solid " + S.red, textAlign: "center" }}>
-                      <p style={{ color: S.red, fontSize: 16, lineHeight: 1.6, margin: "0 0 20px" }}>{recsError}</p>
-                      <PrimaryBtn onClick={fetchRecommendations} style={{ maxWidth: 280, margin: "0 auto" }}>
-                        Try Again
-                      </PrimaryBtn>
-                    </Card>
-                  </div>
-                );
-              }
-
-              if (!recommendations) return null;
-
-              var scoredSkills6 = results.skills || [];
-              var overallDZ6 =
-                scoredSkills6.length > 0
-                  ? Math.round(
-                      scoredSkills6.reduce(function (sum, sk) {
-                        return sum + (typeof sk.dz === "number" ? sk.dz : 0);
-                      }, 0) / scoredSkills6.length
-                    )
-                  : 0;
-              var overallCol6 = dzScoreColor(overallDZ6);
-              var recsList6 = Array.isArray(recommendations)
-                ? recommendations
-                : recommendations.recommendations || [];
-              var skillById6 = {};
-              scoredSkills6.forEach(function (sk) {
-                if (sk.id != null) skillById6[sk.id] = sk;
-              });
-              var phaseMeta6 = [
-                {
-                  phase: 1,
-                  pill: "Phase 1 — Anchor",
-                  color: S.green,
-                  desc: "Protect what's already working. These are your most defensible skills.",
-                },
-                {
-                  phase: 2,
-                  pill: "Phase 2 — Reposition",
-                  color: S.gold,
-                  desc: "Address your highest-exposure areas before AI commoditises them.",
-                },
-                {
-                  phase: 3,
-                  pill: "Phase 3 — Extend",
-                  color: S.purple,
-                  desc: "Build new capabilities to widen your zone over the next 90 days.",
-                },
-              ];
-
-              return (
-                <div style={{ maxWidth: 720, margin: "0 auto", padding: "0 20px 48px", boxSizing: "border-box" }}>
-                  <div style={{ marginBottom: 28 }}>
-                    <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.1em", marginBottom: 10, fontWeight: 600 }}>
-                      YOUR 90-DAY DEFENSIBLE ZONE PLAN
-                    </div>
-                    <h1 style={{ fontFamily: S.serif, fontSize: 32, color: S.text, margin: "0 0 12px", fontWeight: 600, lineHeight: 1.2 }}>
-                      {results.profile && results.profile.summary ? results.profile.summary : buildProfile(roleType, seniority, isManager, companyTypeId, workFocus).summary}
-                    </h1>
-                    <p style={{ fontSize: 16, color: S.dim, lineHeight: 1.7, margin: 0 }}>
-                      Here is your personalised action plan. A copy has been emailed to {gateEmail}.
-                    </p>
-                  </div>
-
-                  <div style={{ marginBottom: 28 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap", marginBottom: 12 }}>
-                      <div style={{ fontFamily: S.mono, fontSize: 40, fontWeight: 700, color: overallCol6, lineHeight: 1 }}>{overallDZ6}</div>
-                      <div>
-                        <div style={{ fontFamily: S.serif, fontSize: 20, fontWeight: 600, color: overallCol6, marginBottom: 4 }}>{getOverallLabel(overallDZ6)}</div>
-                        <p style={{ fontSize: 14, color: S.dim, lineHeight: 1.5, margin: 0 }}>{getOverallSublabel(overallDZ6)}</p>
-                      </div>
-                    </div>
-                    <div style={{ height: 2, background: S.gold, borderRadius: 1, marginBottom: 12 }} />
-                    {results.landscape ? (
-                      <p style={{ fontFamily: S.mono, fontSize: 12, color: S.dim, fontStyle: "italic", lineHeight: 1.6, margin: 0 }}>{results.landscape}</p>
-                    ) : null}
-                  </div>
-
-                  {phaseMeta6.map(function (pm6) {
-                    var phaseRecs6 = recsList6.filter(function (r) {
-                      return (r.phase || 1) === pm6.phase;
-                    });
-                    if (phaseRecs6.length === 0) return null;
-                    return (
-                      <div key={pm6.phase} style={{ marginBottom: 32 }}>
-                        <div
-                          style={{
-                            display: "inline-block",
-                            fontFamily: S.mono,
-                            fontSize: 12,
-                            fontWeight: 700,
-                            color: "#fff",
-                            background: pm6.color,
-                            padding: "8px 14px",
-                            borderRadius: 20,
-                            letterSpacing: "0.04em",
-                            marginBottom: 10,
-                          }}
-                        >
-                          {pm6.pill}
-                        </div>
-                        <p style={{ fontSize: 15, color: S.dim, lineHeight: 1.6, margin: "0 0 18px" }}>{pm6.desc}</p>
-                        {phaseRecs6.map(function (rec6, idx6) {
-                          var linkedSkill6 = rec6.id != null ? skillById6[rec6.id] : null;
-                          return (
-                            <div
-                              key={rec6.id || "rec6-" + pm6.phase + "-" + idx6}
-                              style={{
-                                background: S.card,
-                                border: "1px solid " + S.border,
-                                borderLeft: "3px solid " + S.gold,
-                                borderRadius: 12,
-                                padding: "22px 24px",
-                                marginBottom: 12,
-                              }}
-                            >
-                              <div
-                                style={{
-                                  display: "inline-block",
-                                  fontFamily: S.mono,
-                                  fontSize: 10,
-                                  fontWeight: 700,
-                                  color: pm6.color,
-                                  letterSpacing: "0.06em",
-                                  marginBottom: 12,
-                                }}
-                              >
-                                {pm6.pill}
-                              </div>
-                              <div style={{ fontFamily: S.serif, fontSize: 22, color: S.text, marginBottom: 16, lineHeight: 1.3, fontWeight: 600 }}>
-                                {rec6.headline || "—"}
-                              </div>
-                              <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.06em", fontWeight: 600, marginBottom: 6 }}>ACTION</div>
-                              <p style={{ fontSize: 15, color: S.text, lineHeight: 1.6, margin: "0 0 16px" }}>{rec6.action || ""}</p>
-                              <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.06em", fontWeight: 600, marginBottom: 6 }}>WHY THIS MATTERS</div>
-                              <p style={{ fontSize: 15, color: S.dim, lineHeight: 1.6, margin: "0 0 16px" }}>{rec6.why || ""}</p>
-                              {linkedSkill6 ? (
-                                <div
-                                  style={{
-                                    display: "inline-block",
-                                    fontFamily: S.mono,
-                                    fontSize: 11,
-                                    color: S.muted,
-                                    background: S.card2,
-                                    border: "1px solid " + S.border,
-                                    borderRadius: 6,
-                                    padding: "4px 10px",
-                                  }}
-                                >
-                                  {linkedSkill6.text}
-                                </div>
-                              ) : null}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    );
-                  })}
-
-                  {paidEmailSentDisplay ? (
-                    <div
-                      style={{
-                        background: "rgba(5,150,105,0.08)",
-                        border: "1px solid rgba(5,150,105,0.35)",
-                        borderRadius: 10,
-                        padding: "12px 16px",
-                        marginBottom: 28,
-                        fontSize: 14,
-                        color: S.green,
-                        lineHeight: 1.5,
-                      }}
-                    >
-                      ✓ Your full plan has been emailed to {gateEmail}
-                    </div>
-                  ) : null}
-
-                  <div style={{ borderTop: "1px solid " + S.border, marginTop: 16, paddingTop: 32, textAlign: "center", marginBottom: 8 }}>
-                    <p style={{ fontSize: 15, color: S.dim, margin: "0 0 14px", lineHeight: 1.6 }}>Want to reassess a different role or level?</p>
-                    <button
-                      type="button"
-                      onClick={function () {
-                        try {
-                          localStorage.removeItem("dz_saved_report_ux");
-                        } catch (_e) {}
-                        window.location.href = "/ux";
-                      }}
-                      style={{
-                        background: "transparent",
-                        border: "none",
-                        color: S.accent,
-                        fontFamily: S.mono,
-                        fontSize: 14,
-                        fontWeight: 700,
-                        cursor: "pointer",
-                        textDecoration: "underline",
-                        padding: 0,
-                      }}
-                    >
-                      Start a New Assessment
-                    </button>
-                  </div>
-
-                  <UXDisclaimer />
-                </div>
-              );
-            })()
-          ) : null}
         </>
       )}
-
-      {!loading && !error ? <DZFooter /> : null}
     </div>
   );
 }
