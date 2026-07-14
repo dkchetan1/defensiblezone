@@ -1,7 +1,6 @@
-import { DZNavBar, DZFooter } from "./SharedComponents";
-import { useEffect, useRef, useState } from "react";
-import PDFButton from "./PDFButton";
+import { useState, useEffect, useRef } from "react";
 import { isEmployerAccessGranted } from "./EmployerEdition.js";
+import { S, LS, AFFINITY_STOPS, snapToStop, getSeed, compAff, calcDZ, dzScoreColor, getOverallSubLabel, getSkillInterpretation, isValidEmail, Card, Label, PrimaryBtn, SelBtn, Chip } from "./EmployerApp.jsx";
 
 // ── DATA CONSTANTS ──────────────────────────────────────────────────────
 var FINANCE_SECTORS = [
@@ -322,31 +321,7 @@ function getValidSizes(sectorId, firmTypeId) {
   return (OVERRIDE_SIZES[sectorId] && OVERRIDE_SIZES[sectorId][firmTypeId]) || DEFAULT_SIZES_BY_FIRM[firmTypeId] || [];
 }
 
-// ── DESIGN TOKENS ──────────────────────────────────────────────────────
-var S = {
-  bg: "#f8f9fc",
-  card: "#ffffff",
-  card2: "#f2f4f8",
-  border: "#d0d7e8",
-  text: "#0d1117",
-  muted: "#1e2a42",
-  dim: "#4a5568",
-  accent: "#1a1d2e",
-  purple: "#7c3aed",
-  gold: "#d97706",
-  green: "#059669",
-  red: "#dc2626",
-  blue: "#2563eb",
-  orange: "#ea580c",
-  font: "'DM Sans',system-ui,-apple-system,sans-serif",
-  mono: "'DM Mono','Courier New',monospace",
-  serif: "'DM Serif Display',Georgia,serif",
-};
-var TEST_CODES = ["DZONE"];
-
-export default function EmployerFinance(props) {
-  var reportMode = Boolean(props && props.reportMode);
-
+export default function EmployerFinance() {
   // --- STATE VARIABLES (declare at top) ---
   var [step, setStep] = useState(0);
   var [sector, setSector] = useState("");
@@ -377,24 +352,35 @@ export default function EmployerFinance(props) {
   var [gateEmail, setGateEmail] = useState("");
   var [gateSent, setGateSent] = useState(false);
   var [gateVerified, setGateVerified] = useState(false);
+  var effectivelyVerified = gateVerified || isEmployerAccessGranted();
   var [gateError, setGateError] = useState(null);
   var [gateLoading, setGateLoading] = useState(false);
   var [showResend, setShowResend] = useState(false);
   var [gateOnDifferentDevice, setGateOnDifferentDevice] = useState(false);
   var [gateInputFocused, setGateInputFocused] = useState(false);
   var [gateScoreMsg, setGateScoreMsg] = useState("Scoring your skills against market demand…");
-  var [tier, setTier] = useState(0);
-  var [promoCode, setPromoCode] = useState("");
-  var [promoError, setPromoError] = useState("");
-  var [testModeApplied, setTestModeApplied] = useState(false);
-  var [testCheckoutError, setTestCheckoutError] = useState(null);
-  var [promoUsed, setPromoUsed] = useState(false);
+  var [manualEmailSent, setManualEmailSent] = useState(false);
+  var [manualEmailInput, setManualEmailInput] = useState("");
+  var [manualEmailError, setManualEmailError] = useState("");
+  var [manualEmailLoading, setManualEmailLoading] = useState(false);
+  var [resumeFileName, setResumeFileName] = useState("");
+  var [resumeText, setResumeText] = useState("");
+  var [skillsGroundedInResume, setSkillsGroundedInResume] = useState(false);
+  var [resumeUploading, setResumeUploading] = useState(false);
+  var [resumeUploadError, setResumeUploadError] = useState("");
+  var resumeInputRef = useRef(null);
+  var [aiUsageSkillIds, setAiUsageSkillIds] = useState([]);
+  var [aiUsageDescription, setAiUsageDescription] = useState("");
 
   function restoreReport() {
     try {
       var saved = localStorage.getItem("dz_saved_report_finance");
-      if (!saved) return;
+      if (!saved) return "none";
       var d = JSON.parse(saved);
+      if (!d.savedAt || Date.now() - d.savedAt > 14 * 24 * 60 * 60 * 1000) {
+        localStorage.removeItem("dz_saved_report_finance");
+        return "expired";
+      }
       if (d.sector) setSector(d.sector);
       if (d.role) setRole(d.role);
       if (d.seniority) setSeniority(d.seniority);
@@ -405,17 +391,20 @@ export default function EmployerFinance(props) {
       if (d.conscience !== undefined) setConscience(d.conscience);
       if (d.pull !== undefined) setPull(d.pull);
       if (d.fluencies) setFluencies(d.fluencies);
-      if (d.promoUsed) {
-        setPromoUsed(true);
-        setTier(3);
-      }
+      if (d.resumeText !== undefined) setResumeText(d.resumeText);
+      if (d.resumeFileName !== undefined) setResumeFileName(d.resumeFileName);
+      if (d.aiUsageSkillIds) setAiUsageSkillIds(d.aiUsageSkillIds);
+      if (d.aiUsageDescription !== undefined) setAiUsageDescription(d.aiUsageDescription);
+      if (d.gateEmail) setGateEmail(d.gateEmail);
       if (d.results) {
         setResults(d.results);
         setStep(6);
+        return "results";
       }
-      if (d.gateEmail) setGateEmail(d.gateEmail);
+      return "partial";
     } catch (e) {
       console.error("restoreReport error:", e);
+      return "none";
     }
   }
 
@@ -424,149 +413,54 @@ export default function EmployerFinance(props) {
     var params = new URLSearchParams(window.location.search);
     var gateToken = params.get("gate_token");
 
-    if (gateToken) {
-      window.history.replaceState({}, "", window.location.pathname);
-      setGateLoading(true);
+    if (!gateToken) return;
 
-      fetch("/api/verify-gate-token", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token: gateToken }),
+    window.history.replaceState({}, "", window.location.pathname);
+    setGateLoading(true);
+
+    fetch("/api/verify-gate-token", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: gateToken }),
+    })
+      .then(function (r) {
+        return r.json();
       })
-        .then(function (r) {
-          return r.json();
-        })
-        .then(function (data) {
-          if (data && data.valid === true) {
-            if (data.email) setGateEmail(data.email);
-            setGateVerified(true);
-            setGateLoading(false);
+      .then(function (data) {
+        if (data && data.valid === true) {
+          if (data.email) setGateEmail(data.email);
 
-            var savedRaw = null;
-            try {
-              savedRaw = localStorage.getItem("dz_saved_report_finance");
-            } catch (e) {}
-
-            if (savedRaw) {
-              try {
-                var saved = JSON.parse(savedRaw);
-                if (saved && typeof saved === "object") {
-                  if (saved.sector !== undefined) setSector(saved.sector);
-                  if (saved.role !== undefined) setRole(saved.role);
-                  if (saved.seniority !== undefined) setSeniority(saved.seniority);
-                  if (saved.firmType !== undefined) setFirmType(saved.firmType);
-                  if (saved.companySize !== undefined) setCompanySize(saved.companySize);
-                  if (saved.workFocus !== undefined) setWorkFocus(saved.workFocus);
-                  if (saved.skills !== undefined) setSkills(saved.skills);
-                  if (saved.conscience !== undefined) setConscience(saved.conscience);
-                  if (saved.pull !== undefined) setPull(saved.pull);
-                  if (saved.fluencies !== undefined) setFluencies(saved.fluencies);
-                }
-              } catch (e) {}
-              setStep(5);
-              return;
-            }
-
+          var status = restoreReport();
+          if (status === "none" || status === "expired") {
             setStep(0);
             setGateOnDifferentDevice(true);
-            return;
-          }
-
-          if (data && data.valid === false && data.reason === "expired") {
-            setGateError("expired");
-            setStep(5);
             setGateLoading(false);
             return;
           }
 
-          setGateError("invalid");
+          setGateVerified(true);
+          setGateLoading(false);
+          if (status === "partial") setStep(5);
+          return;
+        }
+
+        if (data && data.valid === false && data.reason === "expired") {
+          setGateError("expired");
           setStep(5);
           setGateLoading(false);
-        })
-        .catch(function () {
-          setGateError("invalid");
-          setStep(5);
-          setGateLoading(false);
-        });
-    }
-
-    if (params.get("success") === "true") {
-      window.history.replaceState({}, "", window.location.pathname);
-      freeEmailSentRef.current = true;
-      restoreReport();
-      setTier(2);
-      setGateVerified(true);
-      return;
-    }
-
-    var sessionId = params.get("session_id");
-    if (sessionId) {
-      window.history.replaceState({}, "", window.location.pathname);
-      (async function () {
-        try {
-          var r = await fetch("/api/verify-payment", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              session_id: sessionId,
-              product: "finance",
-            }),
-          });
-          var data = await r.json();
-          if (data && data.token) {
-            localStorage.setItem("dz_token_finance", data.token);
-            setTier(data.tier || 2);
-            restoreReport();
-          }
-        } catch (e) {
-          console.error("verify-payment error:", e);
+          return;
         }
-      })();
-    }
 
-    var storedToken = localStorage.getItem("dz_token_finance");
-    if (storedToken) {
-      try {
-        var parts = storedToken.split(".");
-        if (parts.length === 3) {
-          var payload = JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")));
-          var now = Math.floor(Date.now() / 1000);
-          if (payload.exp > now && payload.product === "finance") {
-            setTier(payload.tier || 2);
-            restoreReport();
-          }
-        }
-      } catch (e) {
-        console.error("token decode error:", e);
-      }
-    }
+        setGateError("invalid");
+        setStep(5);
+        setGateLoading(false);
+      })
+      .catch(function () {
+        setGateError("invalid");
+        setStep(5);
+        setGateLoading(false);
+      });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps -- on-load only; restoreReport uses stable setters
-
-  useEffect(
-    function () {
-      if (!reportMode) return;
-      var storedToken = localStorage.getItem("dz_token_finance");
-      if (storedToken) {
-        try {
-          var parts = storedToken.split(".");
-          if (parts.length === 3) {
-            var payload = JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")));
-            var now = Math.floor(Date.now() / 1000);
-            if (payload.exp > now && payload.product === "finance") {
-              setTier(payload.tier || 2);
-              restoreReport();
-            }
-          }
-        } catch (e) {}
-      }
-      var saved = localStorage.getItem("dz_saved_report_finance");
-      if (!saved) {
-        window.location.href = "/finance";
-        return;
-      }
-    },
-    [] // eslint-disable-line react-hooks/exhaustive-deps -- mount-only report deep-link
-  );
 
   useEffect(function () {
     var link = document.createElement("link");
@@ -731,29 +625,6 @@ export default function EmployerFinance(props) {
     { id: "fintech", label: "Fintech / AI-native Firm", desc: "Stripe, Robinhood, Plaid, and AI-first financial companies" },
   ];
 
-  function snapToStop(val) {
-    var stops = [0, 3, 5, 7, 10];
-    return stops.reduce(function (prev, curr) {
-      return Math.abs(curr - val) < Math.abs(prev - val) ? curr : prev;
-    });
-  }
-
-  function calcDZ(aff, aiR, mkt) {
-    return Math.min(100, Math.round(100 * Math.pow(aff / 10, 0.35) * Math.pow((10 - aiR) / 10, 0.40) * Math.pow(mkt / 10, 0.25)));
-  }
-
-  function computeAffinity(c, p, f) {
-    return Math.round((c * 0.35 + p * 0.35 + f * 0.3) * 10) / 10;
-  }
-
-  function getSeed(c, p) {
-    var raw = Math.round((c * 0.5 + p * 0.5) * 10) / 10;
-    var stops = [0, 3, 5, 7, 10];
-    return stops.reduce(function (prev, curr) {
-      return Math.abs(curr - raw) < Math.abs(prev - raw) ? curr : prev;
-    });
-  }
-
   function markAdjusted(id) {
     adjustedSkillsRef.current.add(id);
     setAdjustedSkills(new Set(adjustedSkillsRef.current));
@@ -766,6 +637,112 @@ export default function EmployerFinance(props) {
     if (val === 7) return "Strong";
     if (val === 10) return "Expert-level";
     return "";
+  }
+
+  function toggleAiUsageSkill(skillId) {
+    setAiUsageSkillIds(function (prev) {
+      var idx = prev.indexOf(skillId);
+      if (idx !== -1) {
+        var next = prev.slice();
+        next.splice(idx, 1);
+        if (next.length === 0) setAiUsageDescription("");
+        return next;
+      }
+      if (prev.length >= 2) return prev;
+      return prev.concat([skillId]);
+    });
+  }
+
+  function clearResumeInput() {
+    if (resumeInputRef.current) resumeInputRef.current.value = "";
+  }
+
+  function removeResume() {
+    setResumeFileName("");
+    setResumeText("");
+    setResumeUploadError("");
+    clearResumeInput();
+  }
+
+  function fileToBase64(file) {
+    return new Promise(function (resolve, reject) {
+      var reader = new FileReader();
+      reader.onload = function () {
+        var result = reader.result;
+        var comma = typeof result === "string" ? result.indexOf(",") : -1;
+        resolve(comma !== -1 ? result.slice(comma + 1) : "");
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function handleResumeFileSelect(e) {
+    var file = e.target.files && e.target.files[0];
+    if (!file) return;
+
+    setResumeUploadError("");
+
+    var lowerName = file.name.toLowerCase();
+    var validExt = lowerName.endsWith(".pdf") || lowerName.endsWith(".docx");
+    if (!validExt) {
+      setResumeUploadError("Only PDF and DOCX files are supported.");
+      clearResumeInput();
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setResumeUploadError("File is too large. Please upload a file under 5MB.");
+      clearResumeInput();
+      return;
+    }
+
+    setResumeUploading(true);
+    try {
+      var fileData = await fileToBase64(file);
+      var res = await fetch("/api/parse-resume", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fileName: file.name,
+          fileData: fileData,
+          mimeType: file.type,
+        }),
+      });
+      var data = await res.json();
+
+      if (!data || data.success !== true) {
+        setResumeUploadError(
+          (data && data.error) ||
+          "Something went wrong reading this file — you can continue without it, or try again."
+        );
+        setResumeUploading(false);
+        clearResumeInput();
+        return;
+      }
+
+      if (data.extractable === false || !data.text || !String(data.text).trim()) {
+        setResumeText("");
+        setResumeFileName("");
+        setResumeUploadError(
+          "We couldn't read text from this file — you can continue without it, or try a different file."
+        );
+        setResumeUploading(false);
+        clearResumeInput();
+        return;
+      }
+
+      setResumeText(data.text);
+      setResumeFileName(file.name);
+      setResumeUploadError("");
+      setResumeUploading(false);
+      clearResumeInput();
+    } catch (err) {
+      setResumeUploadError(
+        "Something went wrong reading this file — you can continue without it, or try again."
+      );
+      setResumeUploading(false);
+      clearResumeInput();
+    }
   }
 
   async function fetchSkills() {
@@ -793,7 +770,7 @@ export default function EmployerFinance(props) {
     var firmTypeLabel = firmOpt ? firmOpt.label : firmType;
     var workFocusJoined = (workFocus || []).join(", ");
 
-    var prompt =
+    var promptPrefix =
       "You are a senior finance career strategist specializing in AI labor market analysis for financial professionals.\n\nPROFESSIONAL PROFILE:\n- Sector: " +
       sectorFullLabel +
       "\n- Role: " +
@@ -805,8 +782,27 @@ export default function EmployerFinance(props) {
       "\n- Organization size: " +
       companySize +
       "\n- Work focus: " +
-      workFocusJoined +
-      "\n\nTask 1 — LANDSCAPE: Write 2-3 precise sentences about how AI is affecting this exact professional profile RIGHT NOW in 2026. Name specific tools where relevant (Bloomberg AI, OpenAI Mercury, Microsoft Copilot for Finance, Harvey, Kensho, Workiva, Alteryx). Be specific to this role, seniority, and firm type — not generic.\n\nTask 2 — SKILLS: Generate exactly 8 skills that are the most strategically important for this professional to assess for AI defensibility right now. Include a realistic mix — some genuinely at risk from AI, some defensible. Be specific to this seniority level and work focus area.\n\nReturn ONLY valid JSON with no preamble:\n{\"landscape\":\"...\",\"skills\":[\"skill1\",\"skill2\",\"skill3\",\"skill4\",\"skill5\",\"skill6\",\"skill7\",\"skill8\"]}";
+      workFocusJoined;
+    var promptTaskSuffix =
+      "Task 1 — LANDSCAPE: Write 2-3 precise sentences about how AI is affecting this exact professional profile RIGHT NOW in 2026. Name specific tools where relevant (Bloomberg AI, OpenAI Mercury, Microsoft Copilot for Finance, Harvey, Kensho, Workiva, Alteryx). Be specific to this role, seniority, and firm type — not generic.\n\nTask 2 — SKILLS: Generate exactly 8 skills that are the most strategically important for this professional to assess for AI defensibility right now. Include a realistic mix — some genuinely at risk from AI, some defensible. Be specific to this seniority level and work focus area.\n\nReturn ONLY valid JSON with no preamble:\n{\"landscape\":\"...\",\"skills\":[\"skill1\",\"skill2\",\"skill3\",\"skill4\",\"skill5\",\"skill6\",\"skill7\",\"skill8\"]}";
+
+    var usedResume = !!resumeText;
+    var prompt;
+    if (resumeText) {
+      var truncatedResume = resumeText.length > 6000 ? (function () {
+        var cut = resumeText.slice(0, 6000);
+        var lastSpace = cut.lastIndexOf(" ");
+        return lastSpace > 0 ? cut.slice(0, lastSpace) : cut;
+      })() : resumeText;
+      prompt =
+        promptPrefix +
+        "\n\nCANDIDATE'S RESUME (use this to ground the skill list in their actual, evidenced work history — do not just repeat generic skills for this role/seniority level):\n" +
+        truncatedResume +
+        "\n\nWhen generating the 8 skills in Task 2: prioritize skills that are actually evidenced in the resume above. If the resume doesn't fully cover 8 strategically important skills for this profile, fill the remaining slots with additional role-appropriate skills not found in the resume. Do not list a skill twice just because it's phrased differently in two places — merge overlapping skills into one entry.\n\n" +
+        promptTaskSuffix;
+    } else {
+      prompt = promptPrefix + "\n\n" + promptTaskSuffix;
+    }
 
     try {
       var res = await fetch("/api/generate", {
@@ -837,6 +833,9 @@ export default function EmployerFinance(props) {
       adjustedSkillsRef.current = new Set();
       setAdjustedSkills(new Set());
       setFluencies({});
+      setSkillsGroundedInResume(usedResume);
+      setAiUsageSkillIds([]);
+      setAiUsageDescription("");
     } catch (e) {
       setError("Something went wrong loading your skills. Please try again.");
     } finally {
@@ -907,33 +906,6 @@ export default function EmployerFinance(props) {
       setRecsError("Could not load recommendations.");
     } finally {
       setRecsLoading(false);
-    }
-  }
-
-  async function handleTestCheckout() {
-    setTestCheckoutError(null);
-    try {
-      try {
-        localStorage.setItem("dz_saved_report_finance", JSON.stringify({
-          sector, role, seniority, firmType, companySize, workFocus,
-          skills, conscience, pull, fluencies, promoUsed, results, gateEmail
-        }));
-      } catch (_e) {}
-      var res = await fetch("/api/create-checkout-session", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          product: "finance",
-          email: gateEmail.trim(),
-          price: 100,
-          testMode: true,
-        }),
-      });
-      var data = await res.json();
-      if (!res.ok || !data.url) throw new Error(data.error || "Could not start checkout");
-      window.location.href = data.url;
-    } catch (e) {
-      setTestCheckoutError(e.message || "Could not start checkout. Please try again.");
     }
   }
 
@@ -1010,7 +982,7 @@ export default function EmployerFinance(props) {
       var dzScores = [];
       var scoredSkills = parsed.skills.map(function (s) {
         var flu = fluencies[s.id] !== undefined ? fluencies[s.id] : 5;
-        var aff = computeAffinity(conscience, pull, flu);
+        var aff = compAff(conscience, pull, flu);
         var dz = calcDZ(aff, s.aiR, s.market);
         dzScores.push(dz);
         return Object.assign({}, s, { dz: dz, text: textById[s.id] || "" });
@@ -1042,8 +1014,12 @@ export default function EmployerFinance(props) {
             conscience: conscience,
             pull: pull,
             fluencies: fluencies,
-            promoUsed: promoUsed,
+            resumeText: resumeText,
+            resumeFileName: resumeFileName,
+            aiUsageSkillIds: aiUsageSkillIds,
+            aiUsageDescription: aiUsageDescription,
             results: resultsObject,
+            savedAt: Date.now(),
           })
         );
       } catch (e) {}
@@ -1061,13 +1037,13 @@ export default function EmployerFinance(props) {
   }
 
   useEffect(function () {
-    if (results && (tier >= 2 || promoUsed || isEmployerAccessGranted()) && recommendations === null && !recsLoading) {
+    if (results && recommendations === null && !recsLoading) {
       fetchRecommendations(results.skills, results.overallDZ);
     }
-  }, [results, tier, promoUsed]); // eslint-disable-line react-hooks/exhaustive-deps -- intentional gating deps
+  }, [results]); // eslint-disable-line react-hooks/exhaustive-deps -- intentional gating deps
 
   useEffect(function() {
-    if (!recommendations || (tier < 2 && !isEmployerAccessGranted())) return;
+    if (!recommendations) return;
     if (!results) return;
     if (!gateEmail || !gateEmail.trim()) return;
     if (paidEmailSentRef.current) return;
@@ -1088,11 +1064,11 @@ export default function EmployerFinance(props) {
         },
       }),
     }).catch(function() {});
-  }, [recommendations, tier]);
+  }, [recommendations]);
 
   useEffect(
     function () {
-      if (!(step === 5 && gateVerified)) return;
+      if (!(step === 5 && effectivelyVerified)) return;
       var msgs = ["Scoring your skills against market demand…", "Running the numbers…", "Calculating your Defensible Zone™…"];
       var i = 0;
       setGateScoreMsg(msgs[0]);
@@ -1104,7 +1080,7 @@ export default function EmployerFinance(props) {
         clearInterval(t);
       };
     },
-    [step, gateVerified]
+    [step, effectivelyVerified]
   );
 
   useEffect(
@@ -1123,14 +1099,14 @@ export default function EmployerFinance(props) {
 
   useEffect(
     function () {
-      if (step === 5 && gateVerified && !results && !resultsLoading && skills.length > 0) {
+      if (step === 5 && effectivelyVerified && !results && !resultsLoading && skills.length > 0) {
         fetchResults();
       }
     },
-    [step, gateVerified, skills] // eslint-disable-line react-hooks/exhaustive-deps -- fetchResults stub is stable
+    [step, effectivelyVerified, skills] // eslint-disable-line react-hooks/exhaustive-deps -- fetchResults stub is stable
   );
 
-  useEffect(function() {
+  useEffect(function () {
     if (step !== 6 || !results) return;
     if (!gateEmail || !gateEmail.trim()) return;
     if (freeEmailSentRef.current) return;
@@ -1149,18 +1125,8 @@ export default function EmployerFinance(props) {
           overallScore: results.overallDZ,
         },
       }),
-    }).catch(function() {});
+    }).catch(function () {});
   }, [step, results]);
-
-  function isValidEmail(email) {
-    if (!email) return false;
-    var at = email.indexOf("@");
-    if (at <= 0) return false;
-    var dot = email.indexOf(".", at + 2);
-    if (dot === -1) return false;
-    if (dot >= email.length - 1) return false;
-    return true;
-  }
 
   async function handleGateSubmit() {
     if (!isValidEmail(gateEmail)) {
@@ -1181,6 +1147,48 @@ export default function EmployerFinance(props) {
     } catch (e) {
       setGateError("Something went wrong. Please try again.");
       setGateLoading(false);
+    }
+  }
+
+  async function handleManualEmailCopy() {
+    if (!recommendations) {
+      setManualEmailError("Your full report is still being prepared — please try again in a few seconds.");
+      return;
+    }
+    var trimmed = manualEmailInput.trim();
+    if (!isValidEmail(trimmed)) {
+      setManualEmailError("Please enter a valid email address.");
+      return;
+    }
+    setManualEmailError("");
+    setManualEmailLoading(true);
+    try {
+      var res = await fetch("/api/send-results-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: trimmed,
+          product: "finance",
+          type: "paid",
+          results: {
+            profile: { roleLabel: role, seniorityLabel: seniority },
+            landscape: landscape,
+            skills: results.skills,
+            overallScore: results.overallDZ,
+            recommendations: recommendations,
+          },
+        }),
+      });
+      var data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Request failed");
+      setGateEmail(trimmed);
+      freeEmailSentRef.current = true;
+      paidEmailSentRef.current = true;
+      setManualEmailSent(true);
+    } catch (e) {
+      setManualEmailError("Something went wrong. Please try again.");
+    } finally {
+      setManualEmailLoading(false);
     }
   }
 
@@ -1221,7 +1229,6 @@ export default function EmployerFinance(props) {
           boxSizing: "border-box",
         }}
       >
-        <DZNavBar />
         <style
           dangerouslySetInnerHTML={{
             __html: "@keyframes dzFinanceDots{0%,100%{opacity:0.25}50%{opacity:1}}",
@@ -1240,9 +1247,7 @@ export default function EmployerFinance(props) {
           </div>
         </div>
         </div>
-        <div style={{ maxWidth: 680, margin: "0 auto", width: "100%" }}>
-          <DZFooter />
-        </div>
+        <div style={{ maxWidth: 680, margin: "0 auto", width: "100%" }} />
       </div>
     );
   }
@@ -1276,7 +1281,6 @@ export default function EmployerFinance(props) {
             boxSizing: "border-box",
           }}
         >
-          <DZNavBar />
           <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
           <div style={{ textAlign: "center", maxWidth: 420 }}>
             <div style={{ color: S.red, fontSize: 15, margin: "0 0 20px", lineHeight: 1.5 }}>{msg}</div>
@@ -1294,9 +1298,7 @@ export default function EmployerFinance(props) {
             ) : null}
           </div>
           </div>
-          <div style={{ maxWidth: 680, margin: "0 auto", width: "100%" }}>
-            <DZFooter />
-          </div>
+          <div style={{ maxWidth: 680, margin: "0 auto", width: "100%" }} />
         </div>
       );
     }
@@ -1320,7 +1322,6 @@ export default function EmployerFinance(props) {
 
     return (
       <div style={{ background: S.bg, minHeight: "100vh", padding: "32px 20px", fontFamily: S.font, boxSizing: "border-box" }}>
-        <DZNavBar />
         <style
           dangerouslySetInnerHTML={{
             __html:
@@ -1551,272 +1552,132 @@ export default function EmployerFinance(props) {
               90-DAY ACTION PLAN
             </div>
 
-            {testModeApplied && tier === 0 && !promoUsed ? (
-              <div style={{ background: "linear-gradient(135deg,#1a1d2e 0%,#2d1f5e 100%)", borderRadius: 16, padding: 28, marginTop: 24, marginBottom: 28 }}>
-                <div style={{ fontFamily: S.mono, fontSize: 12, color: S.gold, letterSpacing: "0.1em", marginBottom: 12, fontWeight: 600 }}>TEST MODE — $1 CHECKOUT</div>
-                <p style={{ fontSize: 15, color: "rgba(196,181,253,0.85)", lineHeight: 1.65, margin: "0 0 20px" }}>DZONE applied. Click below to complete a $1 test purchase and unlock your full report.</p>
-                {testCheckoutError ? <div style={{ color: "#f87171", fontSize: 14, marginBottom: 12 }}>{testCheckoutError}</div> : null}
-                <button
-                  onClick={handleTestCheckout}
-                  style={{ padding: "14px 28px", fontSize: 16, fontWeight: 700, fontFamily: S.font, background: S.gold, color: "#000", border: "none", borderRadius: 10, cursor: "pointer" }}
-                >
-                  Pay $1.00 to Unlock
-                </button>
-              </div>
-            ) : tier === 0 && !promoUsed && !isEmployerAccessGranted() ? (
-              (function () {
-                var recs = Array.isArray(recommendations) ? recommendations : [];
-                var first = recs[0];
+            <div>
+              {recsLoading ? (
+                <div style={{ fontSize: 14, color: S.dim, fontStyle: "italic", textAlign: "center", padding: "14px 0" }}>
+                  Generating your recommendations…
+                </div>
+              ) : recsError ? (
+                <div style={{ textAlign: "center", padding: "10px 0" }}>
+                  <div style={{ color: S.red, fontSize: 14, marginBottom: 12 }}>{recsError}</div>
+                  <button
+                    type="button"
+                    onClick={function () {
+                      fetchRecommendations(results.skills);
+                    }}
+                    style={Object.assign({}, continueBtnBase, { marginTop: 0, width: "auto", minWidth: 200 })}
+                  >
+                    Try again
+                  </button>
+                </div>
+              ) : null}
+
+              {(Array.isArray(recommendations) ? recommendations : []).slice(0, 8).map(function (rec, idx) {
                 return (
-                  <div>
-                    {first ? (
-                      <div
-                        style={{
-                          background: "#ffffff",
-                          border: "1px solid " + S.border,
-                          borderRadius: 12,
-                          padding: "20px 24px",
-                          marginBottom: 12,
-                          boxSizing: "border-box",
-                        }}
-                      >
-                        <div style={{ fontSize: 16, fontWeight: 600, color: S.text, lineHeight: 1.3 }}>{first.headline}</div>
-                        <div style={{ fontSize: 15, color: S.dim, marginTop: 6, lineHeight: 1.6 }}>{first.action}</div>
-                        <div style={{ fontSize: 14, color: S.dim, fontStyle: "italic", marginTop: 4, lineHeight: 1.55 }}>{first.why}</div>
-                      </div>
-                    ) : null}
-
-                    <div style={{ position: "relative" }}>
-                      <div style={{ filter: "blur(4px)", userSelect: "none", pointerEvents: "none" }}>
-                        {[0, 1, 2].map(function (i) {
-                          return (
-                            <div
-                              key={i}
-                              style={{
-                                background: "#ffffff",
-                                border: "1px solid " + S.border,
-                                borderRadius: 12,
-                                padding: "20px 24px",
-                                marginBottom: 12,
-                                boxSizing: "border-box",
-                              }}
-                            >
-                              <div style={{ fontSize: 16, fontWeight: 600, color: S.text, lineHeight: 1.3 }}>Recommendation {i + 2}</div>
-                              <div style={{ fontSize: 15, color: S.dim, marginTop: 6, lineHeight: 1.6 }}>
-                                Specific action steps tailored to your role…
-                              </div>
-                              <div style={{ fontSize: 14, color: S.dim, fontStyle: "italic", marginTop: 4, lineHeight: 1.55 }}>
-                                Why this matters in your sector…
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-
-                      <div
-                        className="no-print"
-                        style={{
-                          position: "absolute",
-                          top: "50%",
-                          left: "50%",
-                          transform: "translate(-50%,-50%)",
-                          background: "#ffffff",
-                          borderRadius: 16,
-                          padding: 32,
-                          textAlign: "center",
-                          boxShadow: "0 8px 40px rgba(0,0,0,0.12)",
-                          maxWidth: 380,
-                          width: "calc(100% - 32px)",
-                          boxSizing: "border-box",
-                        }}
-                      >
-                        <div style={{ fontSize: 20, fontWeight: 600, color: S.text, marginBottom: 8 }}>Unlock Your Full Action Plan</div>
-                        <div style={{ fontSize: 14, color: S.dim, marginBottom: 24, lineHeight: 1.6 }}>
-                          See exactly what to do in the next 90 days — specific to your role, your firm, and where AI is moving in your sector.
-                        </div>
-
-                        <button
-                          type="button"
-                          onClick={function () {
-                            var url =
-                              "https://buy.stripe.com/00weVdbZocrp99z93UdQQ0a" +
-                              (gateEmail ? "?prefilled_email=" + encodeURIComponent(gateEmail) : "");
-                            window.open(url, "_blank", "noopener,noreferrer");
-                          }}
-                          style={{
-                            width: "100%",
-                            background: S.accent,
-                            color: "#ffffff",
-                            borderRadius: 10,
-                            padding: 14,
-                            fontSize: 15,
-                            fontWeight: 600,
-                            marginBottom: 10,
-                            cursor: "pointer",
-                            border: "none",
-                            fontFamily: S.font,
-                          }}
-                        >
-                          Unlock My Action Plan — $59
-                        </button>
-
-                        <div style={{ position: "relative" }}>
-                          <div
-                            style={{
-                              position: "absolute",
-                              top: -10,
-                              right: -10,
-                              background: S.gold,
-                              color: "#ffffff",
-                              borderRadius: 20,
-                              padding: "2px 10px",
-                              fontSize: 11,
-                              fontWeight: 700,
-                              fontFamily: S.mono,
-                            }}
-                          >
-                            BEST VALUE
-                          </div>
-                          <button
-                            type="button"
-                            onClick={function () {
-                              var url =
-                                "https://buy.stripe.com/7sYcN5bZobnlclL3JAdQQ0b" +
-                                (gateEmail ? "?prefilled_email=" + encodeURIComponent(gateEmail) : "");
-                              window.open(url, "_blank", "noopener,noreferrer");
-                            }}
-                            style={{
-                              width: "100%",
-                              background: S.gold,
-                              color: "#ffffff",
-                              borderRadius: 10,
-                              padding: 14,
-                              fontSize: 15,
-                              fontWeight: 600,
-                              cursor: "pointer",
-                              border: "none",
-                              fontFamily: S.font,
-                            }}
-                          >
-                            Unlock Plan + PDF — $64
-                          </button>
-                        </div>
-
-                        <div style={{ color: S.dim, fontSize: 13, margin: "16px 0", lineHeight: 1 }}>or</div>
-
-                        <div style={{ display: "flex", gap: 10, alignItems: "stretch" }}>
-                          <input
-                            type="text"
-                            placeholder="Have a promo code?"
-                            value={promoCode}
-                            onChange={function (e) {
-                              setPromoCode(e.target.value);
-                              if (promoError) setPromoError("");
-                            }}
-                            style={{
-                              flex: 1,
-                              minWidth: 0,
-                              padding: "12px 14px",
-                              fontSize: 15,
-                              fontFamily: S.mono,
-                              border: "1px solid " + S.border,
-                              borderRadius: 10,
-                              background: "#ffffff",
-                              color: S.text,
-                              boxSizing: "border-box",
-                            }}
-                          />
-                          <button
-                            type="button"
-                            onClick={function () {
-                              var v = (promoCode || "").trim().toUpperCase();
-                              var isTest = TEST_CODES.some(function(c) { return c.toLowerCase() === v.toLowerCase(); });
-                              if (v === "DZFRIEND" || v === "DZPREVIEW" || v === "DZTEST") {
-                                setPromoUsed(true);
-                                setTier(3);
-                                setPromoError("");
-                              } else if (isTest) {
-                                setTestModeApplied(true);
-                                setPromoError("");
-                              } else {
-                                setPromoError("Invalid code");
-                              }
-                            }}
-                            style={{
-                              padding: "12px 20px",
-                              fontSize: 15,
-                              fontFamily: S.font,
-                              fontWeight: 600,
-                              background: S.accent,
-                              color: "#ffffff",
-                              border: "none",
-                              borderRadius: 10,
-                              cursor: "pointer",
-                            }}
-                          >
-                            Apply
-                          </button>
-                        </div>
-                        {promoError ? <div style={{ color: S.red, fontSize: 13, marginTop: 8 }}>{promoError}</div> : null}
-                      </div>
+                  <div
+                    key={(rec && rec.id ? rec.id : "rec") + "-" + idx}
+                    style={{
+                      background: "#ffffff",
+                      border: "1px solid " + S.border,
+                      borderRadius: 12,
+                      padding: "20px 24px",
+                      marginBottom: 12,
+                      boxSizing: "border-box",
+                    }}
+                  >
+                    <div style={{ fontFamily: S.mono, fontSize: 11, color: S.gold, fontWeight: 700 }}>{idx + 1}</div>
+                    <div style={{ fontSize: 16, fontWeight: 600, color: S.text, marginTop: 4, lineHeight: 1.3 }}>
+                      {rec && rec.headline ? rec.headline : "—"}
                     </div>
+                    <div style={{ fontSize: 15, color: S.dim, marginTop: 8, lineHeight: 1.6 }}>{rec && rec.action ? rec.action : ""}</div>
+                    <div style={{ fontSize: 14, color: S.dim, fontStyle: "italic", marginTop: 4, lineHeight: 1.55 }}>{rec && rec.why ? rec.why : ""}</div>
                   </div>
                 );
-              })()
-            ) : (
-              <div>
-                {recsLoading ? (
-                  <div style={{ fontSize: 14, color: S.dim, fontStyle: "italic", textAlign: "center", padding: "14px 0" }}>
-                    Generating your recommendations…
-                  </div>
-                ) : recsError ? (
-                  <div style={{ textAlign: "center", padding: "10px 0" }}>
-                    <div style={{ color: S.red, fontSize: 14, marginBottom: 12 }}>{recsError}</div>
-                    <button
-                      type="button"
-                      onClick={function () {
-                        fetchRecommendations(results.skills);
-                      }}
-                      style={Object.assign({}, continueBtnBase, { marginTop: 0, width: "auto", minWidth: 200 })}
-                    >
-                      Try again
-                    </button>
-                  </div>
-                ) : null}
-
-                {(Array.isArray(recommendations) ? recommendations : []).slice(0, 8).map(function (rec, idx) {
-                  return (
-                    <div
-                      key={(rec && rec.id ? rec.id : "rec") + "-" + idx}
-                      style={{
-                        background: "#ffffff",
-                        border: "1px solid " + S.border,
-                        borderRadius: 12,
-                        padding: "20px 24px",
-                        marginBottom: 12,
-                        boxSizing: "border-box",
-                      }}
-                    >
-                      <div style={{ fontFamily: S.mono, fontSize: 11, color: S.gold, fontWeight: 700 }}>{idx + 1}</div>
-                      <div style={{ fontSize: 16, fontWeight: 600, color: S.text, marginTop: 4, lineHeight: 1.3 }}>
-                        {rec && rec.headline ? rec.headline : "—"}
-                      </div>
-                      <div style={{ fontSize: 15, color: S.dim, marginTop: 8, lineHeight: 1.6 }}>{rec && rec.action ? rec.action : ""}</div>
-                      <div style={{ fontSize: 14, color: S.dim, fontStyle: "italic", marginTop: 4, lineHeight: 1.55 }}>{rec && rec.why ? rec.why : ""}</div>
-                    </div>
-                  );
-                })}
-
-                {tier >= 3 || promoUsed || isEmployerAccessGranted() ? (
-                  <div className="no-print" style={{ marginTop: 12 }}>
-                    <PDFButton contentId="dz-finance-report" />
-                  </div>
-                ) : null}
-              </div>
-            )}
-
-            <DZFooter />
+              })}
+            </div>
           </div>
+
+          {manualEmailSent || !gateEmail || !gateEmail.trim() ? (
+            <div
+              className="no-print"
+              style={{
+                background: "#ffffff",
+                border: "1px solid " + S.border,
+                borderRadius: 14,
+                padding: "24px 22px",
+                marginTop: 28,
+                marginBottom: 28,
+              }}
+            >
+              {manualEmailSent ? (
+                <div style={{ fontSize: 15, color: S.green, lineHeight: 1.6, textAlign: "center" }}>
+                  ✓ Sent — check your inbox for a copy of your results.
+                </div>
+              ) : (
+                <div>
+                  <div
+                    style={{
+                      fontFamily: S.serif,
+                      fontSize: 22,
+                      fontWeight: 600,
+                      color: S.text,
+                      marginBottom: 10,
+                      lineHeight: 1.25,
+                    }}
+                  >
+                    Want a copy of this?
+                  </div>
+                  <p style={{ fontSize: 15, color: S.dim, lineHeight: 1.65, margin: "0 0 18px" }}>
+                    This report only lives in this browser tab right now. If you&apos;d like it saved somewhere you can find later, enter your email below and
+                    we&apos;ll send you a copy — it&apos;s never shared with your employer.
+                  </p>
+                  <input
+                    type="email"
+                    placeholder="your@email.com"
+                    value={manualEmailInput}
+                    disabled={manualEmailLoading}
+                    onChange={function (e) {
+                      setManualEmailInput(e.target.value);
+                      if (manualEmailError) setManualEmailError("");
+                    }}
+                    style={{
+                      width: "100%",
+                      padding: "14px 16px",
+                      fontSize: 16,
+                      fontFamily: S.font,
+                      border: "1px solid " + S.border,
+                      borderRadius: 10,
+                      outline: "none",
+                      boxSizing: "border-box",
+                      background: "#ffffff",
+                      color: S.text,
+                    }}
+                  />
+                  {manualEmailError ? <div style={{ color: S.red, fontSize: 13, marginTop: 8 }}>{manualEmailError}</div> : null}
+                  <button
+                    type="button"
+                    onClick={handleManualEmailCopy}
+                    disabled={manualEmailLoading}
+                    style={{
+                      width: "100%",
+                      padding: 14,
+                      fontSize: 16,
+                      fontWeight: 600,
+                      fontFamily: S.font,
+                      background: manualEmailLoading ? "#e5a820" : S.gold,
+                      color: "#ffffff",
+                      border: "none",
+                      borderRadius: 10,
+                      cursor: manualEmailLoading ? "not-allowed" : "pointer",
+                      marginTop: 12,
+                    }}
+                  >
+                    {manualEmailLoading ? "Sending…" : "Email me a copy"}
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : null}
         </div>
       </div>
     );
@@ -1835,7 +1696,6 @@ export default function EmployerFinance(props) {
           boxSizing: "border-box",
         }}
       >
-        <DZNavBar />
         <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
         <div style={{ textAlign: "center", maxWidth: 400 }}>
           <p style={{ color: S.red, fontSize: 15, margin: "0 0 20px", lineHeight: 1.5 }}>{error}</p>
@@ -1851,9 +1711,7 @@ export default function EmployerFinance(props) {
           </button>
         </div>
         </div>
-        <div style={{ maxWidth: 680, margin: "0 auto", width: "100%" }}>
-          <DZFooter />
-        </div>
+        <div style={{ maxWidth: 680, margin: "0 auto", width: "100%" }} />
       </div>
     );
   }
@@ -1871,7 +1729,6 @@ export default function EmployerFinance(props) {
           boxSizing: "border-box",
         }}
       >
-        <DZNavBar />
         <style
           dangerouslySetInnerHTML={{
             __html: "@keyframes dzFinanceDots{0%,100%{opacity:0.25}50%{opacity:1}}",
@@ -1910,9 +1767,7 @@ export default function EmployerFinance(props) {
           </div>
         </div>
         </div>
-        <div style={{ maxWidth: 680, margin: "0 auto", width: "100%" }}>
-          <DZFooter />
-        </div>
+        <div style={{ maxWidth: 680, margin: "0 auto", width: "100%" }} />
       </div>
     );
   }
@@ -1932,7 +1787,6 @@ export default function EmployerFinance(props) {
     var pullPct = (pull / 10) * 100;
     return (
       <div style={{ background: S.bg, minHeight: "100vh", padding: "32px 20px", fontFamily: S.font }}>
-        <DZNavBar />
         <style
           dangerouslySetInnerHTML={{
             __html:
@@ -2135,9 +1989,16 @@ export default function EmployerFinance(props) {
           >
             RATE YOUR FLUENCY
           </div>
-          <p style={{ fontSize: 15, color: S.dim, marginBottom: 24, marginTop: 0, lineHeight: 1.6 }}>
+          <p style={{ fontSize: 15, color: S.dim, marginBottom: 12, marginTop: 0, lineHeight: 1.6 }}>
             For each skill, how fluent are you? These sliders are pre-seeded from your answers above — adjust any that don&apos;t feel right.
           </p>
+          {skillsGroundedInResume ? (
+            <div style={{ fontSize: 15, color: S.green, lineHeight: 1.6, margin: "0 0 24px" }}>
+              ✓ Personalized using your resume
+            </div>
+          ) : (
+            <div style={{ marginBottom: 24 }} />
+          )}
 
           {skills.map(function (skill) {
             var fluencyVal = fluencies[skill.id] !== undefined ? fluencies[skill.id] : getSeed(conscience, pull);
@@ -2177,6 +2038,63 @@ export default function EmployerFinance(props) {
             );
           })}
 
+          <div
+            style={{
+              background: "#ffffff",
+              border: "1px solid " + S.border,
+              borderRadius: 12,
+              padding: "20px 24px",
+              marginTop: 12,
+              marginBottom: 20,
+            }}
+          >
+            <div style={{ fontFamily: S.mono, fontSize: 12, color: S.muted, letterSpacing: "0.06em", fontWeight: 600, marginBottom: 8 }}>
+              AI USAGE <span style={{ color: S.dim, fontWeight: 400, textTransform: "none" }}>— optional — tell us if you&apos;ve already used AI as part of this work</span>
+            </div>
+            <p style={{ color: S.dim, fontSize: 15, margin: "0 0 14px", lineHeight: 1.6 }}>
+              Pick one or two skills above where you&apos;ve actually used AI as part of your job, and briefly describe how.
+            </p>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: aiUsageSkillIds.length > 0 ? 14 : 0 }}>
+              {skills.map(function (s) {
+                return (
+                  <Chip
+                    key={s.id}
+                    label={s.text}
+                    active={aiUsageSkillIds.indexOf(s.id) !== -1}
+                    onClick={function () {
+                      toggleAiUsageSkill(s.id);
+                    }}
+                  />
+                );
+              })}
+            </div>
+            {aiUsageSkillIds.length > 0 ? (
+              <textarea
+                value={aiUsageDescription}
+                onChange={function (e) {
+                  setAiUsageDescription(e.target.value);
+                }}
+                placeholder="e.g. Used AI to draft the first pass of a financial model, then reviewed and corrected the assumptions myself."
+                rows={3}
+                style={{
+                  width: "100%",
+                  background: "#f2f4f8",
+                  border: "1px solid " + S.border,
+                  borderRadius: 8,
+                  padding: "12px 16px",
+                  color: S.text,
+                  fontSize: 16,
+                  fontFamily: S.font,
+                  outline: "none",
+                  boxSizing: "border-box",
+                  resize: "vertical",
+                  minHeight: 80,
+                  lineHeight: 1.5,
+                }}
+              />
+            ) : null}
+          </div>
+
           <button
             type="button"
             onClick={function () {
@@ -2194,7 +2112,11 @@ export default function EmployerFinance(props) {
                     conscience: conscience,
                     pull: pull,
                     fluencies: fluencies,
-                    promoUsed: promoUsed,
+                    resumeText: resumeText,
+                    resumeFileName: resumeFileName,
+                    aiUsageSkillIds: aiUsageSkillIds,
+                    aiUsageDescription: aiUsageDescription,
+                    savedAt: Date.now(),
                   })
                 );
               } catch (e) {}
@@ -2204,7 +2126,6 @@ export default function EmployerFinance(props) {
           >
             See My Results →
           </button>
-          <DZFooter />
         </div>
       </div>
     );
@@ -2224,7 +2145,6 @@ export default function EmployerFinance(props) {
     if (gateLoading) {
       return (
         <div style={fullScreenCenter}>
-          <DZNavBar />
           <style
             dangerouslySetInnerHTML={{
               __html: "@keyframes dzFinanceDots{0%,100%{opacity:0.25}50%{opacity:1}}",
@@ -2243,17 +2163,14 @@ export default function EmployerFinance(props) {
             </div>
           </div>
           </div>
-          <div style={{ maxWidth: 680, margin: "0 auto", width: "100%" }}>
-            <DZFooter />
-          </div>
+          <div style={{ maxWidth: 680, margin: "0 auto", width: "100%" }} />
         </div>
       );
     }
 
-    if (gateVerified) {
+    if (effectivelyVerified) {
       return (
         <div style={fullScreenCenter}>
-          <DZNavBar />
           <style
             dangerouslySetInnerHTML={{
               __html: "@keyframes dzFinanceDots{0%,100%{opacity:0.25}50%{opacity:1}}",
@@ -2287,9 +2204,7 @@ export default function EmployerFinance(props) {
             </div>
           </div>
           </div>
-          <div style={{ maxWidth: 680, margin: "0 auto", width: "100%" }}>
-            <DZFooter />
-          </div>
+          <div style={{ maxWidth: 680, margin: "0 auto", width: "100%" }} />
         </div>
       );
     }
@@ -2311,7 +2226,6 @@ export default function EmployerFinance(props) {
     if (gateSent) {
       return (
         <div style={formShell}>
-          <DZNavBar />
           <div style={card}>
             <div
               style={{
@@ -2400,9 +2314,7 @@ export default function EmployerFinance(props) {
               Start over
             </div>
           </div>
-          <div style={{ maxWidth: 680, margin: "0 auto", width: "100%" }}>
-            <DZFooter />
-          </div>
+          <div style={{ maxWidth: 680, margin: "0 auto", width: "100%" }} />
         </div>
       );
     }
@@ -2410,7 +2322,6 @@ export default function EmployerFinance(props) {
     var showExpiredInvalid = gateError === "expired" || gateError === "invalid";
     return (
       <div style={formShell}>
-        <DZNavBar />
         <div style={card}>
           <div style={{ fontFamily: S.mono, fontSize: 12, color: S.gold, letterSpacing: "0.12em", marginBottom: 24, fontWeight: 600 }}>
             DEFENSIBLE ZONE™ · FINANCE EDITION
@@ -2483,9 +2394,7 @@ export default function EmployerFinance(props) {
             Send me my results
           </button>
         </div>
-        <div style={{ maxWidth: 680, margin: "0 auto", width: "100%" }}>
-          <DZFooter />
-        </div>
+        <div style={{ maxWidth: 680, margin: "0 auto", width: "100%" }} />
       </div>
     );
   }
@@ -2494,7 +2403,6 @@ export default function EmployerFinance(props) {
     var canContinue1 = firmType !== "";
     return (
       <div style={containerOuter}>
-        <DZNavBar />
         <div style={containerInner}>
           <button type="button" onClick={() => setStep(0)} style={backBtnStyle}>
             ← back
@@ -2565,7 +2473,6 @@ export default function EmployerFinance(props) {
           >
             CONTINUE →
           </button>
-          <DZFooter />
         </div>
       </div>
     );
@@ -2576,7 +2483,6 @@ export default function EmployerFinance(props) {
     var canContinue2 = companySize !== "";
     return (
       <div style={containerOuter}>
-        <DZNavBar />
         <div style={containerInner}>
           <button type="button" onClick={() => setStep(1)} style={backBtnStyle}>
             ← back
@@ -2650,7 +2556,6 @@ export default function EmployerFinance(props) {
           >
             CONTINUE →
           </button>
-          <DZFooter />
         </div>
       </div>
     );
@@ -2677,7 +2582,6 @@ export default function EmployerFinance(props) {
     };
     return (
       <div style={containerOuter}>
-        <DZNavBar />
         <div style={containerInner}>
           <button type="button" onClick={() => setStep(2)} style={backBtnStyle}>
             ← back
@@ -2751,6 +2655,52 @@ export default function EmployerFinance(props) {
             })}
           </div>
 
+          <div style={{ background: "#ffffff", border: "1px solid " + S.border, borderRadius: 12, padding: 20, marginTop: 24, marginBottom: 8 }}>
+            <div style={{ fontFamily: S.mono, fontSize: 12, color: S.muted, letterSpacing: "0.06em", fontWeight: 600, marginBottom: 8 }}>
+              RESUME <span style={{ color: S.dim, fontWeight: 400, textTransform: "none" }}>— optional — upload to personalize your skill list</span>
+            </div>
+            {resumeText ? (
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <span style={{ fontFamily: S.mono, fontSize: 12, color: S.green, fontWeight: 700 }}>✓ {resumeFileName}</span>
+                <button
+                  type="button"
+                  onClick={removeResume}
+                  style={{ background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: S.mono, fontSize: 12, color: S.dim, textDecoration: "underline" }}
+                >
+                  Remove
+                </button>
+              </div>
+            ) : (
+              <div>
+                <input
+                  ref={resumeInputRef}
+                  type="file"
+                  accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                  onChange={handleResumeFileSelect}
+                  disabled={resumeUploading}
+                  style={{
+                    width: "100%",
+                    background: "#f2f4f8",
+                    border: "1px solid " + S.border,
+                    borderRadius: 8,
+                    padding: "10px 12px",
+                    color: S.text,
+                    fontSize: 14,
+                    fontFamily: S.font,
+                    outline: "none",
+                    boxSizing: "border-box",
+                  }}
+                />
+                {resumeUploading && (
+                  <p style={{ color: S.muted, fontSize: 14, margin: "8px 0 0", fontFamily: S.mono }}>Reading your resume…</p>
+                )}
+              </div>
+            )}
+            {resumeUploadError && (
+              <p style={{ color: S.muted, fontSize: 14, margin: "8px 0 0", lineHeight: 1.5 }}>{resumeUploadError}</p>
+            )}
+          </div>
+
           <button
             type="button"
             disabled={!canContinue3}
@@ -2762,7 +2712,6 @@ export default function EmployerFinance(props) {
           >
             CONTINUE →
           </button>
-          <DZFooter />
         </div>
       </div>
     );
@@ -2772,7 +2721,6 @@ export default function EmployerFinance(props) {
 
   return (
     <div style={containerOuter}>
-      <DZNavBar />
       <div style={containerInner}>
         {gateOnDifferentDevice && step === 0 ? (
           <div
@@ -3002,9 +2950,7 @@ export default function EmployerFinance(props) {
             CONTINUE →
           </button>
         ) : null}
-        <DZFooter />
       </div>
     </div>
   );
 }
-

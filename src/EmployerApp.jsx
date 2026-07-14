@@ -4,6 +4,7 @@ import EmployerEngineer from "./EmployerEngineer.jsx";
 import EmployerProductManager from "./EmployerProductManager.jsx";
 import EmployerSales from "./EmployerSales.jsx";
 import EmployerUX from "./EmployerUX.jsx";
+import EmployerFinance from "./EmployerFinance.jsx";
 
 export var LS = {
   bg: "#F5F2EE",
@@ -109,6 +110,8 @@ export default function EmployerApp() {
         <EmployerSales />
       ) : screen === "flow" && selectedRole === "UX Professional" ? (
         <EmployerUX />
+      ) : screen === "flow" && selectedRole === "Finance Professional" ? (
+        <EmployerFinance />
       ) : (
       <div style={{ maxWidth: 520, margin: "0 auto", padding: "72px 24px 48px" }}>
         <div style={{ fontFamily: LS.mono, fontSize: 11, color: LS.muted, letterSpacing: "0.12em", marginBottom: 12, fontWeight: 600 }}>
