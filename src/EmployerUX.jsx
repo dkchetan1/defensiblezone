@@ -759,13 +759,14 @@ export default function EmployerUX() {
 
   useEffect(
     function () {
+      if (step !== 4) return;
       if (!effectivelyVerified) return;
       if (gateOnDifferentDevice) return;
       if (results || loading) return;
       if (!roleType || !seniority) return;
       fetchScores();
     },
-    [effectivelyVerified, gateOnDifferentDevice, roleType, seniority]
+    [effectivelyVerified, gateOnDifferentDevice, roleType, seniority, step]
   );
 
   function computeOverallScore(skillsArr) {
