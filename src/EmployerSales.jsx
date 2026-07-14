@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { isEmployerAccessGranted } from "./EmployerEdition.js";
+import { S, LS, AFFINITY_STOPS, snapToStop, getSeed, compAff, calcDZ, dzScoreColor, getOverallSubLabel, getSkillInterpretation, isValidEmail, Card, Label, PrimaryBtn, SelBtn, Chip } from "./EmployerApp.jsx";
 
-// ── SALES TYPES ─────────────────────────────────────────────────────
 var OFFER_FREE_SESSION = true;
 
 var SALES_TYPES = [
@@ -126,69 +126,6 @@ var CONTEXT_MAP = {
   enablement:   ["enablement","coaching","analytics","outbound_prospect","demo"],
 };
 
-// ── DESIGN TOKENS ───────────────────────────────────────────────────
-var S = {
-  bg:"#f8f9fc", card:"#ffffff", card2:"#f2f4f8",
-  border:"#d0d7e8", text:"#0d1117", muted:"#1e2a42", dim:"#4a5568",
-  accent:"#1a1d2e", purple:"#7c3aed", gold:"#d97706",
-  green:"#059669", red:"#dc2626", blue:"#2563eb", orange:"#ea580c",
-  font:"system-ui,-apple-system,sans-serif",
-  mono:"'Courier New',monospace",
-  serif:"'Playfair Display',Georgia,serif",
-};
-
-// ── PROMO CODES ─────────────────────────────────────────────────────
-var PROMO_CODES    = ["DZFRIEND","DZPREVIEW","DZTEST","DZSALESPRE"];
-var DISCOUNT_CODES = ["DZHALF","DZSALESHALF"];
-var TEST_CODES     = ["DZONE"];
-
-// ── MATH ────────────────────────────────────────────────────────────
-var AFFINITY_STOPS = [0, 3, 5, 7, 10];
-
-function snapToStop(val) {
-  return AFFINITY_STOPS.reduce(function(prev, curr) {
-    return Math.abs(curr - val) < Math.abs(prev - val) ? curr : prev;
-  });
-}
-
-function getSeed(c, p) {
-  var raw = Math.round((c * 0.5 + p * 0.5) * 10) / 10;
-  return AFFINITY_STOPS.reduce(function(prev, curr) {
-    return Math.abs(curr - raw) < Math.abs(prev - raw) ? curr : prev;
-  });
-}
-
-function compAff(conscience, pull, fluency) {
-  return Math.round((conscience * 0.35 + pull * 0.35 + fluency * 0.3) * 10) / 10;
-}
-
-function calcDZ(aff, aiR, mkt) {
-  var v = 100 * Math.pow(aff / 10, 0.35) * Math.pow((10 - aiR) / 10, 0.40) * Math.pow(mkt / 10, 0.25);
-  return Math.min(100, Math.round(v));
-}
-
-function dzScoreColor(score) {
-  if (score < 40) return S.red;
-  if (score <= 65) return S.gold;
-  return S.green;
-}
-
-function getOverallSubLabel(score) {
-  if (score <= 39) return "High exposure. Significant repositioning needed.";
-  if (score <= 59) return "Moderate exposure. Some strong anchors, gaps to address.";
-  if (score <= 74) return "Solid foundation. Targeted moves will strengthen your position.";
-  if (score <= 89) return "Well-positioned. Protect your anchors and extend your lead.";
-  return "Exceptional. You're operating in rare territory.";
-}
-
-function getSkillInterpretation(aiRisk, mkt, aff) {
-  if (aiRisk >= 7) return "High AI exposure — your affinity is what keeps this defensible.";
-  if (aiRisk <= 3 && mkt >= 7) return "Low AI risk, high market value — a strong anchor.";
-  if (aff >= 7 && aiRisk >= 6) return "Your affinity is your edge here — lean into it.";
-  if (aff <= 3 && aiRisk >= 6) return "Vulnerable. Consider whether this is worth defending.";
-  return "Moderate position — context and execution matter here.";
-}
-
 function buildProfile(salesType, roleTrack, seniority, workContexts, companyType, industryVertical) {
   var st = SALES_TYPES.find(function(t) { return t.id === salesType; });
   var rt = ROLE_TRACKS.find(function(r) { return r.id === roleTrack; });
@@ -216,72 +153,10 @@ function buildProfile(salesType, roleTrack, seniority, workContexts, companyType
   };
 }
 
-// ── DISCLAIMER ──────────────────────────────────────────────────────
+
 var SALES_DISCLAIMER =
   "This tool is for professional reflection and educational purposes only. It does not constitute career advice or any professional assessment. Scores are estimates based on publicly available research and LLM calibration — not a definitive evaluation of your skills or employability. This tool does not predict commission income, quota attainment, or employment outcomes.";
 
-// ── SHARED UI ───────────────────────────────────────────────────────
-function Card(props) {
-  return (
-    <div style={Object.assign({ background: S.card, border: "1px solid " + S.border, borderRadius: 16, padding: 28 }, props.style)}>
-      {props.children}
-    </div>
-  );
-}
-
-function Label(props) {
-  return (
-    <div style={Object.assign({ fontFamily: S.mono, fontSize: 12, color: S.muted, letterSpacing: "0.06em", fontWeight: 600, marginBottom: 8 }, props.style)}>
-      {props.children}
-    </div>
-  );
-}
-
-function PrimaryBtn(props) {
-  var dis = props.disabled;
-  return (
-    <button onClick={props.onClick} disabled={dis} style={Object.assign({
-      width:"100%", background: dis ? S.card : S.accent, color: dis ? S.dim : "white",
-      border:"1px solid " + (dis ? S.border : S.accent), borderRadius:12, padding:"18px 0",
-      fontSize:16, fontFamily:S.mono, fontWeight:700, cursor: dis ? "not-allowed" : "pointer",
-      letterSpacing:"0.08em", transition:"all 0.2s",
-    }, props.style)}>
-      {props.children}
-    </button>
-  );
-}
-
-function SelBtn(props) {
-  var active = props.active;
-  return (
-    <button onClick={props.onClick} style={{
-      background: active ? S.accent : S.card,
-      color: active ? "white" : S.text,
-      border:"1px solid " + (active ? S.accent : S.border),
-      borderRadius:10, padding:"10px 14px", cursor:"pointer",
-      fontFamily:S.font, fontSize:16, fontWeight: active ? 700 : 500,
-      textAlign:"left", transition:"all 0.15s", width:"100%",
-    }}>
-      {props.children}
-    </button>
-  );
-}
-
-function Chip(props) {
-  var active = props.active;
-  return (
-    <button onClick={props.onClick} style={{
-      background: active ? S.gold : S.card,
-      color: active ? "white" : S.muted,
-      border:"1px solid " + (active ? S.gold : S.border),
-      borderRadius:20, padding:"6px 14px", cursor:"pointer",
-      fontFamily:S.mono, fontSize:12, fontWeight: active ? 700 : 500,
-      transition:"all 0.15s", whiteSpace:"nowrap",
-    }}>
-      {props.label}
-    </button>
-  );
-}
 
 function SalesDisclaimer() {
   return (
@@ -303,72 +178,9 @@ function SalesDisclaimer() {
   );
 }
 
-function SalesNavBar() {
-  return (
-    <div style={{ background: S.card2, borderBottom: "1px solid " + S.border, padding: "14px 24px", marginBottom: 16, width: "100%", boxSizing: "border-box" }}>
-      <div style={{ display: "flex", flexDirection: "row", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16, maxWidth: 1200, margin: "0 auto", width: "100%" }}>
-        <a
-          href="https://defensiblezone.ai"
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{ fontFamily: S.mono, fontSize: 13, fontWeight: "bold", color: S.accent, textDecoration: "none" }}
-          onMouseEnter={function(e) { e.currentTarget.style.opacity = "0.75"; }}
-          onMouseLeave={function(e) { e.currentTarget.style.opacity = "1"; }}
-        >
-          defensiblezone.ai →
-        </a>
-        <a
-          href="mailto:support@recursiolab.com"
-          style={{ fontFamily: S.mono, fontSize: 13, fontWeight: "bold", color: S.purple, textDecoration: "none" }}
-          onMouseEnter={function(e) { e.currentTarget.style.opacity = "0.75"; }}
-          onMouseLeave={function(e) { e.currentTarget.style.opacity = "1"; }}
-        >
-          Questions &amp; Feedback →
-        </a>
-      </div>
-    </div>
-  );
-}
-
-function SalesFooter() {
-  return (
-    <div style={{ background: S.card2, borderTop: "1px solid " + S.border, padding: "20px 24px", marginTop: 32 }}>
-      <div style={{ display: "flex", flexDirection: "row", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 24 }}>
-        <a
-          href="https://defensiblezone.ai"
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{ fontFamily: S.mono, fontSize: 14, fontWeight: "bold", color: S.accent, textDecoration: "none" }}
-          onMouseEnter={function(e) { e.currentTarget.style.opacity = "0.75"; }}
-          onMouseLeave={function(e) { e.currentTarget.style.opacity = "1"; }}
-        >
-          defensiblezone.ai →
-        </a>
-        <a
-          href="mailto:support@recursiolab.com"
-          style={{ fontFamily: S.mono, fontSize: 14, fontWeight: "bold", color: S.purple, textDecoration: "none" }}
-          onMouseEnter={function(e) { e.currentTarget.style.opacity = "0.75"; }}
-          onMouseLeave={function(e) { e.currentTarget.style.opacity = "1"; }}
-        >
-          Questions &amp; Feedback →
-        </a>
-        <a
-          href="https://defensiblezone.ai/privacy-policy"
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{ fontFamily: S.mono, fontSize: 14, fontWeight: "bold", color: S.dim, textDecoration: "none" }}
-          onMouseEnter={function(e) { e.currentTarget.style.opacity = "0.75"; }}
-          onMouseLeave={function(e) { e.currentTarget.style.opacity = "1"; }}
-        >
-          Privacy Policy →
-        </a>
-      </div>
-    </div>
-  );
-}
 
 // ── MAIN APP ────────────────────────────────────────────────────────
-export default function EmployerSales({ reportMode }) {
+export default function EmployerSales() {
   var [salesType, setSalesType] = useState("");
   var [roleTrack, setRoleTrack] = useState("");
   var [seniority, setSeniority] = useState("");
@@ -394,24 +206,28 @@ export default function EmployerSales({ reportMode }) {
   var [loading, setLoading] = useState(false);
   var [loadingMsg, setLoadingMsg] = useState("");
   var [error, setError] = useState(null);
-  var [tier, setTier] = useState(0);
-  var [promoCode, setPromoCode] = useState("");
-  var [promoError, setPromoError] = useState("");
-  var [promoUsed, setPromoUsed] = useState(false);
-  var [discountApplied, setDiscountApplied] = useState(false);
-  var [testModeApplied, setTestModeApplied] = useState(false);
-  var [checkoutLoading, setCheckoutLoading] = useState(false);
-  var [checkoutError, setCheckoutError] = useState(null);
-  var [paymentCanceled, setPaymentCanceled] = useState(false);
+  var [showCalibration, setShowCalibration] = useState(false);
   var [gateEmail, setGateEmail] = useState("");
   var [gateSent, setGateSent] = useState(false);
   var [gateVerified, setGateVerified] = useState(false);
+  var effectivelyVerified = gateVerified || isEmployerAccessGranted();
   var [gateError, setGateError] = useState("");
   var [gateLoading, setGateLoading] = useState(false);
   var [showResend, setShowResend] = useState(false);
   var [gateOnDifferentDevice, setGateOnDifferentDevice] = useState(false);
   var [gateInputFocused, setGateInputFocused] = useState(false);
-  var [showCalibration, setShowCalibration] = useState(false);
+  var [manualEmailSent, setManualEmailSent] = useState(false);
+  var [manualEmailInput, setManualEmailInput] = useState("");
+  var [manualEmailError, setManualEmailError] = useState("");
+  var [manualEmailLoading, setManualEmailLoading] = useState(false);
+  var [resumeFileName, setResumeFileName] = useState("");
+  var [resumeText, setResumeText] = useState("");
+  var [resumeUploading, setResumeUploading] = useState(false);
+  var [resumeUploadError, setResumeUploadError] = useState("");
+  var [skillsGroundedInResume, setSkillsGroundedInResume] = useState(false);
+  var resumeInputRef = useRef(null);
+  var [aiUsageSkillIds, setAiUsageSkillIds] = useState([]);
+  var [aiUsageDescription, setAiUsageDescription] = useState("");
 
   var SALES_LOADING_MSGS = ["Mapping your sales landscape…", "Identifying your exposure points…", "Calibrating skill defensibility…", "Almost ready…"];
   var SALES_SCORING_MSGS = ["Scoring your skills…", "Calculating AI exposure…", "Building your defensible zone…", "Almost there…"];
@@ -459,118 +275,21 @@ export default function EmployerSales({ reportMode }) {
 
   useEffect(
     function () {
-      if (!gateVerified) return;
+      if (step === 0) return;
+      if (!effectivelyVerified) return;
       if (skills.length > 0 || loading) return;
       fetchLandscapeAndSkills();
     },
-    [gateVerified]
-  );
-
-  useEffect(function () {
-    if (!salesType) return;
-    var allowed = CONTEXT_MAP[salesType];
-    if (!allowed) return;
-    setWorkContexts(function (prev) {
-      return prev.filter(function (id) { return allowed.indexOf(id) !== -1; });
-    });
-    setShowAllCtx(false);
-  }, [salesType]);
-
-  useEffect(function () {
-    setSeniority("");
-  }, [roleTrack]);
-
-  function restoreSavedReport() {
-    try {
-      var savedRaw = localStorage.getItem("dz_saved_report_sales");
-      if (!savedRaw) return false;
-      var s = JSON.parse(savedRaw);
-      if (s.salesType) setSalesType(s.salesType);
-      if (s.roleTrack) setRoleTrack(s.roleTrack);
-      if (s.seniority) setSeniority(s.seniority);
-      if (s.companyType) setCompanyType(s.companyType);
-      if (s.industryVertical) setIndustryVertical(s.industryVertical);
-      if (s.workContexts) setWorkContexts(s.workContexts);
-      if (s.conscience !== undefined) setConscience(s.conscience);
-      if (s.pull !== undefined) setPull(s.pull);
-      if (s.gateEmail) setGateEmail(s.gateEmail);
-      if (s.landscape) setLandscape(s.landscape);
-      if (s.skills) setSkills(s.skills);
-      if (s.fluencies) setFluencies(s.fluencies);
-      if (s.results) setResults(s.results);
-      if (s.tier !== undefined) setTier(s.tier);
-      if (s.promoUsed) setPromoUsed(s.promoUsed);
-      if (s.discountApplied) setDiscountApplied(s.discountApplied);
-      return true;
-    } catch (e) {
-      return false;
-    }
-  }
-
-  function saveStateForReturn() {
-    try {
-      localStorage.setItem(
-        "dz_saved_report_sales",
-        JSON.stringify({
-          salesType: salesType,
-          roleTrack: roleTrack,
-          seniority: seniority,
-          companyType: companyType,
-          industryVertical: industryVertical,
-          workContexts: workContexts,
-          conscience: conscience,
-          pull: pull,
-          gateEmail: gateEmail,
-          landscape: landscape,
-          skills: skills,
-          fluencies: fluencies,
-          results: results,
-          tier: tier,
-          promoUsed: promoUsed,
-          discountApplied: discountApplied,
-        })
-      );
-    } catch (_e) {}
-  }
-
-  useEffect(function () {
-    var params = new URLSearchParams(window.location.search);
-    if (params.get("success") === "true") {
-      window.history.replaceState({}, "", window.location.pathname);
-      restoreSavedReport();
-      setTier(2);
-      setPaymentCanceled(false);
-      setCheckoutError(null);
-      setStep(6);
-      return;
-    }
-    if (params.get("canceled") === "true") {
-      window.history.replaceState({}, "", window.location.pathname);
-      restoreSavedReport();
-      setStep(5);
-      setPaymentCanceled(true);
-      return;
-    }
-  }, []);
-
-  useEffect(
-    function () {
-      if (step === 5 && (tier >= 2 || promoUsed || isEmployerAccessGranted())) {
-        setStep(6);
-      }
-    },
-    [step, tier, promoUsed]
+    [effectivelyVerified, salesType, roleTrack, seniority, workContexts, step]
   );
 
   useEffect(
     function () {
-      if (step !== 6) return;
-      if (!(tier >= 2 || promoUsed || isEmployerAccessGranted())) return;
-      if (!results) return;
+      if (!results || !results.skills || results.skills.length === 0) return;
       if (recommendations || recsLoading) return;
       fetchRecommendations();
     },
-    [step, tier, promoUsed, results]
+    [results]
   );
 
   useEffect(function () {
@@ -593,24 +312,39 @@ export default function EmployerSales({ reportMode }) {
             savedRaw = localStorage.getItem("dz_saved_report_sales");
           } catch (e) {}
           if (savedRaw) {
+            var expired = false;
             try {
               var s = JSON.parse(savedRaw);
-              if (s.salesType) setSalesType(s.salesType);
-              if (s.roleTrack) setRoleTrack(s.roleTrack);
-              if (s.seniority) setSeniority(s.seniority);
-              if (s.companyType) setCompanyType(s.companyType);
-              if (s.industryVertical) setIndustryVertical(s.industryVertical);
-              if (s.workContexts) setWorkContexts(s.workContexts);
-              if (s.conscience !== undefined) setConscience(s.conscience);
-              if (s.pull !== undefined) setPull(s.pull);
-              if (s.gateEmail) setGateEmail(s.gateEmail);
+              if (!s.savedAt || Date.now() - s.savedAt > 14 * 24 * 60 * 60 * 1000) {
+                expired = true;
+                localStorage.removeItem("dz_saved_report_sales");
+              } else {
+                if (s.salesType) setSalesType(s.salesType);
+                if (s.roleTrack) setRoleTrack(s.roleTrack);
+                if (s.seniority) setSeniority(s.seniority);
+                if (s.companyType) setCompanyType(s.companyType);
+                if (s.industryVertical) setIndustryVertical(s.industryVertical);
+                if (s.workContexts) setWorkContexts(s.workContexts);
+                if (s.conscience !== undefined) setConscience(s.conscience);
+                if (s.pull !== undefined) setPull(s.pull);
+                if (s.gateEmail) setGateEmail(s.gateEmail);
+                if (s.resumeText !== undefined) setResumeText(s.resumeText);
+                if (s.resumeFileName !== undefined) setResumeFileName(s.resumeFileName);
+                if (s.aiUsageSkillIds) setAiUsageSkillIds(s.aiUsageSkillIds);
+                if (s.aiUsageDescription !== undefined) setAiUsageDescription(s.aiUsageDescription);
+              }
             } catch (e) {}
-            if (data.email) setGateEmail(data.email);
-            setGateVerified(true);
-            setStep(2);
+            if (expired) {
+              setStep(1);
+              setGateOnDifferentDevice(true);
+            } else {
+              if (data.email) setGateEmail(data.email);
+              setGateVerified(true);
+              setStep(2);
+            }
           } else {
-            setGateOnDifferentDevice(true);
             setStep(1);
+            setGateOnDifferentDevice(true);
           }
           setGateLoading(false);
           return;
@@ -663,12 +397,154 @@ export default function EmployerSales({ reportMode }) {
             conscience: conscience,
             pull: pull,
             gateEmail: gateEmail,
+            resumeText: resumeText,
+            resumeFileName: resumeFileName,
+            aiUsageSkillIds: aiUsageSkillIds,
+            aiUsageDescription: aiUsageDescription,
+            savedAt: Date.now(),
           })
         );
       } catch (_e) {}
     },
-    [step, salesType, roleTrack, seniority, companyType, industryVertical, workContexts, conscience, pull, gateEmail]
+    [step, salesType, roleTrack, seniority, companyType, industryVertical, workContexts, conscience, pull, gateEmail, resumeText, resumeFileName, aiUsageSkillIds, aiUsageDescription]
   );
+
+  useEffect(function () {
+    if (!salesType) return;
+    var allowed = CONTEXT_MAP[salesType];
+    if (!allowed) return;
+    setWorkContexts(function (prev) {
+      return prev.filter(function (id) { return allowed.indexOf(id) !== -1; });
+    });
+    setShowAllCtx(false);
+  }, [salesType]);
+
+  useEffect(function () {
+    setSeniority("");
+  }, [roleTrack]);
+
+  function getVisibleContexts() {
+    if (!salesType || showAllCtx) return WORK_CONTEXTS;
+    var allowed = CONTEXT_MAP[salesType] || [];
+    return WORK_CONTEXTS.filter(function (wc) { return allowed.indexOf(wc.id) !== -1; });
+  }
+
+  function toggleCtx(id) {
+    setWorkContexts(function (prev) {
+      return prev.indexOf(id) !== -1 ? prev.filter(function (x) { return x !== id; }) : prev.concat([id]);
+    });
+  }
+
+  async function handleGateSubmit() {
+    var trimmed = gateEmail.trim();
+    if (!isValidEmail(trimmed)) {
+      setGateError("Please enter a valid email address.");
+      return;
+    }
+    setGateError("");
+    setGateLoading(true);
+    try {
+      var res = await fetch("/api/send-gate-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: trimmed, product: "sales" }),
+      });
+      var data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Request failed");
+      setGateEmail(trimmed);
+      setGateSent(true);
+    } catch (e) {
+      setGateError("Something went wrong. Please try again.");
+    } finally {
+      setGateLoading(false);
+    }
+  }
+
+  async function handleManualEmailCopy() {
+    if (!recommendations) {
+      setManualEmailError("Your full report is still being prepared — please try again in a few seconds.");
+      return;
+    }
+    var trimmed = manualEmailInput.trim();
+    if (!isValidEmail(trimmed)) {
+      setManualEmailError("Please enter a valid email address.");
+      return;
+    }
+    setManualEmailError("");
+    setManualEmailLoading(true);
+    try {
+      var skillsList = Array.isArray(results.skills) ? results.skills : [];
+      var res = await fetch("/api/send-results-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: trimmed,
+          product: "sales",
+          type: "paid",
+          results: {
+            profile: results.profile,
+            landscape: results.landscape,
+            skills: skillsList,
+            overallScore: computeOverallScore(skillsList),
+            recommendations: recommendations,
+          },
+        }),
+      });
+      var data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Request failed");
+      setGateEmail(trimmed);
+      paidEmailSentRef.current = true;
+      freeEmailSentRef.current = true;
+      setManualEmailSent(true);
+    } catch (e) {
+      setManualEmailError("Something went wrong. Please try again.");
+    } finally {
+      setManualEmailLoading(false);
+    }
+  }
+
+  function resetAll() {
+    setSalesType(""); setRoleTrack(""); setSeniority(""); setCompanyType(""); setIndustryVertical("");
+    setWorkContexts([]); setShowAllCtx(false);
+    setLandscape(""); setSkills([]);
+    setConscience(5); setPull(5); setFluencies({}); setCustomSkill("");
+    setAdjustedSkills(new Set());
+    adjustedSkillsRef.current = new Set();
+    setResults(null); setRecommendations(null); setRecsLoading(false); setRecsError(null);
+    setStep(0); setLoading(false); setLoadingMsg(""); setError(null);
+    setShowCalibration(false);
+    setGateEmail(""); setGateSent(false); setGateVerified(false); setGateError("");
+    setGateLoading(false); setShowResend(false); setGateOnDifferentDevice(false); setGateInputFocused(false);
+    setManualEmailSent(false); setManualEmailInput(""); setManualEmailError(""); setManualEmailLoading(false);
+    freeEmailSentRef.current = false;
+    paidEmailSentRef.current = false;
+    setResumeFileName(""); setResumeText(""); setResumeUploading(false); setResumeUploadError("");
+    setSkillsGroundedInResume(false);
+    setAiUsageSkillIds([]); setAiUsageDescription("");
+  }
+
+  function toggleAiUsageSkill(skillId) {
+    setAiUsageSkillIds(function (prev) {
+      var idx = prev.indexOf(skillId);
+      if (idx !== -1) {
+        var next = prev.slice();
+        next.splice(idx, 1);
+        if (next.length === 0) setAiUsageDescription("");
+        return next;
+      }
+      if (prev.length >= 2) return prev;
+      return prev.concat([skillId]);
+    });
+  }
+
+  function computeOverallScore(skillsArr) {
+    if (!Array.isArray(skillsArr) || skillsArr.length === 0) return 0;
+    return Math.round(
+      skillsArr.reduce(function (sum, s) {
+        return sum + (typeof s.dz === "number" ? s.dz : 0);
+      }, 0) / skillsArr.length
+    );
+  }
 
   useEffect(
     function () {
@@ -698,7 +574,7 @@ export default function EmployerSales({ reportMode }) {
 
   useEffect(
     function () {
-      if (!recommendations || (tier < 2 && !isEmployerAccessGranted())) return;
+      if (!recommendations) return;
       if (!results) return;
       if (paidEmailSentRef.current) return;
       if (!gateEmail.trim()) return;
@@ -721,35 +597,8 @@ export default function EmployerSales({ reportMode }) {
         }),
       }).catch(function () {});
     },
-    [recommendations, tier]
+    [recommendations]
   );
-
-  function isValidEmail(email) {
-    var at = email.indexOf("@");
-    if (at === -1) return false;
-    return email.indexOf(".", at + 1) !== -1;
-  }
-
-  function computeOverallScore(skillsArr) {
-    if (!Array.isArray(skillsArr) || skillsArr.length === 0) return 0;
-    return Math.round(
-      skillsArr.reduce(function (sum, s) {
-        return sum + (typeof s.dz === "number" ? s.dz : 0);
-      }, 0) / skillsArr.length
-    );
-  }
-
-  function getVisibleContexts() {
-    if (!salesType || showAllCtx) return WORK_CONTEXTS;
-    var allowed = CONTEXT_MAP[salesType] || [];
-    return WORK_CONTEXTS.filter(function (wc) { return allowed.indexOf(wc.id) !== -1; });
-  }
-
-  function toggleCtx(id) {
-    setWorkContexts(function (prev) {
-      return prev.indexOf(id) !== -1 ? prev.filter(function (x) { return x !== id; }) : prev.concat([id]);
-    });
-  }
 
   function startEditing(id) {
     setSkills(function (p) { return p.map(function (s) { return s.id === id ? Object.assign({}, s, { editing: true }) : s; }); });
@@ -763,6 +612,7 @@ export default function EmployerSales({ reportMode }) {
   function removeSkill(id) {
     setSkills(function (p) { return p.filter(function (s) { return s.id !== id; }); });
     setFluencies(function (p) { var n = Object.assign({}, p); delete n[id]; return n; });
+    setAiUsageSkillIds(function (prev) { return prev.filter(function (x) { return x !== id; }); });
     adjustedSkillsRef.current.delete(id);
     setAdjustedSkills(new Set(adjustedSkillsRef.current));
   }
@@ -774,108 +624,151 @@ export default function EmployerSales({ reportMode }) {
     setCustomSkill("");
   }
 
-  function resetAll() {
-    setSalesType(""); setRoleTrack(""); setSeniority(""); setCompanyType(""); setIndustryVertical("");
-    setWorkContexts([]); setShowAllCtx(false);
-    setLandscape(""); setSkills([]);
-    setConscience(5); setPull(5); setFluencies({}); setCustomSkill("");
-    setAdjustedSkills(new Set());
-    adjustedSkillsRef.current = new Set();
-    setResults(null); setRecommendations(null); setRecsLoading(false); setRecsError(null);
-    setStep(0); setLoading(false); setLoadingMsg(""); setError(null);
-    setTier(0); setPromoCode(""); setPromoError(""); setPromoUsed(false); setDiscountApplied(false);
-    setGateEmail(""); setGateSent(false); setGateVerified(false); setGateError("");
-    setGateLoading(false); setShowResend(false); setGateOnDifferentDevice(false); setGateInputFocused(false);
-    setCheckoutLoading(false); setCheckoutError(null); setPaymentCanceled(false);
-    setShowCalibration(false);
-    freeEmailSentRef.current = false;
-    paidEmailSentRef.current = false;
+  function clearResumeInput() {
+    if (resumeInputRef.current) resumeInputRef.current.value = "";
   }
 
-  async function handleGateSubmit() {
-    var trimmed = gateEmail.trim();
-    if (!isValidEmail(trimmed)) {
-      setGateError("Please enter a valid email address.");
+  function removeResume() {
+    setResumeFileName("");
+    setResumeText("");
+    setResumeUploadError("");
+    clearResumeInput();
+  }
+
+  function fileToBase64(file) {
+    return new Promise(function (resolve, reject) {
+      var reader = new FileReader();
+      reader.onload = function () {
+        var result = reader.result;
+        var comma = typeof result === "string" ? result.indexOf(",") : -1;
+        resolve(comma !== -1 ? result.slice(comma + 1) : "");
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function handleResumeFileSelect(e) {
+    var file = e.target.files && e.target.files[0];
+    if (!file) return;
+
+    setResumeUploadError("");
+
+    var lowerName = file.name.toLowerCase();
+    var validExt = lowerName.endsWith(".pdf") || lowerName.endsWith(".docx");
+    if (!validExt) {
+      setResumeUploadError("Only PDF and DOCX files are supported.");
+      clearResumeInput();
       return;
     }
-    setGateError("");
-    setGateLoading(true);
-    try {
-      var res = await fetch("/api/send-gate-email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: trimmed, product: "sales" }),
-      });
-      var data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Request failed");
-      setGateEmail(trimmed);
-      setGateSent(true);
-    } catch (e) {
-      setGateError("Something went wrong. Please try again.");
-    } finally {
-      setGateLoading(false);
-    }
-  }
-
-  function applyPromoCode() {
-    var v = (promoCode || "").trim();
-    var isFree = PROMO_CODES.some(function (c) { return c.toLowerCase() === v.toLowerCase(); });
-    var isDiscount = DISCOUNT_CODES.some(function (c) { return c.toLowerCase() === v.toLowerCase(); });
-    var isTest = TEST_CODES.some(function (c) { return c.toLowerCase() === v.toLowerCase(); });
-    if (isFree) {
-      setTier(2);
-      setPromoUsed(true);
-      setPromoError("");
-      setPaymentCanceled(false);
-      setStep(6);
-    } else if (isDiscount) {
-      setDiscountApplied(true);
-      setPromoError("");
-    } else if (isTest) {
-      setTestModeApplied(true);
-      setPromoError("");
-    } else {
-      setPromoError("That code isn't valid.");
-    }
-  }
-
-  async function handleUnlockCheckout() {
-    if (!gateEmail.trim()) {
-      setCheckoutError("Please verify your email before checkout.");
+    if (file.size > 5 * 1024 * 1024) {
+      setResumeUploadError("File is too large. Please upload a file under 5MB.");
+      clearResumeInput();
       return;
     }
-    setCheckoutLoading(true);
-    setCheckoutError(null);
-    setPaymentCanceled(false);
-    saveStateForReturn();
-    var priceCents = testModeApplied ? 100 : (discountApplied ? 3950 : 7900);
+
+    setResumeUploading(true);
     try {
-      var res = await fetch("/api/create-checkout-session", {
+      var fileData = await fileToBase64(file);
+      var res = await fetch("/api/parse-resume", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          product: "sales",
-          email: gateEmail.trim(),
-          price: priceCents,
-          discount: discountApplied,
-          testMode: testModeApplied,
+          fileName: file.name,
+          fileData: fileData,
+          mimeType: file.type,
         }),
       });
       var data = await res.json();
-      if (!res.ok || !data.url) throw new Error(data.error || "Could not start checkout");
-      window.location.href = data.url;
-    } catch (e) {
-      setCheckoutError(e.message || "Could not start checkout. Please try again.");
-      setCheckoutLoading(false);
+
+      if (!data || data.success !== true) {
+        setResumeUploadError(
+          (data && data.error) ||
+          "Something went wrong reading this file — you can continue without it, or try again."
+        );
+        setResumeUploading(false);
+        clearResumeInput();
+        return;
+      }
+
+      if (data.extractable === false || !data.text || !String(data.text).trim()) {
+        setResumeText("");
+        setResumeFileName("");
+        setResumeUploadError(
+          "We couldn't read text from this file — you can continue without it, or try a different file."
+        );
+        setResumeUploading(false);
+        clearResumeInput();
+        return;
+      }
+
+      setResumeText(data.text);
+      setResumeFileName(file.name);
+      setResumeUploadError("");
+      setResumeUploading(false);
+      clearResumeInput();
+    } catch (err) {
+      setResumeUploadError(
+        "Something went wrong reading this file — you can continue without it, or try again."
+      );
+      setResumeUploading(false);
+      clearResumeInput();
     }
   }
 
+  function saveReportAfterScores(profile, landscapeVal, skillsVal, fluenciesVal, resultsVal) {
+    try {
+      localStorage.setItem(
+        "dz_saved_report_sales",
+        JSON.stringify({
+          salesType: salesType,
+          roleTrack: roleTrack,
+          seniority: seniority,
+          companyType: companyType,
+          industryVertical: industryVertical,
+          workContexts: workContexts,
+          conscience: conscience,
+          pull: pull,
+          gateEmail: gateEmail,
+          resumeText: resumeText,
+          resumeFileName: resumeFileName,
+          aiUsageSkillIds: aiUsageSkillIds,
+          aiUsageDescription: aiUsageDescription,
+          landscape: landscapeVal,
+          skills: skillsVal,
+          fluencies: fluenciesVal,
+          results: resultsVal,
+          savedAt: Date.now(),
+        })
+      );
+    } catch (_e) {}
+  }
+
+  var inputStyle = {
+    width: "100%",
+    padding: "12px 14px",
+    fontSize: 16,
+    fontFamily: S.font,
+    border: "1px solid " + S.border,
+    borderRadius: 10,
+    outline: "none",
+    boxSizing: "border-box",
+    background: "#ffffff",
+    color: S.text,
+  };
+
+  var skillStepBarPct = (3 / 6) * 100;
+  var scoreStepBarPct = (4 / 6) * 100;
+  var resultsStepBarPct = (5 / 6) * 100;
+
   async function fetchLandscapeAndSkills() {
+    if (!canProceed) return;
     setLoading(true);
+    setLoadingMsg(SALES_LOADING_MSGS[0]);
     setError(null);
     var profile = buildProfile(salesType, roleTrack, seniority, workContexts, companyType, industryVertical);
     var wcStr = profile.workContextLabels.join(", ");
-    var prompt =
+    var promptPrefix =
       "You are a senior sales career strategist with deep knowledge of the 2026 AI labor market.\n\nSELLER PROFILE:\n- Sales role: " +
       profile.seniorityLabel +
       " " +
@@ -887,8 +780,21 @@ export default function EmployerSales({ reportMode }) {
       "\n- Company: " +
       (profile.companyLabel || "not specified") +
       "\n- Selling into: " +
-      (profile.industryVerticalLabel || "horizontal / various industries") +
-      "\n\nWrite a 3–4 sentence 'AI Landscape' narrative for this seller. Be specific about how AI is affecting this exact role at this kind of company in this vertical. Name specific tools where relevant (Gong, Apollo, Clay, Outreach, Salesforce Einstein, etc.). Be direct, not alarmist. Speak in the second person ('You...').\n\nThen, identify 7–10 specific skills this seller likely uses. Be SPECIFIC to their role — do not produce generic 'communication' or 'negotiation' entries. A good skill is 'Multi-thread stakeholder mapping in 6–18 month enterprise cycles,' not 'Stakeholder management.'\n\nFor SDRs/BDRs: skills should be activity-oriented and outbound.\nFor Enterprise AEs: skills should center on complex deal mechanics.\nFor CSMs: skills should center on adoption, value realization, expansion.\nFor Sales Engineers: skills should be technical-presales focused.\nFor Managers (any track): include team-leadership skills.\n\nReturn ONLY valid JSON:\n{\"landscape\":\"...\",\"skills\":[\"...\",\"...\"]}";
+      (profile.industryVerticalLabel || "horizontal / various industries");
+    var promptTaskSuffix =
+      "Write a 3–4 sentence 'AI Landscape' narrative for this seller. Be specific about how AI is affecting this exact role at this kind of company in this vertical. Name specific tools where relevant (Gong, Apollo, Clay, Outreach, Salesforce Einstein, etc.). Be direct, not alarmist. Speak in the second person ('You...').\n\nThen, identify 7–10 specific skills this seller likely uses. Be SPECIFIC to their role — do not produce generic 'communication' or 'negotiation' entries. A good skill is 'Multi-thread stakeholder mapping in 6–18 month enterprise cycles,' not 'Stakeholder management.'\n\nFor SDRs/BDRs: skills should be activity-oriented and outbound.\nFor Enterprise AEs: skills should center on complex deal mechanics.\nFor CSMs: skills should center on adoption, value realization, expansion.\nFor Sales Engineers: skills should be technical-presales focused.\nFor Managers (any track): include team-leadership skills.\n\nReturn ONLY valid JSON:\n{\"landscape\":\"...\",\"skills\":[\"...\",\"...\"]}";
+    var prompt;
+    if (resumeText) {
+      var truncatedResume = resumeText.length > 6000 ? (function () {
+        var cut = resumeText.slice(0, 6000);
+        var lastSpace = cut.lastIndexOf(" ");
+        return lastSpace > 0 ? cut.slice(0, lastSpace) : cut;
+      })() : resumeText;
+      prompt = promptPrefix + "\n\nCANDIDATE'S RESUME (use this to ground the skill list in their actual, evidenced work history — do not just repeat generic skills for this role/seniority level):\n" + truncatedResume + "\n\nWhen generating the 8 skills in Task 2: prioritize skills that are actually evidenced in the resume above. If the resume doesn't fully cover 8 strategically important skills for this profile, fill the remaining slots with additional role-appropriate skills not found in the resume. Do not list a skill twice just because it's phrased differently in two places — merge overlapping skills into one entry.\n\n" + promptTaskSuffix;
+    } else {
+      prompt = promptPrefix + "\n\n" + promptTaskSuffix;
+    }
+    var usedResume = !!resumeText;
     try {
       var res = await fetch("/api/generate", {
         method: "POST",
@@ -904,9 +810,13 @@ export default function EmployerSales({ reportMode }) {
       var loaded = parsed.skills.map(function (text, i) { return { id: "s" + i, text: text, editing: false }; });
       setLandscape(parsed.landscape);
       setSkills(loaded);
+      setSkillsGroundedInResume(usedResume);
       setFluencies({});
       setAdjustedSkills(new Set());
       adjustedSkillsRef.current = new Set();
+      setAiUsageSkillIds([]);
+      setAiUsageDescription("");
+      setShowCalibration(false);
       setStep(3);
     } catch (e) {
       if (e.message && e.message.indexOf("overloaded") !== -1) {
@@ -926,9 +836,13 @@ export default function EmployerSales({ reportMode }) {
           var loaded2 = parsed2.skills.map(function (text, i) { return { id: "s" + i, text: text, editing: false }; });
           setLandscape(parsed2.landscape);
           setSkills(loaded2);
+          setSkillsGroundedInResume(usedResume);
           setFluencies({});
           setAdjustedSkills(new Set());
           adjustedSkillsRef.current = new Set();
+          setAiUsageSkillIds([]);
+          setAiUsageDescription("");
+          setShowCalibration(false);
           setStep(3);
         } catch (e2) {
           setError("Something went wrong — please try again in a moment.");
@@ -944,6 +858,7 @@ export default function EmployerSales({ reportMode }) {
   async function fetchScores() {
     if (skills.length === 0) return;
     setLoading(true);
+    setLoadingMsg(SALES_SCORING_MSGS[0]);
     setError(null);
     var profile = buildProfile(salesType, roleTrack, seniority, workContexts, companyType, industryVertical);
     var skillLines = skills
@@ -1003,7 +918,9 @@ export default function EmployerSales({ reportMode }) {
           dz: calcDZ(aff, aiR, mkt),
         };
       });
-      setResults({ skills: enriched, profile: profile, landscape: landscape, phase1Teaser: parsed.phase1_teaser });
+      var resultsPayload = { skills: enriched, profile: profile, landscape: landscape, phase1Teaser: parsed.phase1_teaser };
+      setResults(resultsPayload);
+      saveReportAfterScores(profile, landscape, skills, fluencies, resultsPayload);
       setStep(4);
     } catch (e) {
       if (e.message && e.message.indexOf("overloaded") !== -1) {
@@ -1041,7 +958,9 @@ export default function EmployerSales({ reportMode }) {
               dz: calcDZ(aff2, aiR2, mkt2),
             };
           });
-          setResults({ skills: enriched2, profile: profile, landscape: landscape, phase1Teaser: parsed2.phase1_teaser });
+          var resultsPayload2 = { skills: enriched2, profile: profile, landscape: landscape, phase1Teaser: parsed2.phase1_teaser };
+          setResults(resultsPayload2);
+          saveReportAfterScores(profile, landscape, skills, fluencies, resultsPayload2);
           setStep(4);
         } catch (e2) {
           setError("Something went wrong — please try again in a moment.");
@@ -1107,30 +1026,12 @@ export default function EmployerSales({ reportMode }) {
   var hiddenCount = WORK_CONTEXTS.length - visibleCtx.length;
   var currentSeniorityOptions = SENIORITY_BY_TRACK[roleTrack] || [];
   var progressPct = ((step + 1) / 6) * 100;
-  var skillStepBarPct = (3 / 6) * 100;
-  var scoreStepBarPct = (4 / 6) * 100;
-  var resultsStepBarPct = (5 / 6) * 100;
-  var unlockStepBarPct = 100;
   var dzSliderCSS =
     "input[type=range].dz-slider{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:3px;outline:none;cursor:pointer;border:none} input[type=range].dz-slider::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;border-radius:50%;border:3px solid white;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.18)} input[type=range].dz-slider::-moz-range-thumb{width:24px;height:24px;border-radius:50%;border:3px solid white;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.18)} input[type=range].conscience-sl::-webkit-slider-thumb{background:#7c3aed} input[type=range].conscience-sl::-moz-range-thumb{background:#7c3aed} input[type=range].pull-sl::-webkit-slider-thumb{background:#0891b2} input[type=range].pull-sl::-moz-range-thumb{background:#0891b2} input[type=range].fluency-sl::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:#d97706;border:2px solid white;cursor:pointer} input[type=range].fluency-sl::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:#d97706;border:2px solid white;cursor:pointer}";
-
-  var inputStyle = {
-    width: "100%",
-    padding: "12px 14px",
-    fontSize: 16,
-    fontFamily: S.font,
-    border: "1px solid " + S.border,
-    borderRadius: 10,
-    outline: "none",
-    boxSizing: "border-box",
-    background: "#ffffff",
-    color: S.text,
-  };
 
   if (gateLoading) {
     return (
       <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font, display: "flex", flexDirection: "column", padding: "32px 20px", boxSizing: "border-box" }}>
-        <SalesNavBar />
         <style dangerouslySetInnerHTML={{ __html: "@keyframes dzSalesGateDots{0%,100%{opacity:0.25}50%{opacity:1}}" }} />
         <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
           <div style={{ textAlign: "center", maxWidth: 420 }}>
@@ -1143,46 +1044,37 @@ export default function EmployerSales({ reportMode }) {
             </div>
           </div>
         </div>
-        <div style={{ maxWidth: 680, margin: "0 auto", width: "100%" }}><SalesFooter /></div>
       </div>
     );
   }
 
-  if (recsLoading) {
+  if (error && (step === 1 || step === 2 || step === 3)) {
+    var errStepLabel = step === 3 ? "STEP 4 OF 6 — CALCULATING YOUR ZONE" : "STEP 3 OF 6 — READING YOUR LANDSCAPE";
+    var errBarPct = step === 3 ? scoreStepBarPct : skillStepBarPct;
     return (
       <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font, padding: "40px 20px", boxSizing: "border-box" }}>
-        <SalesNavBar />
-        <style dangerouslySetInnerHTML={{ __html: "@keyframes dzSalesLoadDots{0%,100%{opacity:0.25}50%{opacity:1}}" }} />
         <div style={{ maxWidth: 680, margin: "0 auto" }}>
           <div style={{ marginBottom: 28 }}>
-            <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.1em", marginBottom: 10, fontWeight: 600 }}>COMPLETE — YOUR 90-DAY PLAN</div>
+            <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.1em", marginBottom: 10, fontWeight: 600 }}>{errStepLabel}</div>
             <div style={{ height: 4, background: S.border, borderRadius: 2, overflow: "hidden" }}>
-              <div style={{ height: "100%", width: unlockStepBarPct + "%", background: S.accent, borderRadius: 2 }} />
+              <div style={{ height: "100%", width: errBarPct + "%", background: S.accent, borderRadius: 2 }} />
             </div>
           </div>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "50vh" }}>
-            <div style={{ textAlign: "center", maxWidth: 420 }}>
-              <div style={{ fontFamily: S.mono, fontSize: 12, color: S.gold, letterSpacing: "0.12em", marginBottom: 24, fontWeight: 600 }}>DEFENSIBLE ZONE™ · SALES EDITION</div>
-              <div style={{ fontFamily: S.serif, fontSize: 24, fontStyle: "italic", color: S.text, lineHeight: 1.45 }}>{loadingMsg}</div>
-              <div style={{ display: "flex", justifyContent: "center", gap: 6, marginTop: 18, fontFamily: S.mono, fontSize: 22, color: S.dim, lineHeight: 1 }}>
-                <span style={{ animation: "dzSalesLoadDots 1s ease-in-out infinite" }}>.</span>
-                <span style={{ animation: "dzSalesLoadDots 1s ease-in-out 0.2s infinite" }}>.</span>
-                <span style={{ animation: "dzSalesLoadDots 1s ease-in-out 0.4s infinite" }}>.</span>
-              </div>
-            </div>
-          </div>
-          <SalesFooter />
+          <Card style={{ textAlign: "center" }}>
+            <p style={{ color: S.red, fontSize: 15, margin: "0 0 20px", lineHeight: 1.5 }}>{error}</p>
+            <PrimaryBtn onClick={function () { setError(null); if (step === 3) fetchScores(); else fetchLandscapeAndSkills(); }}>TRY AGAIN</PrimaryBtn>
+          </Card>
+          <button type="button" onClick={resetAll} style={{ marginTop: 20, background: "transparent", border: "1px solid " + S.border, color: S.dim, borderRadius: 10, padding: "10px 16px", fontFamily: S.mono, fontSize: 12, fontWeight: 600, cursor: "pointer", letterSpacing: "0.06em", width: "100%" }}>START OVER</button>
         </div>
       </div>
     );
   }
 
-  if (loading) {
+  if (loading || (step === 1 && effectivelyVerified)) {
     var loadingStepLabel = step === 3 ? "STEP 4 OF 6 — CALCULATING YOUR ZONE" : "STEP 3 OF 6 — READING YOUR LANDSCAPE";
     var loadingBarPct = step === 3 ? scoreStepBarPct : skillStepBarPct;
     return (
       <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font, padding: "40px 20px", boxSizing: "border-box" }}>
-        <SalesNavBar />
         <style dangerouslySetInnerHTML={{ __html: "@keyframes dzSalesLoadDots{0%,100%{opacity:0.25}50%{opacity:1}}" }} />
         <div style={{ maxWidth: 680, margin: "0 auto" }}>
           <div style={{ marginBottom: 28 }}>
@@ -1202,31 +1094,6 @@ export default function EmployerSales({ reportMode }) {
               </div>
             </div>
           </div>
-          <SalesFooter />
-        </div>
-      </div>
-    );
-  }
-
-  if (error && (step === 2 || step === 3)) {
-    var errStepLabel = step === 3 ? "STEP 4 OF 6 — CALCULATING YOUR ZONE" : "STEP 3 OF 6 — READING YOUR LANDSCAPE";
-    var errBarPct = step === 3 ? scoreStepBarPct : skillStepBarPct;
-    return (
-      <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font, padding: "40px 20px", boxSizing: "border-box" }}>
-        <SalesNavBar />
-        <div style={{ maxWidth: 680, margin: "0 auto" }}>
-          <div style={{ marginBottom: 28 }}>
-            <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.1em", marginBottom: 10, fontWeight: 600 }}>{errStepLabel}</div>
-            <div style={{ height: 4, background: S.border, borderRadius: 2, overflow: "hidden" }}>
-              <div style={{ height: "100%", width: errBarPct + "%", background: S.accent, borderRadius: 2 }} />
-            </div>
-          </div>
-          <Card style={{ textAlign: "center" }}>
-            <p style={{ color: S.red, fontSize: 15, margin: "0 0 20px", lineHeight: 1.5 }}>{error}</p>
-            <PrimaryBtn onClick={function () { setError(null); if (step === 3) fetchScores(); else fetchLandscapeAndSkills(); }}>TRY AGAIN</PrimaryBtn>
-          </Card>
-          <button type="button" onClick={resetAll} style={{ marginTop: 20, background: "transparent", border: "1px solid " + S.border, color: S.dim, borderRadius: 10, padding: "10px 16px", fontFamily: S.mono, fontSize: 12, fontWeight: 600, cursor: "pointer", letterSpacing: "0.06em", width: "100%" }}>START OVER</button>
-          <SalesFooter />
         </div>
       </div>
     );
@@ -1235,7 +1102,6 @@ export default function EmployerSales({ reportMode }) {
   if (step === 0) {
     return (
       <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font, padding: "40px 20px", boxSizing: "border-box" }}>
-        <SalesNavBar />
         <style dangerouslySetInnerHTML={{ __html: "@media(max-width:520px){.sales-sel-grid{grid-template-columns:1fr!important}.sales-track-grid{grid-template-columns:1fr!important}} .sales-sel-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px} .sales-track-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}" }} />
         <div style={{ maxWidth: 680, margin: "0 auto" }}>
           <div style={{ marginBottom: 28 }}>
@@ -1333,7 +1199,7 @@ export default function EmployerSales({ reportMode }) {
               })}
             </div>
           </Card>
-          <Card style={{ marginBottom: 20 }}>
+          <Card style={{ marginBottom: 12 }}>
             <Label>WHO DO YOU SELL TO? (optional)</Label>
             <div className="sales-sel-grid">
               {INDUSTRY_VERTICALS.map(function (iv) {
@@ -1346,36 +1212,108 @@ export default function EmployerSales({ reportMode }) {
               })}
             </div>
           </Card>
+          <Card style={{ marginBottom: 20 }}>
+            <Label style={{ marginBottom: 8 }}>
+              RESUME <span style={{ color: S.dim, fontWeight: 400, textTransform: "none" }}>— optional — upload to personalize your skill list</span>
+            </Label>
+            {resumeText ? (
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <span style={{ fontFamily: S.mono, fontSize: 12, color: S.green, fontWeight: 700 }}>✓ {resumeFileName}</span>
+                <button
+                  type="button"
+                  onClick={removeResume}
+                  style={{ background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: S.mono, fontSize: 12, color: S.dim, textDecoration: "underline" }}
+                >
+                  Remove
+                </button>
+              </div>
+            ) : (
+              <div>
+                <input
+                  ref={resumeInputRef}
+                  type="file"
+                  accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                  onChange={handleResumeFileSelect}
+                  disabled={resumeUploading}
+                  style={Object.assign({}, inputStyle, { padding: "10px 12px", fontSize: 14 })}
+                />
+                {resumeUploading ? (
+                  <p style={{ color: S.muted, fontSize: 14, margin: "8px 0 0", fontFamily: S.mono }}>Reading your resume…</p>
+                ) : null}
+              </div>
+            )}
+            {resumeUploadError ? (
+              <p style={{ color: S.muted, fontSize: 14, margin: "8px 0 0", lineHeight: 1.5 }}>{resumeUploadError}</p>
+            ) : null}
+          </Card>
           <PrimaryBtn onClick={function () { setStep(1); }} disabled={!canProceed}>ANALYSE MY PROFILE →</PrimaryBtn>
           {!canProceed ? (
             <p style={{ color: S.dim, fontSize: 14, fontFamily: S.mono, textAlign: "center", marginTop: 12, lineHeight: 1.6 }}>Select your sales role, role track, seniority, and at least one work context to continue.</p>
           ) : null}
           <SalesDisclaimer />
-          <SalesFooter />
         </div>
       </div>
     );
   }
 
-  if (step === 1) {
+  if (step === 1 && !effectivelyVerified) {
+    var gateTryAgainBtn = {
+      width: "100%",
+      marginTop: 16,
+      background: S.accent,
+      color: "#ffffff",
+      border: "none",
+      borderRadius: 10,
+      padding: 16,
+      fontSize: 16,
+      fontWeight: 600,
+      fontFamily: S.mono,
+      letterSpacing: "0.06em",
+      cursor: "pointer",
+    };
     var showExpiredInvalid = gateError === "expired" || gateError === "invalid";
-    var gateTryAgainBtn = { width: "100%", marginTop: 16, background: S.accent, color: "#ffffff", border: "none", borderRadius: 10, padding: 16, fontSize: 16, fontWeight: 600, fontFamily: S.mono, letterSpacing: "0.06em", cursor: "pointer" };
+
     return (
       <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font, padding: "40px 20px", boxSizing: "border-box" }}>
-        <SalesNavBar />
         <style dangerouslySetInnerHTML={{ __html: "@keyframes dzSalesGateSpin{to{transform:rotate(360deg)}}" }} />
         <div style={{ maxWidth: 680, margin: "0 auto" }}>
           <div style={{ marginBottom: 28 }}>
             <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.1em", marginBottom: 10, fontWeight: 600 }}>STEP 2 OF 6 — VERIFY YOUR EMAIL</div>
             <div style={{ height: 4, background: S.border, borderRadius: 2, overflow: "hidden" }}>
-              <div style={{ height: "100%", width: "33%", background: S.accent, borderRadius: 2 }} />
+              <div style={{ height: "100%", width: progressPct + "%", background: S.accent, borderRadius: 2, transition: "width 0.25s ease" }} />
             </div>
           </div>
+
+          {!gateOnDifferentDevice && !showExpiredInvalid ? (
+            <button
+              type="button"
+              onClick={resetAll}
+              style={{
+                background: "transparent",
+                border: "1px solid " + S.border,
+                color: S.dim,
+                borderRadius: 10,
+                padding: "10px 16px",
+                fontFamily: S.mono,
+                fontSize: 12,
+                fontWeight: 600,
+                cursor: "pointer",
+                letterSpacing: "0.06em",
+                marginBottom: 24,
+              }}
+            >
+              START OVER
+            </button>
+          ) : null}
+
           {gateOnDifferentDevice ? (
             <Card style={{ marginBottom: 20, textAlign: "center" }}>
-              <Label style={{ color: S.gold, marginBottom: 16 }}>DIFFERENT DEVICE DETECTED</Label>
-              <p style={{ fontSize: 16, color: S.text, lineHeight: 1.7, margin: "0 0 20px" }}>It looks like you opened the link on a different device. Please start again on this device.</p>
-              <button type="button" onClick={resetAll} style={gateTryAgainBtn}>BEGIN ON THIS DEVICE</button>
+              <p style={{ fontSize: 16, color: S.text, lineHeight: 1.7, margin: "0 0 20px" }}>
+                It looks like you opened the link on a different device. Please start again on this device.
+              </p>
+              <button type="button" onClick={resetAll} style={gateTryAgainBtn}>
+                BEGIN ON THIS DEVICE
+              </button>
             </Card>
           ) : gateSent ? (
             <Card style={{ textAlign: "center" }}>
@@ -1385,10 +1323,39 @@ export default function EmployerSales({ reportMode }) {
                 We sent a link to <span style={{ fontFamily: S.mono, fontSize: 14, color: S.muted, fontWeight: 600 }}>{gateEmail}</span>. Click it to continue your assessment.
               </p>
               {showResend ? (
-                <button type="button" onClick={function () { setShowResend(false); handleGateSubmit(); }} style={{ background: "transparent", border: "1px solid " + S.border, borderRadius: 10, padding: "10px 20px", fontFamily: S.mono, fontSize: 12, color: S.muted, cursor: "pointer", marginBottom: 8 }}>Resend the link</button>
+                <button
+                  type="button"
+                  onClick={function () {
+                    setShowResend(false);
+                    handleGateSubmit();
+                  }}
+                  style={{
+                    background: "transparent",
+                    border: "1px solid " + S.border,
+                    borderRadius: 10,
+                    padding: "10px 20px",
+                    fontFamily: S.mono,
+                    fontSize: 12,
+                    color: S.muted,
+                    cursor: "pointer",
+                    marginBottom: 8,
+                  }}
+                >
+                  Resend the link
+                </button>
               ) : null}
               <div style={{ marginTop: 20 }}>
-                <button type="button" onClick={function () { setGateSent(false); setShowResend(false); setGateError(""); }} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: S.mono, fontSize: 12, color: S.blue, textDecoration: "underline" }}>Use a different email</button>
+                <button
+                  type="button"
+                  onClick={function () {
+                    setGateSent(false);
+                    setShowResend(false);
+                    setGateError("");
+                  }}
+                  style={{ background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: S.mono, fontSize: 12, color: S.blue, textDecoration: "underline" }}
+                >
+                  Use a different email
+                </button>
               </div>
             </Card>
           ) : (
@@ -1409,14 +1376,18 @@ export default function EmployerSales({ reportMode }) {
                 style={{ width: "100%", padding: "14px 16px", fontSize: 16, fontFamily: S.font, border: gateInputFocused ? "1px solid " + S.gold : "1px solid " + S.border, borderRadius: 10, outline: "none", boxSizing: "border-box", background: "#ffffff", color: S.text }}
               />
               {gateError && !showExpiredInvalid ? <div style={{ color: S.red, fontSize: 13, marginTop: 8 }}>{gateError}</div> : null}
-              <button type="button" onClick={handleGateSubmit} disabled={gateLoading} style={{ width: "100%", padding: 14, fontSize: 16, fontWeight: 600, fontFamily: S.mono, letterSpacing: "0.06em", background: gateLoading ? "#e5a820" : S.gold, color: "#ffffff", border: "none", borderRadius: 10, cursor: gateLoading ? "not-allowed" : "pointer", marginTop: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
+              <button
+                type="button"
+                onClick={handleGateSubmit}
+                disabled={gateLoading}
+                style={{ width: "100%", padding: 14, fontSize: 16, fontWeight: 600, fontFamily: S.mono, letterSpacing: "0.06em", background: gateLoading ? "#e5a820" : S.gold, color: "#ffffff", border: "none", borderRadius: 10, cursor: gateLoading ? "not-allowed" : "pointer", marginTop: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}
+              >
                 {gateLoading ? <span style={{ width: 18, height: 18, border: "2px solid rgba(255,255,255,0.35)", borderTop: "2px solid #ffffff", borderRadius: "50%", animation: "dzSalesGateSpin 0.85s linear infinite", flexShrink: 0 }} /> : null}
                 {gateLoading ? "Sending…" : "SEND ME THE LINK →"}
               </button>
             </Card>
           )}
           <button type="button" onClick={function () { setStep(0); }} style={{ marginTop: 20, background: "transparent", border: "none", padding: 0, cursor: "pointer", fontFamily: S.mono, fontSize: 12, color: S.dim, letterSpacing: "0.06em" }}>← BACK</button>
-          <SalesFooter />
         </div>
       </div>
     );
@@ -1432,7 +1403,6 @@ export default function EmployerSales({ reportMode }) {
     if (!showCalibration) {
       return (
         <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font, padding: "40px 20px", boxSizing: "border-box" }}>
-          <SalesNavBar />
           <div style={{ maxWidth: 680, margin: "0 auto" }}>
             <div style={{ marginBottom: 28 }}>
               <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.1em", marginBottom: 10, fontWeight: 600 }}>STEP 3 OF 6 — REVIEW YOUR SKILLS</div>
@@ -1449,6 +1419,11 @@ export default function EmployerSales({ reportMode }) {
             <Card style={{ marginBottom: 20 }}>
               <Label>YOUR SKILLS TO ASSESS</Label>
               <p style={{ color: S.dim, fontSize: 15, lineHeight: 1.6, margin: "0 0 16px" }}>Generated for your exact profile. Edit any skill to be more specific — specificity improves your scores.</p>
+              {skillsGroundedInResume ? (
+                <div style={{ fontSize: 15, color: S.green, lineHeight: 1.6, margin: "-8px 0 16px" }}>
+                  ✓ Personalized using your resume
+                </div>
+              ) : null}
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 {skills.map(function (s) {
                   return (
@@ -1476,8 +1451,36 @@ export default function EmployerSales({ reportMode }) {
                 <button type="button" onClick={addSkill} disabled={!customSkill.trim()} style={{ background: customSkill.trim() ? S.accent : S.card2, color: customSkill.trim() ? "white" : S.dim, border: "1px solid " + S.border, borderRadius: 10, padding: "12px 18px", fontFamily: S.mono, fontSize: 13, fontWeight: 700, cursor: customSkill.trim() ? "pointer" : "not-allowed" }}>ADD</button>
               </div>
             </Card>
+            <Card style={{ marginBottom: 20 }}>
+              <Label style={{ marginBottom: 8 }}>
+                AI USAGE <span style={{ color: S.dim, fontWeight: 400, textTransform: "none" }}>— optional — tell us if you&apos;ve already used AI as part of this work</span>
+              </Label>
+              <p style={{ color: S.muted, fontSize: 16, margin: "0 0 14px", lineHeight: 1.6 }}>
+                Pick one or two skills above where you&apos;ve actually used AI as part of your job, and briefly describe how.
+              </p>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: aiUsageSkillIds.length > 0 ? 14 : 0 }}>
+                {skills.map(function (s) {
+                  return (
+                    <Chip
+                      key={s.id}
+                      label={s.text}
+                      active={aiUsageSkillIds.indexOf(s.id) !== -1}
+                      onClick={function () { toggleAiUsageSkill(s.id); }}
+                    />
+                  );
+                })}
+              </div>
+              {aiUsageSkillIds.length > 0 ? (
+                <textarea
+                  value={aiUsageDescription}
+                  onChange={function (e) { setAiUsageDescription(e.target.value); }}
+                  placeholder="e.g. Used GitHub Copilot to draft the first pass of integration tests, then reviewed and corrected the edge cases myself."
+                  rows={3}
+                  style={Object.assign({}, inputStyle, { resize: "vertical", minHeight: 80, lineHeight: 1.5 })}
+                />
+              ) : null}
+            </Card>
             <PrimaryBtn onClick={function () { setShowCalibration(true); }} disabled={skills.length === 0}>CALIBRATE MY SKILLS →</PrimaryBtn>
-            <SalesFooter />
           </div>
         </div>
       );
@@ -1485,7 +1488,6 @@ export default function EmployerSales({ reportMode }) {
 
     return (
       <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font, padding: "40px 20px", boxSizing: "border-box" }}>
-        <SalesNavBar />
         <style dangerouslySetInnerHTML={{ __html: dzSliderCSS }} />
         <div style={{ maxWidth: 680, margin: "0 auto" }}>
           <div style={{ marginBottom: 28 }}>
@@ -1569,30 +1571,34 @@ export default function EmployerSales({ reportMode }) {
           </Card>
           <button type="button" onClick={function () { setShowCalibration(false); }} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: S.mono, fontSize: 12, color: S.blue, textDecoration: "underline", marginBottom: 20 }}>← BACK TO SKILLS</button>
           <PrimaryBtn onClick={fetchScores} disabled={skills.length === 0}>SEE MY RESULTS →</PrimaryBtn>
-          <SalesFooter />
         </div>
       </div>
     );
   }
 
-  // ── STEP 4: FREE RESULTS ─────────────────────────────────────────────
   if (step === 4 && results) {
     var scoredSkills4 = Array.isArray(results.skills) ? results.skills : [];
     var overallScore = computeOverallScore(scoredSkills4);
     var overallColor4 = dzScoreColor(overallScore);
-    var phase1TeaserText =
-      results.phase1Teaser && results.phase1Teaser.trim()
-        ? results.phase1Teaser
-        : "Start with one concrete move this week that makes your strongest deal skill visible — to your manager, your accounts, or your pipeline.";
-    var unlockPrice4 = discountApplied ? "$39.50" : "$79";
+    var rawRecs4 = recommendations && Array.isArray(recommendations.recommendations) ? recommendations.recommendations.slice() : [];
+    var PHASE_HEADERS_4 = [
+      { phase: 1, label: "PHASE 1: WEEKS 1–4 — START NOW" },
+      { phase: 2, label: "PHASE 2: WEEKS 5–8 — BUILD ON IT" },
+      { phase: 3, label: "PHASE 3: WEEKS 9–12 — STRUCTURAL MOVES" },
+    ];
+    var resultsHeaderLabel =
+      recommendations && recommendations.recommendations
+        ? "COMPLETE — YOUR RESULTS & PLAN"
+        : recsLoading
+          ? "BUILDING YOUR PLAN"
+          : "YOUR RESULTS";
 
     return (
       <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font, padding: "40px 20px", boxSizing: "border-box" }}>
-        <SalesNavBar />
         <div style={{ maxWidth: 680, margin: "0 auto" }}>
           <div style={{ marginBottom: 28 }}>
             <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.1em", marginBottom: 10, fontWeight: 600 }}>
-              STEP 5 OF 6 — YOUR RESULTS
+              {resultsHeaderLabel}
             </div>
             <div style={{ height: 4, background: S.border, borderRadius: 2, overflow: "hidden" }}>
               <div style={{ height: "100%", width: resultsStepBarPct + "%", background: S.accent, borderRadius: 2, transition: "width 0.25s ease" }} />
@@ -1722,358 +1728,200 @@ export default function EmployerSales({ reportMode }) {
             );
           })}
 
-          <div
-            style={{
-              background: S.card,
-              border: "2px solid " + S.gold,
-              borderRadius: 12,
-              padding: "20px 22px",
-              marginTop: 32,
-              marginBottom: 28,
-            }}
-          >
-            <div style={{ fontFamily: S.mono, fontSize: 11, color: S.gold, letterSpacing: "0.08em", marginBottom: 10, fontWeight: 700 }}>
-              PREVIEW — PHASE 1 ACTION
-            </div>
-            <p style={{ fontSize: 15, color: S.text, lineHeight: 1.65, margin: 0 }}>{phase1TeaserText}</p>
-          </div>
+          <div style={{ marginTop: 32, marginBottom: 28 }}>
+            <h2 style={{ fontFamily: S.serif, fontSize: 26, color: S.text, margin: "0 0 20px", lineHeight: 1.2, fontWeight: 600 }}>
+              Your 90-Day Plan
+            </h2>
 
-          <div
-            style={{
-              background: S.card2,
-              border: "1px solid " + S.border,
-              borderRadius: 12,
-              padding: "14px 18px",
-              marginBottom: 28,
-              textAlign: "center",
-            }}
-          >
-            <p style={{ fontFamily: S.mono, fontSize: 12, color: S.dim, margin: 0, lineHeight: 1.6 }}>
-              A copy of these results has been sent to {gateEmail}
-            </p>
-          </div>
-
-          <div style={{ fontFamily: S.mono, fontSize: 12, color: S.dim, letterSpacing: "0.08em", marginBottom: 10, fontWeight: 600 }}>
-            HAVE A PROMO CODE?
-          </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "stretch", marginBottom: 8 }}>
-            <input
-              type="text"
-              value={promoCode}
-              onChange={function (e) {
-                setPromoCode(e.target.value);
-                if (promoError) setPromoError("");
-              }}
-              placeholder="Enter code"
-              style={Object.assign({}, inputStyle, { flex: "1 1 160px", minWidth: 0, marginBottom: 0 })}
-            />
-            <button
-              type="button"
-              onClick={applyPromoCode}
-              style={{
-                padding: "12px 20px",
-                fontSize: 15,
-                fontFamily: S.mono,
-                fontWeight: 700,
-                letterSpacing: "0.06em",
-                background: S.card2,
-                color: S.text,
-                border: "1px solid " + S.border,
-                borderRadius: 10,
-                cursor: "pointer",
-              }}
-            >
-              APPLY
-            </button>
-          </div>
-          {promoError ? <div style={{ color: S.red, fontSize: 14, marginBottom: 12 }}>{promoError}</div> : null}
-          {testModeApplied ? (
-            <div style={{ color: S.green, fontSize: 14, marginBottom: 20 }}>Test mode — $1.00 price applied</div>
-          ) : discountApplied ? (
-            <div style={{ color: S.green, fontSize: 14, marginBottom: 20 }}>50% discount applied — your price is $39.50</div>
-          ) : null}
-
-          <PrimaryBtn
-            onClick={function () {
-              setStep(5);
-            }}
-            style={{ marginBottom: 28 }}
-          >
-            UNLOCK MY FULL PLAN — {unlockPrice4}
-          </PrimaryBtn>
-
-          <SalesDisclaimer />
-          <SalesFooter />
-        </div>
-      </div>
-    );
-  }
-
-  // ── STEP 5: PAYWALL ──────────────────────────────────────────────────
-  if (step === 5 && tier < 2 && !promoUsed && !isEmployerAccessGranted()) {
-    var unlockPrice5 = discountApplied ? "$39.50" : "$79";
-    return (
-      <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font, padding: "40px 20px", boxSizing: "border-box" }}>
-        <SalesNavBar />
-        <style dangerouslySetInnerHTML={{ __html: "@keyframes dzSalesCheckoutSpin{to{transform:rotate(360deg)}}" }} />
-        <div style={{ maxWidth: 680, margin: "0 auto" }}>
-          <div style={{ marginBottom: 28 }}>
-            <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.1em", marginBottom: 10, fontWeight: 600 }}>
-              STEP 6 OF 6 — UNLOCK YOUR PLAN
-            </div>
-            <div style={{ height: 4, background: S.border, borderRadius: 2, overflow: "hidden" }}>
-              <div style={{ height: "100%", width: unlockStepBarPct + "%", background: S.accent, borderRadius: 2 }} />
-            </div>
-          </div>
-
-          <div style={{ fontFamily: S.mono, fontSize: 11, color: S.gold, letterSpacing: "0.12em", marginBottom: 20, fontWeight: 600 }}>
-            UNLOCK YOUR 90-DAY PLAN
-          </div>
-
-          <h1 style={{ fontFamily: S.serif, fontSize: 32, color: S.text, margin: "0 0 12px", lineHeight: 1.2, fontWeight: 600 }}>
-            Your full plan is ready.
-          </h1>
-
-          <p style={{ color: S.dim, fontSize: 16, lineHeight: 1.7, margin: "0 0 28px" }}>
-            Unlock personalised actions for every skill — sequenced across three phases. We&apos;ll email the complete plan to{" "}
-            <span style={{ fontFamily: S.mono, fontSize: 14, color: S.muted, fontWeight: 600 }}>{gateEmail}</span>.
-          </p>
-
-          <div
-            style={{
-              background: S.accent,
-              borderRadius: 14,
-              padding: "28px 24px",
-              marginBottom: 24,
-              textAlign: "center",
-            }}
-          >
-            <div style={{ fontFamily: S.mono, fontSize: 28, fontWeight: 700, color: "#ffffff" }}>{unlockPrice5}</div>
-          </div>
-
-          {paymentCanceled ? (
-            <div style={{ color: "#d97706", fontSize: 14, marginBottom: 16, lineHeight: 1.5 }}>
-              Payment was cancelled — try again when you&apos;re ready.
-            </div>
-          ) : null}
-
-          {checkoutError ? (
-            <div style={{ color: S.red, fontSize: 14, marginBottom: 16, lineHeight: 1.5 }}>{checkoutError}</div>
-          ) : null}
-
-          <PrimaryBtn onClick={handleUnlockCheckout} disabled={checkoutLoading} style={{ marginBottom: 24 }}>
-            {checkoutLoading ? (
-              <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
-                <span
-                  style={{
-                    width: 18,
-                    height: 18,
-                    border: "2px solid rgba(255,255,255,0.35)",
-                    borderTop: "2px solid #ffffff",
-                    borderRadius: "50%",
-                    animation: "dzSalesCheckoutSpin 0.85s linear infinite",
-                    flexShrink: 0,
-                  }}
-                />
-                Starting checkout…
-              </span>
-            ) : (
-              "UNLOCK MY PLAN → " + unlockPrice5
-            )}
-          </PrimaryBtn>
-
-          <div style={{ fontFamily: S.mono, fontSize: 12, color: S.dim, letterSpacing: "0.08em", marginBottom: 10, fontWeight: 600 }}>
-            HAVE A PROMO CODE?
-          </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "stretch", marginBottom: 8 }}>
-            <input
-              type="text"
-              value={promoCode}
-              onChange={function (e) {
-                setPromoCode(e.target.value);
-                if (promoError) setPromoError("");
-              }}
-              placeholder="Enter code"
-              style={Object.assign({}, inputStyle, { flex: "1 1 160px", minWidth: 0, marginBottom: 0 })}
-            />
-            <button
-              type="button"
-              onClick={applyPromoCode}
-              style={{
-                padding: "12px 20px",
-                fontSize: 15,
-                fontFamily: S.mono,
-                fontWeight: 700,
-                letterSpacing: "0.06em",
-                background: S.card2,
-                color: S.text,
-                border: "1px solid " + S.border,
-                borderRadius: 10,
-                cursor: "pointer",
-              }}
-            >
-              APPLY
-            </button>
-          </div>
-          {promoError ? <div style={{ color: S.red, fontSize: 14, marginBottom: 12 }}>{promoError}</div> : null}
-          {testModeApplied ? (
-            <div style={{ color: S.green, fontSize: 14, marginBottom: 24 }}>Test mode — $1.00 price applied</div>
-          ) : discountApplied ? (
-            <div style={{ color: S.green, fontSize: 14, marginBottom: 24 }}>50% discount applied — your price is $39.50</div>
-          ) : null}
-
-          <button
-            type="button"
-            onClick={function () {
-              setStep(4);
-              setPaymentCanceled(false);
-              setCheckoutError(null);
-            }}
-            style={{
-              background: "transparent",
-              border: "none",
-              padding: 0,
-              cursor: "pointer",
-              fontFamily: S.mono,
-              fontSize: 12,
-              color: S.dim,
-              letterSpacing: "0.06em",
-            }}
-          >
-            ← BACK TO RESULTS
-          </button>
-
-          <SalesFooter />
-        </div>
-      </div>
-    );
-  }
-
-  // ── STEP 6: 90-DAY PLAN ──────────────────────────────────────────────
-  if (step === 6 && (tier >= 2 || promoUsed || isEmployerAccessGranted())) {
-    var rawRecs6 = recommendations && Array.isArray(recommendations.recommendations) ? recommendations.recommendations.slice() : [];
-    var PHASE_HEADERS_6 = [
-      { phase: 1, label: "PHASE 1: WEEKS 1–4 — START NOW" },
-      { phase: 2, label: "PHASE 2: WEEKS 5–8 — BUILD ON IT" },
-      { phase: 3, label: "PHASE 3: WEEKS 9–12 — STRUCTURAL MOVES" },
-    ];
-
-    return (
-      <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font, padding: "40px 20px", boxSizing: "border-box" }}>
-        <SalesNavBar />
-        <div style={{ maxWidth: 680, margin: "0 auto" }}>
-          <div style={{ marginBottom: 28 }}>
-            <div style={{ fontFamily: S.mono, fontSize: 11, color: S.dim, letterSpacing: "0.1em", marginBottom: 10, fontWeight: 600 }}>
-              COMPLETE — YOUR 90-DAY PLAN
-            </div>
-            <div style={{ height: 4, background: S.border, borderRadius: 2, overflow: "hidden" }}>
-              <div style={{ height: "100%", width: "100%", background: S.green, borderRadius: 2 }} />
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={resetAll}
-            style={{
-              background: "transparent",
-              border: "1px solid " + S.border,
-              color: S.dim,
-              borderRadius: 10,
-              padding: "10px 16px",
-              fontFamily: S.mono,
-              fontSize: 12,
-              fontWeight: 600,
-              cursor: "pointer",
-              letterSpacing: "0.06em",
-              marginBottom: 24,
-            }}
-          >
-            START OVER
-          </button>
-
-          <div style={{ fontFamily: S.mono, fontSize: 11, color: S.gold, letterSpacing: "0.12em", marginBottom: 12, fontWeight: 600 }}>
-            YOUR DEFENSIBLE ZONE PLAN
-          </div>
-          <h1 style={{ fontFamily: S.serif, fontSize: 32, color: S.text, margin: "0 0 10px", lineHeight: 1.2, fontWeight: 600 }}>
-            90 days to a stronger position.
-          </h1>
-          <p style={{ color: S.dim, fontSize: 16, lineHeight: 1.7, margin: "0 0 32px" }}>
-            Here is exactly what to do — sequenced by what you can start now.
-          </p>
-
-          {recsError ? (
-            <Card style={{ textAlign: "center", marginBottom: 28 }}>
-              <p style={{ color: S.red, fontSize: 15, margin: "0 0 20px", lineHeight: 1.5 }}>{recsError}</p>
-              <PrimaryBtn onClick={fetchRecommendations}>TRY AGAIN</PrimaryBtn>
-            </Card>
-          ) : null}
-
-          {!recsError && rawRecs6.length > 0
-            ? PHASE_HEADERS_6.map(function (ph) {
-                var phaseRecs = rawRecs6.filter(function (r) {
-                  return r.phase === ph.phase;
-                });
-                if (phaseRecs.length === 0) return null;
-                return (
-                  <div key={ph.phase} style={{ marginBottom: 32 }}>
-                    <div
-                      style={{
-                        fontFamily: S.mono,
-                        fontSize: 11,
-                        color: S.muted,
-                        letterSpacing: "0.1em",
-                        fontWeight: 700,
-                        marginBottom: 14,
-                      }}
-                    >
-                      {ph.label}
-                    </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                      {phaseRecs.map(function (rec, idx) {
-                        return (
-                          <div
-                            key={(rec.id || "rec") + "-" + idx}
-                            style={{
-                              background: S.card,
-                              border: "1px solid " + S.border,
-                              borderRadius: 12,
-                              padding: "20px 22px",
-                              position: "relative",
-                            }}
-                          >
+            {recsLoading ? (
+              <div style={{ textAlign: "center", padding: "32px 0" }}>
+                <style dangerouslySetInnerHTML={{ __html: "@keyframes dzSalesLoadDots{0%,100%{opacity:0.25}50%{opacity:1}}" }} />
+                <div style={{ fontFamily: S.serif, fontSize: 22, fontStyle: "italic", color: S.text, lineHeight: 1.45, marginBottom: 12 }}>Building your action plan…</div>
+                <div style={{ display: "flex", justifyContent: "center", gap: 6, fontFamily: S.mono, fontSize: 22, color: S.dim }}>
+                  <span style={{ animation: "dzSalesLoadDots 1s ease-in-out infinite" }}>.</span>
+                  <span style={{ animation: "dzSalesLoadDots 1s ease-in-out 0.2s infinite" }}>.</span>
+                  <span style={{ animation: "dzSalesLoadDots 1s ease-in-out 0.4s infinite" }}>.</span>
+                </div>
+              </div>
+            ) : recsError ? (
+              <Card style={{ textAlign: "center", marginBottom: 16 }}>
+                <p style={{ color: S.red, fontSize: 15, margin: "0 0 20px", lineHeight: 1.5 }}>{recsError}</p>
+                <PrimaryBtn onClick={fetchRecommendations}>TRY AGAIN</PrimaryBtn>
+              </Card>
+            ) : rawRecs4.length > 0 ? (
+              <div>
+                <p style={{ color: S.dim, fontSize: 16, lineHeight: 1.7, margin: "0 0 24px" }}>
+                  Here is exactly what to do — sequenced by what you can start now.
+                </p>
+                {PHASE_HEADERS_4.map(function (ph) {
+                  var phaseRecs = rawRecs4.filter(function (r) {
+                    return r.phase === ph.phase;
+                  });
+                  if (phaseRecs.length === 0) return null;
+                  return (
+                    <div key={ph.phase} style={{ marginBottom: 32 }}>
+                      <div
+                        style={{
+                          fontFamily: S.mono,
+                          fontSize: 11,
+                          color: S.muted,
+                          letterSpacing: "0.1em",
+                          fontWeight: 700,
+                          marginBottom: 14,
+                        }}
+                      >
+                        {ph.label}
+                      </div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                        {phaseRecs.map(function (rec, idx) {
+                          return (
                             <div
+                              key={(rec.id || "rec") + "-" + idx}
                               style={{
-                                position: "absolute",
-                                top: 14,
-                                right: 14,
-                                fontFamily: S.mono,
-                                fontSize: 10,
-                                fontWeight: 700,
-                                letterSpacing: "0.06em",
-                                color: S.gold,
-                                background: S.card2,
+                                background: S.card,
                                 border: "1px solid " + S.border,
-                                borderRadius: 6,
-                                padding: "4px 8px",
+                                borderRadius: 12,
+                                padding: "20px 22px",
+                                position: "relative",
                               }}
                             >
-                              PHASE {rec.phase}
+                              <div
+                                style={{
+                                  position: "absolute",
+                                  top: 14,
+                                  right: 14,
+                                  fontFamily: S.mono,
+                                  fontSize: 10,
+                                  fontWeight: 700,
+                                  letterSpacing: "0.06em",
+                                  color: S.gold,
+                                  background: S.card2,
+                                  border: "1px solid " + S.border,
+                                  borderRadius: 6,
+                                  padding: "4px 8px",
+                                }}
+                              >
+                                PHASE {rec.phase}
+                              </div>
+                              <div style={{ fontSize: 17, fontWeight: 700, color: S.text, lineHeight: 1.35, marginBottom: 10, paddingRight: 72 }}>
+                                {rec.headline || "—"}
+                              </div>
+                              <div style={{ fontSize: 15, color: S.dim, lineHeight: 1.65, marginBottom: 10 }}>{rec.action || ""}</div>
+                              <div style={{ fontSize: 13, color: S.muted, fontStyle: "italic", lineHeight: 1.55 }}>{rec.why || ""}</div>
                             </div>
-                            <div style={{ fontSize: 17, fontWeight: 700, color: S.text, lineHeight: 1.35, marginBottom: 10, paddingRight: 72 }}>
-                              {rec.headline || "—"}
-                            </div>
-                            <div style={{ fontSize: 15, color: S.dim, lineHeight: 1.65, marginBottom: 10 }}>{rec.action || ""}</div>
-                            <div style={{ fontSize: 13, color: S.muted, fontStyle: "italic", lineHeight: 1.55 }}>{rec.why || ""}</div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+
+                <div style={{ margin: "8px 0 28px" }}>
+                  <div style={{ background: S.card, border: "1px solid " + S.border, borderRadius: 14, padding: "22px 22px" }}>
+                    <div style={{ fontFamily: S.mono, fontSize: 11, color: S.gold, letterSpacing: "0.12em", marginBottom: 12, fontWeight: 700 }}>
+                      YOUR NEXT STEP
+                    </div>
+                    <div style={{ fontFamily: S.serif, fontSize: 24, color: S.text, margin: "0 0 10px", lineHeight: 1.25, fontWeight: 600 }}>
+                      Work through this with me.
+                    </div>
+                    <div style={{ color: S.dim, fontSize: 15, lineHeight: 1.65, marginBottom: 18 }}>
+                      Book a session to walk through your results together and build a concrete plan.
+                    </div>
+
+                    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                      {OFFER_FREE_SESSION === true ? (
+                        <div style={{ background: S.accent, borderRadius: 14, padding: "18px 18px" }}>
+                          <div style={{ fontFamily: S.mono, fontSize: 11, color: S.gold, letterSpacing: "0.12em", marginBottom: 10, fontWeight: 700 }}>
+                            COMPLIMENTARY
                           </div>
-                        );
-                      })}
+                          <div style={{ fontFamily: S.serif, fontSize: 20, color: "#ffffff", margin: "0 0 12px", lineHeight: 1.25, fontWeight: 600 }}>
+                            Book your free 30-min session
+                          </div>
+                          <a
+                            href="https://cal.com/dkchetan/dz-individual-free"
+                            target="_blank"
+                            rel="noreferrer"
+                            style={{
+                              display: "inline-block",
+                              padding: "10px 14px",
+                              borderRadius: 10,
+                              fontFamily: S.mono,
+                              fontSize: 13,
+                              fontWeight: 800,
+                              letterSpacing: "0.06em",
+                              background: S.gold,
+                              color: "#0d1117",
+                              textDecoration: "none",
+                            }}
+                          >
+                            BOOK NOW →
+                          </a>
+                        </div>
+                      ) : null}
+
+                      <div style={{ background: S.card, border: "1px solid " + S.accent, borderRadius: 14, padding: "18px 18px" }}>
+                        <div style={{ fontFamily: S.mono, fontSize: 24, fontWeight: 800, color: S.accent, lineHeight: 1, marginBottom: 10 }}>$99</div>
+                        <div style={{ fontFamily: S.serif, fontSize: 18, color: S.text, margin: "0 0 10px", lineHeight: 1.25, fontWeight: 600 }}>
+                          30-min Strategy Session — $99
+                        </div>
+                        <a
+                          href="https://cal.com/dkchetan/individual-strategy"
+                          target="_blank"
+                          rel="noreferrer"
+                          style={{
+                            display: "inline-block",
+                            padding: "10px 14px",
+                            borderRadius: 10,
+                            fontFamily: S.mono,
+                            fontSize: 13,
+                            fontWeight: 800,
+                            letterSpacing: "0.06em",
+                            background: S.accent,
+                            color: "#ffffff",
+                            textDecoration: "none",
+                          }}
+                        >
+                          Book now →
+                        </a>
+                      </div>
+
+                      <div style={{ background: S.card, border: "1px solid " + S.accent, borderRadius: 14, padding: "18px 18px" }}>
+                        <div style={{ fontFamily: S.mono, fontSize: 24, fontWeight: 800, color: S.accent, lineHeight: 1, marginBottom: 10 }}>$199</div>
+                        <div style={{ fontFamily: S.serif, fontSize: 18, color: S.text, margin: "0 0 10px", lineHeight: 1.25, fontWeight: 600 }}>
+                          60-min Deep Dive — $199
+                        </div>
+                        <a
+                          href="https://cal.com/dkchetan/individual-roadmap"
+                          target="_blank"
+                          rel="noreferrer"
+                          style={{
+                            display: "inline-block",
+                            padding: "10px 14px",
+                            borderRadius: 10,
+                            fontFamily: S.mono,
+                            fontSize: 13,
+                            fontWeight: 800,
+                            letterSpacing: "0.06em",
+                            background: S.accent,
+                            color: "#ffffff",
+                            textDecoration: "none",
+                          }}
+                        >
+                          Book now →
+                        </a>
+                      </div>
+                    </div>
+
+                    <div style={{ fontSize: 15, color: S.dim, textAlign: "center", marginTop: 16, fontFamily: S.font }}>
+                      Full refund if cancelled up to 2 business days before the session.
                     </div>
                   </div>
-                );
-              })
-            : null}
+                </div>
+              </div>
+            ) : null}
+          </div>
 
-          {!recsError && rawRecs6.length > 0 ? (
+          {gateEmail && gateEmail.trim() && !manualEmailSent ? (
             <div
               style={{
                 background: S.card2,
@@ -2085,115 +1933,96 @@ export default function EmployerSales({ reportMode }) {
               }}
             >
               <p style={{ fontFamily: S.mono, fontSize: 12, color: S.dim, margin: 0, lineHeight: 1.6 }}>
-                A copy of this plan has been sent to {gateEmail}
+                {recommendations && recommendations.recommendations
+                  ? "A copy of this plan has been sent to "
+                  : "A copy of these results has been sent to "}
+                {gateEmail}
               </p>
             </div>
           ) : null}
 
-          <div style={{ margin: "8px 0 28px" }}>
-            <div style={{ background: S.card, border: "1px solid " + S.border, borderRadius: 14, padding: "22px 22px" }}>
-              <div style={{ fontFamily: S.mono, fontSize: 11, color: S.gold, letterSpacing: "0.12em", marginBottom: 12, fontWeight: 700 }}>
-                YOUR NEXT STEP
-              </div>
-              <div style={{ fontFamily: S.serif, fontSize: 24, color: S.text, margin: "0 0 10px", lineHeight: 1.25, fontWeight: 600 }}>
-                Work through this with me.
-              </div>
-              <div style={{ color: S.dim, fontSize: 15, lineHeight: 1.65, marginBottom: 18 }}>
-                Book a session to walk through your results together and build a concrete plan.
-              </div>
-
-              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                {OFFER_FREE_SESSION === true ? (
-                  <div style={{ background: S.accent, borderRadius: 14, padding: "18px 18px" }}>
-                    <div style={{ fontFamily: S.mono, fontSize: 11, color: S.gold, letterSpacing: "0.12em", marginBottom: 10, fontWeight: 700 }}>
-                      COMPLIMENTARY
-                    </div>
-                    <div style={{ fontFamily: S.serif, fontSize: 20, color: "#ffffff", margin: "0 0 12px", lineHeight: 1.25, fontWeight: 600 }}>
-                      Book your free 30-min session
-                    </div>
-                    <a
-                      href="https://cal.com/dkchetan/dz-individual-free"
-                      target="_blank"
-                      rel="noreferrer"
-                      style={{
-                        display: "inline-block",
-                        padding: "10px 14px",
-                        borderRadius: 10,
-                        fontFamily: S.mono,
-                        fontSize: 13,
-                        fontWeight: 800,
-                        letterSpacing: "0.06em",
-                        background: S.gold,
-                        color: "#0d1117",
-                        textDecoration: "none",
-                      }}
-                    >
-                      BOOK NOW →
-                    </a>
-                  </div>
-                ) : null}
-
-                <div style={{ background: S.card, border: "1px solid " + S.accent, borderRadius: 14, padding: "18px 18px" }}>
-                  <div style={{ fontFamily: S.mono, fontSize: 24, fontWeight: 800, color: S.accent, lineHeight: 1, marginBottom: 10 }}>$99</div>
-                  <div style={{ fontFamily: S.serif, fontSize: 18, color: S.text, margin: "0 0 10px", lineHeight: 1.25, fontWeight: 600 }}>
-                    30-min Strategy Session — $99
-                  </div>
-                  <a
-                    href="https://cal.com/dkchetan/individual-strategy"
-                    target="_blank"
-                    rel="noreferrer"
+          {manualEmailSent || !gateEmail || !gateEmail.trim() ? (
+            <div
+              className="no-print"
+              style={{
+                background: "#ffffff",
+                border: "1px solid #d0d7e8",
+                borderRadius: 14,
+                padding: "24px 22px",
+                marginBottom: 28,
+              }}
+            >
+              {manualEmailSent ? (
+                <div style={{ fontSize: 15, color: S.green, lineHeight: 1.6, textAlign: "center" }}>
+                  ✓ Sent — check your inbox for a copy of your results.
+                </div>
+              ) : (
+                <div>
+                  <div
                     style={{
-                      display: "inline-block",
-                      padding: "10px 14px",
-                      borderRadius: 10,
-                      fontFamily: S.mono,
-                      fontSize: 13,
-                      fontWeight: 800,
-                      letterSpacing: "0.06em",
-                      background: S.accent,
-                      color: "#ffffff",
-                      textDecoration: "none",
+                      fontFamily: S.serif,
+                      fontSize: 22,
+                      fontWeight: 600,
+                      color: S.text,
+                      marginBottom: 10,
+                      lineHeight: 1.25,
                     }}
                   >
-                    Book now →
-                  </a>
-                </div>
-
-                <div style={{ background: S.card, border: "1px solid " + S.accent, borderRadius: 14, padding: "18px 18px" }}>
-                  <div style={{ fontFamily: S.mono, fontSize: 24, fontWeight: 800, color: S.accent, lineHeight: 1, marginBottom: 10 }}>$199</div>
-                  <div style={{ fontFamily: S.serif, fontSize: 18, color: S.text, margin: "0 0 10px", lineHeight: 1.25, fontWeight: 600 }}>
-                    60-min Deep Dive — $199
+                    Want a copy of this?
                   </div>
-                  <a
-                    href="https://cal.com/dkchetan/individual-roadmap"
-                    target="_blank"
-                    rel="noreferrer"
+                  <p style={{ fontSize: 15, color: "#6b7280", lineHeight: 1.65, margin: "0 0 18px" }}>
+                    This report only lives in this browser tab right now. If you&apos;d like it saved somewhere you can find later, enter your email below and
+                    we&apos;ll send you a copy — it&apos;s never shared with your employer.
+                  </p>
+                  <input
+                    type="email"
+                    placeholder="your@email.com"
+                    value={manualEmailInput}
+                    disabled={manualEmailLoading}
+                    onChange={function (e) {
+                      setManualEmailInput(e.target.value);
+                      if (manualEmailError) setManualEmailError("");
+                    }}
                     style={{
-                      display: "inline-block",
-                      padding: "10px 14px",
+                      width: "100%",
+                      padding: "14px 16px",
+                      fontSize: 16,
+                      fontFamily: S.font,
+                      border: "1px solid " + S.border,
                       borderRadius: 10,
-                      fontFamily: S.mono,
-                      fontSize: 13,
-                      fontWeight: 800,
-                      letterSpacing: "0.06em",
-                      background: S.accent,
+                      outline: "none",
+                      boxSizing: "border-box",
+                      background: "#ffffff",
+                      color: S.text,
+                    }}
+                  />
+                  {manualEmailError ? <div style={{ color: S.red, fontSize: 13, marginTop: 8 }}>{manualEmailError}</div> : null}
+                  <button
+                    type="button"
+                    onClick={handleManualEmailCopy}
+                    disabled={manualEmailLoading}
+                    style={{
+                      width: "100%",
+                      padding: 14,
+                      fontSize: 16,
+                      fontWeight: 600,
+                      fontFamily: S.font,
+                      background: manualEmailLoading ? "#e5a820" : S.gold,
                       color: "#ffffff",
-                      textDecoration: "none",
+                      border: "none",
+                      borderRadius: 10,
+                      cursor: manualEmailLoading ? "not-allowed" : "pointer",
+                      marginTop: 12,
                     }}
                   >
-                    Book now →
-                  </a>
+                    {manualEmailLoading ? "Sending…" : "Email me a copy"}
+                  </button>
                 </div>
-              </div>
-
-              <div style={{ fontSize: 15, color: S.dim, textAlign: "center", marginTop: 16, fontFamily: S.font }}>
-                Full refund if cancelled up to 2 business days before the session.
-              </div>
+              )}
             </div>
-          </div>
+          ) : null}
 
           <SalesDisclaimer />
-          <SalesFooter />
         </div>
       </div>
     );
