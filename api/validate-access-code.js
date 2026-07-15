@@ -66,7 +66,8 @@ export default async function handler(req, res) {
     });
 
     return res.status(200).json({ valid: true, batchId: record.batchId });
-  } catch {
+  } catch (error) {
+    console.error("validate-access-code error:", error);
     return res.status(500).json({ valid: false, error: "server_error" });
   }
 }
