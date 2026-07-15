@@ -13,6 +13,31 @@ export default function EmployerPortal() {
   var [generating, setGenerating] = useState(false);
   var [lastBatchId, setLastBatchId] = useState("");
   var [lastCodes, setLastCodes] = useState([]);
+  var [batches, setBatches] = useState(null);
+
+  function loadBatches() {
+    fetch("/api/batch-report", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
+      body: JSON.stringify({}),
+    })
+      .then(function (res) {
+        return res.json().then(function (data) {
+          return { ok: res.ok, data: data };
+        });
+      })
+      .then(function (result) {
+        if (result.ok && result.data && Array.isArray(result.data.batches)) {
+          setBatches(result.data.batches);
+        } else {
+          setBatches([]);
+        }
+      })
+      .catch(function () {
+        setBatches([]);
+      });
+  }
 
   function enterLoggedIn(name) {
     setCompanyName(name);
@@ -37,6 +62,7 @@ export default function EmployerPortal() {
         }
       })
       .catch(function () {});
+    loadBatches();
   }
 
   useEffect(function () {
@@ -161,6 +187,7 @@ export default function EmployerPortal() {
           if (typeof data.codesGenerated === "number") {
             setCodesGenerated(data.codesGenerated);
           }
+          loadBatches();
           return;
         }
         if (data.error === "quota_exceeded") {
@@ -324,6 +351,64 @@ export default function EmployerPortal() {
                   </ul>
                 </div>
               ) : null}
+            </div>
+
+            <div style={{ marginTop: 32 }}>
+              <h2 style={{ fontSize: 16, fontWeight: 600, margin: "0 0 12px" }}>
+                Your batches
+              </h2>
+              {batches == null ? (
+                <p style={{ margin: 0, fontSize: 14, color: "#666" }}>
+                  Loading batches…
+                </p>
+              ) : batches.length === 0 ? (
+                <p style={{ margin: 0, fontSize: 14, color: "#666" }}>
+                  No batches generated yet
+                </p>
+              ) : (
+                <ul
+                  style={{
+                    margin: 0,
+                    padding: 0,
+                    listStyle: "none",
+                    fontSize: 14,
+                    lineHeight: 1.5,
+                  }}
+                >
+                  {batches.map(function (batch) {
+                    var shortId =
+                      batch.batchId && batch.batchId.length > 8
+                        ? batch.batchId.slice(0, 8)
+                        : batch.batchId || "";
+                    var createdLabel = batch.createdAt
+                      ? new Date(batch.createdAt).toLocaleDateString()
+                      : "—";
+                    return (
+                      <li
+                        key={batch.batchId}
+                        style={{
+                          marginBottom: 12,
+                          paddingBottom: 12,
+                          borderBottom: "1px solid #eee",
+                        }}
+                      >
+                        <div
+                          style={{
+                            fontFamily: "ui-monospace, Menlo, monospace",
+                            marginBottom: 4,
+                          }}
+                        >
+                          {shortId}
+                        </div>
+                        <div style={{ color: "#333" }}>
+                          {createdLabel} — {batch.redeemed} redeemed /{" "}
+                          {batch.unused} unused / {batch.codeCount} total
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
             </div>
           </div>
         ) : null}
