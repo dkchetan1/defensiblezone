@@ -6,6 +6,38 @@ export default function EmployerPortal() {
   var [companyName, setCompanyName] = useState("");
   var [error, setError] = useState("");
   var [loading, setLoading] = useState(false);
+  var [quota, setQuota] = useState(null);
+  var [codesGenerated, setCodesGenerated] = useState(null);
+  var [generateCount, setGenerateCount] = useState(10);
+  var [generateError, setGenerateError] = useState("");
+  var [generating, setGenerating] = useState(false);
+  var [lastBatchId, setLastBatchId] = useState("");
+  var [lastCodes, setLastCodes] = useState([]);
+
+  function enterLoggedIn(name) {
+    setCompanyName(name);
+    setView("logged_in");
+    fetch("/api/generate-codes", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
+      body: JSON.stringify({}),
+    })
+      .then(function (res) {
+        return res.json().then(function (data) {
+          return { ok: res.ok, data: data };
+        });
+      })
+      .then(function (result) {
+        if (result.ok && result.data) {
+          if (typeof result.data.quota === "number") setQuota(result.data.quota);
+          if (typeof result.data.codesGenerated === "number") {
+            setCodesGenerated(result.data.codesGenerated);
+          }
+        }
+      })
+      .catch(function () {});
+  }
 
   useEffect(function () {
     var params = new URLSearchParams(window.location.search);
@@ -24,8 +56,7 @@ export default function EmployerPortal() {
         })
         .then(function (data) {
           if (data && data.valid === true && data.companyName) {
-            setCompanyName(data.companyName);
-            setView("logged_in");
+            enterLoggedIn(data.companyName);
           } else {
             setError(
               data && data.reason === "expired"
@@ -54,8 +85,7 @@ export default function EmployerPortal() {
       })
       .then(function (data) {
         if (data && data.valid === true && data.companyName) {
-          setCompanyName(data.companyName);
-          setView("logged_in");
+          enterLoggedIn(data.companyName);
         } else {
           setView("form");
         }
@@ -102,6 +132,89 @@ export default function EmployerPortal() {
       });
   }
 
+  function handleGenerate(e) {
+    e.preventDefault();
+    var n = Number(generateCount);
+    if (!Number.isInteger(n) || n < 1) {
+      setGenerateError("Enter a positive whole number of codes to generate.");
+      return;
+    }
+    setGenerateError("");
+    setGenerating(true);
+    fetch("/api/generate-codes", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
+      body: JSON.stringify({ count: n }),
+    })
+      .then(function (res) {
+        return res.json().then(function (data) {
+          return { status: res.status, data: data };
+        });
+      })
+      .then(function (result) {
+        var data = result.data || {};
+        if (result.status === 200 && Array.isArray(data.codes)) {
+          setLastBatchId(data.batchId || "");
+          setLastCodes(data.codes);
+          if (typeof data.quota === "number") setQuota(data.quota);
+          if (typeof data.codesGenerated === "number") {
+            setCodesGenerated(data.codesGenerated);
+          }
+          return;
+        }
+        if (data.error === "quota_exceeded") {
+          var remaining =
+            typeof data.remaining === "number" ? data.remaining : 0;
+          setGenerateError(
+            "Quota exceeded. You have " + remaining + " code" + (remaining === 1 ? "" : "s") + " remaining."
+          );
+          return;
+        }
+        if (result.status === 401) {
+          setGenerateError("Session expired. Please sign in again.");
+          return;
+        }
+        setGenerateError("Could not generate codes. Please try again.");
+      })
+      .catch(function () {
+        setGenerateError("Could not generate codes. Please try again.");
+      })
+      .finally(function () {
+        setGenerating(false);
+      });
+  }
+
+  function downloadCsv() {
+    if (!lastCodes.length) return;
+    var rows = [["batchId", "code"]];
+    for (var i = 0; i < lastCodes.length; i++) {
+      rows.push([lastBatchId, lastCodes[i]]);
+    }
+    var csv = rows
+      .map(function (row) {
+        return row
+          .map(function (cell) {
+            var s = String(cell == null ? "" : cell);
+            if (s.indexOf(",") !== -1 || s.indexOf('"') !== -1) {
+              return '"' + s.replace(/"/g, '""') + '"';
+            }
+            return s;
+          })
+          .join(",");
+      })
+      .join("\n");
+    var blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = "access-codes-" + (lastBatchId || "batch") + ".csv";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <div
       style={{
@@ -122,9 +235,97 @@ export default function EmployerPortal() {
         ) : null}
 
         {view === "logged_in" ? (
-          <p style={{ margin: "16px 0 0", fontSize: 16 }}>
-            Logged in as {companyName}
-          </p>
+          <div>
+            <p style={{ margin: "16px 0 0", fontSize: 16 }}>
+              Logged in as {companyName}
+            </p>
+
+            <div style={{ marginTop: 24 }}>
+              <p style={{ margin: "0 0 16px", fontSize: 15, color: "#333" }}>
+                {codesGenerated != null && quota != null
+                  ? codesGenerated + " / " + quota + " codes used"
+                  : "Loading usage…"}
+              </p>
+
+              <form onSubmit={handleGenerate}>
+                <label
+                  htmlFor="code-count"
+                  style={{ display: "block", fontSize: 14, marginBottom: 8 }}
+                >
+                  How many codes to generate
+                </label>
+                <input
+                  id="code-count"
+                  type="number"
+                  min={1}
+                  max={500}
+                  step={1}
+                  value={generateCount}
+                  onChange={function (ev) {
+                    setGenerateCount(ev.target.value);
+                  }}
+                  disabled={generating}
+                  style={{
+                    width: "100%",
+                    padding: "10px 12px",
+                    fontSize: 16,
+                    boxSizing: "border-box",
+                    marginBottom: 12,
+                  }}
+                />
+                {generateError ? (
+                  <p style={{ color: "#b91c1c", fontSize: 14, margin: "0 0 12px" }}>
+                    {generateError}
+                  </p>
+                ) : null}
+                <button
+                  type="submit"
+                  disabled={generating}
+                  style={{
+                    padding: "10px 16px",
+                    fontSize: 15,
+                    cursor: generating ? "default" : "pointer",
+                  }}
+                >
+                  {generating ? "Generating…" : "Generate codes"}
+                </button>
+              </form>
+
+              {lastCodes.length > 0 ? (
+                <div style={{ marginTop: 24 }}>
+                  <p style={{ margin: "0 0 8px", fontSize: 14, color: "#333" }}>
+                    Batch {lastBatchId} — {lastCodes.length} code
+                    {lastCodes.length === 1 ? "" : "s"}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={downloadCsv}
+                    style={{
+                      padding: "8px 14px",
+                      fontSize: 14,
+                      cursor: "pointer",
+                      marginBottom: 12,
+                    }}
+                  >
+                    Download CSV
+                  </button>
+                  <ul
+                    style={{
+                      margin: 0,
+                      padding: "0 0 0 18px",
+                      fontFamily: "ui-monospace, Menlo, monospace",
+                      fontSize: 14,
+                      lineHeight: 1.6,
+                    }}
+                  >
+                    {lastCodes.map(function (code) {
+                      return <li key={code}>{code}</li>;
+                    })}
+                  </ul>
+                </div>
+              ) : null}
+            </div>
+          </div>
         ) : null}
 
         {view === "sent" ? (
