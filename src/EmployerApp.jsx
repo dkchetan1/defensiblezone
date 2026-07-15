@@ -34,6 +34,7 @@ export default function EmployerApp() {
   var [selectedRole, setSelectedRole] = useState(null);
   var [accessCode, setAccessCode] = useState("");
   var [codeError, setCodeError] = useState("");
+  var [codeLoading, setCodeLoading] = useState(false);
 
   useEffect(function () {
     var link = document.createElement("link");
@@ -48,16 +49,37 @@ export default function EmployerApp() {
     };
   }, []);
 
-  function handleCodeSubmit(e) {
+  async function handleCodeSubmit(e) {
     e.preventDefault();
     var trimmed = (accessCode || "").trim();
     if (!trimmed) {
       setCodeError("Please enter an access code.");
       return;
     }
+    setCodeLoading(true);
     setCodeError("");
-    grantEmployerAccess();
-    setHasAccess(true);
+    try {
+      var res = await fetch("/api/validate-access-code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: trimmed }),
+      });
+      var data = await res.json();
+      if (data.valid === true) {
+        grantEmployerAccess();
+        setHasAccess(true);
+      } else if (data.error === "already_used") {
+        setCodeError("This code has already been used. Contact your employer if you believe this is an error.");
+      } else if (data.error === "invalid_code") {
+        setCodeError("That code isn't recognized. Please check it and try again.");
+      } else {
+        setCodeError("Something went wrong. Please try again.");
+      }
+    } catch (err) {
+      setCodeError("Something went wrong. Please try again.");
+    } finally {
+      setCodeLoading(false);
+    }
   }
 
   var screen = !hasAccess ? "code" : selectedRole ? "flow" : "roles";
@@ -165,6 +187,7 @@ export default function EmployerApp() {
             ) : null}
             <button
               type="submit"
+              disabled={codeLoading}
               style={{
                 width: "100%",
                 background: LS.accent,
@@ -179,7 +202,7 @@ export default function EmployerApp() {
                 cursor: "pointer",
               }}
             >
-              CONTINUE
+              {codeLoading ? "CHECKING..." : "CONTINUE"}
             </button>
           </form>
         ) : screen === "roles" ? (
