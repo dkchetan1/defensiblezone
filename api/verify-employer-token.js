@@ -66,6 +66,14 @@ async function lookupCompanyName(email) {
   return record.companyName.trim();
 }
 
+function isFounder(email) {
+  const founders = (process.env.FOUNDER_EMAILS || "")
+    .split(",")
+    .map((entry) => entry.trim().toLowerCase())
+    .filter(Boolean);
+  return founders.includes(email);
+}
+
 export default async function handler(req, res) {
   setCors(res);
   if (req.method === "OPTIONS") return res.status(200).end();
@@ -114,7 +122,10 @@ export default async function handler(req, res) {
       }
 
       const email = decoded.email.trim().toLowerCase();
-      const companyName = await lookupCompanyName(email);
+      let companyName = await lookupCompanyName(email);
+      if (!companyName && isFounder(email)) {
+        companyName = "Founder";
+      }
       if (!companyName) {
         return res.status(200).json({ valid: false, reason: "invalid" });
       }
@@ -147,10 +158,13 @@ export default async function handler(req, res) {
       }
 
       const email = session.email.trim().toLowerCase();
-      const companyName =
+      let companyName =
         typeof session.companyName === "string" && session.companyName.trim()
           ? session.companyName.trim()
           : await lookupCompanyName(email);
+      if (!companyName && isFounder(email)) {
+        companyName = "Founder";
+      }
       if (!companyName) {
         return res.status(200).json({ valid: false, reason: "invalid" });
       }
