@@ -32,6 +32,14 @@ function isValidEmail(email) {
   return true;
 }
 
+function isFounder(email) {
+  const founders = (process.env.FOUNDER_EMAILS || "")
+    .split(",")
+    .map((entry) => entry.trim().toLowerCase())
+    .filter(Boolean);
+  return founders.includes(email);
+}
+
 export default async function handler(req, res) {
   setCors(res);
   if (req.method === "OPTIONS") return res.status(200).end();
@@ -54,14 +62,16 @@ export default async function handler(req, res) {
   const trimmedEmail = email.trim().toLowerCase();
 
   try {
-    if (!BASE_URL || !REDIS_TOKEN) {
-      console.error("employer-login: Redis not configured");
-      return res.status(500).json({ error: "server_error" });
-    }
+    if (!isFounder(trimmedEmail)) {
+      if (!BASE_URL || !REDIS_TOKEN) {
+        console.error("employer-login: Redis not configured");
+        return res.status(500).json({ error: "server_error" });
+      }
 
-    const existing = await redisGet(`employer:${trimmedEmail}`);
-    if (existing === null || existing === undefined) {
-      return res.status(404).json({ error: "not_found" });
+      const existing = await redisGet(`employer:${trimmedEmail}`);
+      if (existing === null || existing === undefined) {
+        return res.status(404).json({ error: "not_found" });
+      }
     }
 
     const secret = process.env.JWT_SECRET;
