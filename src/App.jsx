@@ -17,6 +17,7 @@ import EmployerSales from "./EmployerSales.jsx";
 import EmployerUX from "./EmployerUX.jsx";
 import EmployerFinance from "./EmployerFinance.jsx";
 import EmployerPortal from "./EmployerPortal.jsx";
+import EmployerAdmin from "./EmployerAdmin.jsx";
 
 export default function App() {
   var [path, setPath] = useState(window.location.pathname);
@@ -57,5 +58,6 @@ export default function App() {
   if (path === "/employer/ux" || path === "/employer/ux/") return <EmployerUX />;
   if (path === "/employer/finance" || path === "/employer/finance/") return <EmployerFinance />;
   if (path === "/employer/portal" || path === "/employer/portal/") return <EmployerPortal />;
+  if (path === "/employer/admin" || path === "/employer/admin/") return <EmployerAdmin />;
   return <Landing />;
 }

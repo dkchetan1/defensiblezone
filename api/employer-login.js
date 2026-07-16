@@ -46,7 +46,7 @@ export default async function handler(req, res) {
     }
   }
 
-  const { email } = body || {};
+  const { email, destination } = body || {};
   if (!isValidEmail(email)) {
     return res.status(400).json({ error: "Invalid email" });
   }
@@ -83,7 +83,10 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: "server_error" });
     }
 
-    const link = `https://app.defensiblezone.ai/employer/portal?token=${encodeURIComponent(token)}`;
+    const link =
+      destination === "admin"
+        ? `https://app.defensiblezone.ai/employer/admin?token=${encodeURIComponent(token)}`
+        : `https://app.defensiblezone.ai/employer/portal?token=${encodeURIComponent(token)}`;
     const html = `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; line-height: 1.5;">
         <h1 style="margin: 0 0 12px 0; font-size: 22px;">Sign in to your employer portal</h1>
