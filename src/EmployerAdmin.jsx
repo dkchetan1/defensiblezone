@@ -354,7 +354,14 @@ export default function EmployerAdmin() {
                   disabled={creating}
                   style={inputStyle}
                 />
+                <label
+                  htmlFor="create-quota"
+                  style={{ display: "block", fontSize: 14, marginBottom: 8 }}
+                >
+                  Initial quota
+                </label>
                 <input
+                  id="create-quota"
                   type="number"
                   min={0}
                   step={1}
