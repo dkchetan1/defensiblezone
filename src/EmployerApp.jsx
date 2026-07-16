@@ -32,6 +32,7 @@ export default function EmployerApp() {
     return isEmployerAccessGranted();
   });
   var [selectedRole, setSelectedRole] = useState(null);
+  var [trustAcknowledged, setTrustAcknowledged] = useState(false);
   var [accessCode, setAccessCode] = useState("");
   var [codeError, setCodeError] = useState("");
   var [codeLoading, setCodeLoading] = useState(false);
@@ -82,7 +83,7 @@ export default function EmployerApp() {
     }
   }
 
-  var screen = !hasAccess ? "code" : selectedRole ? "flow" : "roles";
+  var screen = !hasAccess ? "code" : !trustAcknowledged ? "trust" : selectedRole ? "flow" : "roles";
 
   return (
     <div style={{ background: LS.bg, minHeight: "100vh", fontFamily: LS.font, color: LS.text }}>
@@ -140,12 +141,20 @@ export default function EmployerApp() {
           EMPLOYER EDITION
         </div>
         <h1 style={{ fontFamily: LS.serif, fontSize: 36, fontWeight: 600, margin: "0 0 12px", lineHeight: 1.15 }}>
-          {screen === "code" ? "Enter your access code" : screen === "roles" ? "Choose a role" : selectedRole}
+          {screen === "code"
+            ? "Enter your access code"
+            : screen === "trust"
+              ? "This is yours."
+              : screen === "roles"
+                ? "Choose a role"
+                : selectedRole}
         </h1>
         {screen !== "flow" ? (
           <p style={{ color: LS.muted, fontSize: 16, lineHeight: 1.65, margin: "0 0 32px" }}>
             {screen === "code"
               ? "Use the code provided by your organization to access the assessment."
+              : screen === "trust"
+                ? "Your employer purchased access to this assessment, but they will never see your individual answers, your results, or whether you've completed it. What you share here is private to you."
               : "Select the assessment your team member should complete."}
           </p>
         ) : null}
@@ -205,6 +214,28 @@ export default function EmployerApp() {
               {codeLoading ? "CHECKING..." : "CONTINUE"}
             </button>
           </form>
+        ) : screen === "trust" ? (
+          <button
+            type="button"
+            onClick={function () {
+              setTrustAcknowledged(true);
+            }}
+            style={{
+              width: "100%",
+              background: LS.accent,
+              color: "#ffffff",
+              border: "none",
+              borderRadius: 10,
+              padding: "14px 20px",
+              fontSize: 15,
+              fontFamily: LS.mono,
+              fontWeight: 600,
+              letterSpacing: "0.06em",
+              cursor: "pointer",
+            }}
+          >
+            Continue
+          </button>
         ) : screen === "roles" ? (
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {ROLES.map(function (label) {
