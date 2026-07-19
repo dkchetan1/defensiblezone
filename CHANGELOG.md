@@ -2,6 +2,16 @@
 
 This file tracks notable changes to the Employer Edition and related app.defensiblezone.ai work. Newest entries at the top.
 
+## 2026-07-19 — Engine consolidation: schema sanity-check (Step 3)
+
+Read-only sanity-check of the draft EmployerEngine config schema against the five live Employer role files. No app code changed.
+
+- IntakeFieldConfig: CONFIRMED. All live dependency patterns fit (subset-filter and lookup-filter, including chained Finance seniority and multi-parent Finance companySize via getValidSizes(sector, firmType)).
+- StepConfig (named ordered array): CONFIRMED. Matches Engineer/Finance contiguous steps, Sales/PM’s unused step 2 (intake→gate→jump to skills at 3), and UX starting at useState(1).
+- AffinityConfig three-state (global / declared-but-unused / live): CONFIRMED. Engineer/Sales/Finance use global conscience/pull in scoring; PM declares skillConscience/skillPull but fetchScores only reads global; UX fetchScores reads skillConscience/skillPull live.
+- PromptConfig.phaseModel (weekBucketed / none / custom): CONFIRMED. Engineer/Sales/PM week-bucketed 3/3/2 phases; Finance recommendations have no phase field; UX uses Anchor/Reposition/Extend.
+- clearOnParentChange is NOT universally true. Counter-example: Finance sector change clears role and seniority but does not clear firmType, companySize, or workFocus — even though companySize options depend on sector+firmType and workFocus options depend on sector. companySize only clears on firmType change.
+
 ## 2026-07-19 — Engine consolidation: schema design (Step 2)
 
 Drafted EmployerEngine.jsx config schema (not yet implemented, no app code changed). Designed against a live-file investigation that corrected several assumptions from the original consolidation plan:
