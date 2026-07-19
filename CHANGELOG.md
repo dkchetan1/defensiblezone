@@ -12,6 +12,8 @@ Read-only sanity-check of the draft EmployerEngine config schema against the fiv
 - PromptConfig.phaseModel (weekBucketed / none / custom): CONFIRMED. Engineer/Sales/PM week-bucketed 3/3/2 phases; Finance recommendations have no phase field; UX uses Anchor/Reposition/Extend.
 - clearOnParentChange is NOT universally true. Counter-example: Finance sector change clears role and seniority but does not clear firmType, companySize, or workFocus — even though companySize options depend on sector+firmType and workFocus options depend on sector. companySize only clears on firmType change.
 
+Follow-up (2026-07-19): schema corrected — clearOnParentChange made per-parent (`boolean | { [parentFieldId]: boolean }`) to preserve Finance's asymmetric companySize clearing — and committed to the repo at `docs/employer_engine_schema.md`.
+
 ## 2026-07-19 — Engine consolidation: schema design (Step 2)
 
 Drafted EmployerEngine.jsx config schema (not yet implemented, no app code changed). Designed against a live-file investigation that corrected several assumptions from the original consolidation plan:
