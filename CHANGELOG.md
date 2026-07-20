@@ -2,6 +2,22 @@
 
 This file tracks notable changes to the Employer Edition and related app.defensiblezone.ai work. Newest entries at the top.
 
+## 2026-07-20 — Engine consolidation: customTaskTemplate placeholder substitution
+
+Follow-up to Step 4c. customTaskTemplate is no longer fully static: supported {{…}} tokens are string-substituted with live per-user data at request time; all other template text is preserved exactly (not a second generic-assembly pass). Tokens: {{profileSummary}}, {{skillsList}}, {{fluencyData}}, {{affinityData}}, {{resumeText}}. Unknown tokens left unchanged. Schema docs updated to match.
+
+## 2026-07-20 — Engine consolidation: schema escape hatches + responseShape (Step 4c)
+
+Schema + EmployerEngine.jsx patch (uncommitted until reviewed). Adds PromptConfig.customTaskTemplate on landscape/scoring/recommendations (verbatim stage override, no merge with generic assembly fields); RoleConfig.extensions pass-through bucket; PromptConfig.scoring.responseShape (requiredKeys/optionalKeys) so fetchScores request/accept is config-driven instead of hardcoded scores+benchmark; phaseDefinition.blurbs for weekBucketed phases (index-aligned with labels). Builds on Step 4b (`15f3034`).
+
+## 2026-07-20 — Engine consolidation: fetch + prompt-builder (Step 4b)
+
+Implemented shared buildPrompt + callGenerate and the three fetch functions (fetchLandscapeAndSkills, fetchScores, fetchRecommendations) in EmployerEngine.jsx. phaseModel branching (weekBucketed / none / custom) drives recommendation instructions and JSON shape. fetchScores respects affinity.mode for global vs per-skill compAff inputs. Post-score nested localStorage save runs after fetchRecommendations succeeds. Still no role migrated; nothing imports EmployerEngine yet. Committed as `15f3034`.
+
+## 2026-07-20 — Engine consolidation: EmployerEngine shell (Step 4a)
+
+Added EmployerEngine.jsx state/navigation shell (not yet rendered or imported by any live route). Config-driven named steps via steps.order/startAt; intake dependency handling (subset/lookup, multi-parent dependsOn, clearOnParentChange boolean|per-parent map, pruneOnParentChange); global vs perSkill affinity state; pre-gate localStorage save/load using the nested intakeValues payload shape. AI fetch/prompt functions left stubbed. Committed as `7cbd6ec`; pruneOnParentChange + nested save-shape docs follow-up as `f6896a1`.
+
 ## 2026-07-19 — Engine consolidation: schema sanity-check (Step 3)
 
 Read-only sanity-check of the draft EmployerEngine config schema against the five live Employer role files. No app code changed.
