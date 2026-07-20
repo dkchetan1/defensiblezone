@@ -35,6 +35,13 @@ RoleConfig = {
   affinity: AffinityConfig,
   prompts: PromptConfig,
   copy: RoleCopyConfig,              // labels, persona strings, UI-only text
+  extensions?: { [key: string]: any },
+    // Open-ended bucket for future role-specific fields that don't fit any
+    // existing schema section. Exists so future roles (or new nuance discovered
+    // in existing roles) can carry additional structured data without requiring
+    // another schema redesign. EmployerEngine.jsx should treat this as
+    // pass-through data available to buildPrompt and any custom logic, not
+    // something it interprets by default.
 }
 ```
 
@@ -129,10 +136,35 @@ PromptConfig = {
     persona: string,                 // "senior engineering career strategist", etc.
     toolNames: string[],             // Copilot/Cursor/Devin, Gong/Apollo/Clay, etc.
     styleNotes: string,              // e.g. "not 'coding' but 'designing distributed…'"
+    customTaskTemplate?: string | null,
+      // Full prompt-stage text used verbatim EXCEPT for placeholder tokens, which
+      // are substituted with real per-user data at request time. Everything else
+      // in the string is preserved exactly as written — this is substitution, not
+      // a second generic-assembly pass. When set, generic assembly fields for this
+      // stage (persona/toolNames/styleNotes/etc.) are ignored — no merge.
+      // Supported placeholders (exact token names):
+      //   {{profileSummary}}   — user's intake answers as a readable summary
+      //   {{skillsList}}       — skills for this stage (empty at landscape; skill
+      //                          names at scoring; scored summary at recommendations)
+      //   {{fluencyData}}      — per-skill fluency scores (meaningful at scoring/recs)
+      //   {{affinityData}}     — conscience/pull or skillConscience/skillPull
+      //   {{resumeText}}       — truncated resume text when present (often landscape)
+      // If a role's template needs a placeholder not listed here, add it to this
+      // list rather than inventing an unlisted token silently.
   },
   scoring: {
     calibrationNotes: string,        // seniority/context CRITICAL calibration text
     guardrails: string[],            // e.g. Sales's activity-vs-outcome, vertical -1/-2
+    customTaskTemplate?: string | null,
+      // Same escape hatch as landscape — full stage override with placeholder
+      // substitution only; no merge with calibrationNotes/guardrails/persona.
+    responseShape: {
+      requiredKeys: string[],        // e.g. ["scores"]
+      optionalKeys: string[],        // e.g. ["benchmark"]
+    },
+      // Documents what fetchScores should request from the model and accept back.
+      // Existing roles differ (skills+benchmark vs scores-only) — this makes that
+      // explicit and configurable instead of an implicit assumption in code.
   },
   recommendations: {
     tone: {
@@ -141,17 +173,26 @@ PromptConfig = {
     },
     phaseModel: "weekBucketed" | "none" | "custom",
     phaseDefinition: object | null,
-      // weekBucketed: { labels: ["Weeks 1-4","Weeks 5-8","Weeks 9-12"],
-      //                 maxPerPhase: 4, targetDistribution: [3,3,2] }
+      // weekBucketed: {
+      //   labels: ["Weeks 1-4","Weeks 5-8","Weeks 9-12"],
+      //   blurbs?: string[],   // optional per-phase descriptive text, e.g. Engineer's
+      //                        // "no org setup required" — index-aligned with labels
+      //   maxPerPhase: 4,
+      //   targetDistribution: [3,3,2]
+      // }
       // none: null — engine skips phase field in output JSON entirely
       // custom: { labels: ["Anchor","Reposition","Extend"],
       //           requiresPhaseLabel: true, driverNote: "DZ score / AI-exposure driven" }
     roleGuardrails: string[],        // Sales's ROLE-TRACK + SDR guardrail, etc.
+    customTaskTemplate?: string | null,
+      // Same escape hatch — full stage override with placeholder substitution only.
   },
 }
 ```
 
 The shared prompt-builder function reads phaseModel and branches its output-JSON-shape instructions accordingly — one function, three prompt shapes, not three functions. "none" means the builder omits phase instructions and the output schema entirely, matching Finance's real behavior instead of forcing a phase system on a role that never had one.
+
+`customTaskTemplate` is available independently on landscape, scoring, and recommendations. When set for a stage, that stage's generic assembly fields are ignored entirely (no merge). The template string is preserved exactly except for `{{…}}` placeholder tokens, which are string-substituted with live per-user data at request time. Unknown tokens are left unchanged.
 
 ## 6. Schema review outcomes (Step 3, verified against live files 2026-07-19)
 

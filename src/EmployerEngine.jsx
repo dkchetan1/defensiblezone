@@ -253,6 +253,170 @@ function getResumeText(state) {
   return values.resumeText || values.resume || "";
 }
 
+/**
+ * Supported customTaskTemplate placeholder token names. Only these are
+ * substituted; any other {{token}} is left unchanged (not invented silently).
+ */
+var CUSTOM_TASK_TEMPLATE_PLACEHOLDERS = [
+  "profileSummary",
+  "skillsList",
+  "fluencyData",
+  "affinityData",
+  "resumeText",
+];
+
+function formatSkillsNamesList(skills) {
+  if (!skills || !skills.length) return "";
+  return skills
+    .map(function (s, i) {
+      return i + 1 + ". " + (s.text || s.name || "Skill " + (i + 1));
+    })
+    .join("\n");
+}
+
+function formatScoredSkillsList(scoredSkills) {
+  if (!scoredSkills || !scoredSkills.length) return "";
+  return scoredSkills
+    .map(function (sk, i) {
+      var aiR =
+        typeof sk.ai_replaceability === "number"
+          ? sk.ai_replaceability
+          : typeof sk.aiR === "number"
+            ? sk.aiR
+            : 5;
+      var market =
+        typeof sk.market_demand === "number"
+          ? sk.market_demand
+          : typeof sk.market === "number"
+            ? sk.market
+            : 7;
+      var name = sk.text || sk.name || "Skill " + (i + 1);
+      var dzPart = typeof sk.dz === "number" ? ", DZ: " + sk.dz : "";
+      return (
+        i +
+        1 +
+        ". [" +
+        (sk.id || "s" + i) +
+        "] " +
+        name +
+        " (AI Risk: " +
+        aiR +
+        "/10, Market Demand: " +
+        market +
+        "/10" +
+        dzPart +
+        ")"
+      );
+    })
+    .join("\n");
+}
+
+function formatFluencyData(state) {
+  var skills = (state && state.skills) || [];
+  if (!skills.length) return "";
+  var fluencies = (state && state.fluencies) || {};
+  var conscience = state && state.conscience != null ? state.conscience : 5;
+  var pull = state && state.pull != null ? state.pull : 5;
+  return skills
+    .map(function (s, i) {
+      var fluencyVal =
+        fluencies[s.id] !== undefined ? fluencies[s.id] : getSeed(conscience, pull);
+      return i + 1 + ". " + s.text + ": fluency " + fluencyVal + "/10";
+    })
+    .join("\n");
+}
+
+function formatAffinityData(state) {
+  var conscience = state && state.conscience != null ? state.conscience : 5;
+  var pull = state && state.pull != null ? state.pull : 5;
+  var isPerSkill = state && state.affinityMode === "perSkill";
+  if (!isPerSkill) {
+    return "conscience: " + conscience + "/10, pull: " + pull + "/10";
+  }
+  var skills = (state && state.skills) || [];
+  var skillConscience = (state && state.skillConscience) || {};
+  var skillPull = (state && state.skillPull) || {};
+  if (!skills.length) {
+    return (
+      "perSkill affinity (no skills yet); defaults conscience: " +
+      conscience +
+      "/10, pull: " +
+      pull +
+      "/10"
+    );
+  }
+  return skills
+    .map(function (s, i) {
+      var c =
+        skillConscience[s.id] !== undefined ? skillConscience[s.id] : conscience;
+      var p = skillPull[s.id] !== undefined ? skillPull[s.id] : pull;
+      return (
+        i + 1 + ". " + s.text + " (conscience: " + c + "/10, pull: " + p + "/10)"
+      );
+    })
+    .join("\n");
+}
+
+/**
+ * Build the substitution map for customTaskTemplate placeholders.
+ * Values that are not yet available at a given stage are empty strings.
+ */
+function buildCustomTemplatePlaceholders(kind, config, state) {
+  var profileLines = buildProfileLines(config, state);
+  var profileSummary = profileLines || "";
+  var resumeRaw = getResumeText(state);
+  var resumeText = resumeRaw ? truncateResume(resumeRaw) : "";
+
+  var skillsList = "";
+  if (kind === "landscape") {
+    // Skills are produced BY landscape — none exist yet.
+    skillsList = "";
+  } else if (kind === "scoring") {
+    skillsList = formatSkillsNamesList((state && state.skills) || []);
+  } else if (kind === "recommendations") {
+    var scored =
+      (state && state.results && state.results.skills) ||
+      (state && Array.isArray(state.results) ? state.results : []) ||
+      [];
+    skillsList = formatScoredSkillsList(scored);
+    if (!skillsList) {
+      skillsList = formatSkillsNamesList((state && state.skills) || []);
+    }
+  }
+
+  var fluencyData = "";
+  if (kind === "scoring" || kind === "recommendations") {
+    fluencyData = formatFluencyData(state);
+  }
+
+  var affinityData = formatAffinityData(state);
+
+  return {
+    profileSummary: profileSummary,
+    skillsList: skillsList,
+    fluencyData: fluencyData,
+    affinityData: affinityData,
+    resumeText: resumeText,
+  };
+}
+
+/**
+ * Substitute {{token}} placeholders in a customTaskTemplate.
+ * Only known tokens are replaced; everything else in the string is preserved
+ * exactly (including unknown {{tokens}}, which are left as-is).
+ */
+function applyCustomTaskTemplate(template, kind, config, state) {
+  if (!template) return template;
+  var values = buildCustomTemplatePlaceholders(kind, config, state);
+  return String(template).replace(/\{\{(\w+)\}\}/g, function (_match, name) {
+    if (Object.prototype.hasOwnProperty.call(values, name)) {
+      var v = values[name];
+      return v == null ? "" : String(v);
+    }
+    return _match;
+  });
+}
+
 function joinGuardrails(list) {
   if (!list || !list.length) return "";
   return list
@@ -260,6 +424,79 @@ function joinGuardrails(list) {
       return "- " + g;
     })
     .join("\n");
+}
+
+/**
+ * Default scoring responseShape when a role config omits it — preserves the
+ * pre-formalization "scores + optional benchmark" behavior.
+ */
+function defaultScoringResponseShape() {
+  return { requiredKeys: ["scores"], optionalKeys: ["benchmark"] };
+}
+
+function resolveScoringResponseShape(scoringCfg) {
+  var shape = scoringCfg && scoringCfg.responseShape;
+  if (!shape) return defaultScoringResponseShape();
+  return {
+    requiredKeys: Array.isArray(shape.requiredKeys)
+      ? shape.requiredKeys
+      : ["scores"],
+    optionalKeys: Array.isArray(shape.optionalKeys) ? shape.optionalKeys : [],
+  };
+}
+
+/**
+ * Build the "Return ONLY valid JSON: …" example from responseShape keys.
+ * Known keys get realistic examples; unknown keys get a placeholder.
+ */
+function buildScoringReturnJsonExample(shape) {
+  var required = (shape && shape.requiredKeys) || ["scores"];
+  var optional = (shape && shape.optionalKeys) || [];
+  var fragments = [];
+  var seen = {};
+
+  function addKey(key) {
+    if (seen[key]) return;
+    seen[key] = true;
+    if (key === "scores" || key === "skills") {
+      fragments.push(
+        '"' +
+          key +
+          '":[{"id":"s0","name":"exact skill text","ai_replaceability":5,"market_demand":7,"interface_span":false,"rationale":"one sentence"}]'
+      );
+    } else if (key === "benchmark") {
+      fragments.push(
+        '"benchmark":{"percentile":65,"summary":"...","insights":["...","..."]}'
+      );
+    } else {
+      fragments.push('"' + key + '":...');
+    }
+  }
+
+  required.forEach(addKey);
+  optional.forEach(addKey);
+  return "{" + fragments.join(",") + "}";
+}
+
+/**
+ * Pick the scored-skill array from a parsed scoring response using responseShape.
+ */
+function extractScoredList(parsed, shape) {
+  var required = (shape && shape.requiredKeys) || ["scores"];
+  var prefer = ["scores", "skills"];
+  var i;
+  for (i = 0; i < prefer.length; i++) {
+    if (
+      required.indexOf(prefer[i]) !== -1 &&
+      Array.isArray(parsed[prefer[i]])
+    ) {
+      return parsed[prefer[i]];
+    }
+  }
+  for (i = 0; i < required.length; i++) {
+    if (Array.isArray(parsed[required[i]])) return parsed[required[i]];
+  }
+  return null;
 }
 
 function buildPhaseInstructions(recCfg) {
@@ -276,11 +513,18 @@ function buildPhaseInstructions(recCfg) {
 
   if (model === "weekBucketed") {
     var labels = (def && def.labels) || ["Weeks 1-4", "Weeks 5-8", "Weeks 9-12"];
+    var blurbs = (def && Array.isArray(def.blurbs) && def.blurbs.length > 0
+      ? def.blurbs
+      : null);
     var maxPer = def && def.maxPerPhase != null ? def.maxPerPhase : 4;
     var dist = (def && def.targetDistribution) || [3, 3, 2];
     var phaseLines = labels
       .map(function (label, i) {
-        return "Phase " + (i + 1) + " (" + label + ")";
+        var blurb =
+          blurbs && blurbs[i] != null && String(blurbs[i]).length > 0
+            ? ": " + blurbs[i]
+            : "";
+        return "Phase " + (i + 1) + " (" + label + ")" + blurb;
       })
       .join("; ");
     var aimParts = labels.map(function (label, i) {
@@ -341,12 +585,33 @@ function buildPhaseInstructions(recCfg) {
  * no role-specific hardcoded strings. Profile bullets come from config.intake
  * values; persona / tools / tone / phaseModel come from PromptConfig.
  *
+ * If config.prompts[kind].customTaskTemplate is set, that string is used with
+ * {{placeholder}} substitution only — generic assembly fields for that stage
+ * are ignored (no merge). Supported tokens: {{profileSummary}}, {{skillsList}},
+ * {{fluencyData}}, {{affinityData}}, {{resumeText}}.
+ *
+ * config.extensions is pass-through data available here and on state.extensions
+ * when called from the engine; the generic builder does not interpret it.
+ *
  * kind: "landscape" | "scoring" | "recommendations"
  * state: { intakeValues, skills, results, conscience, pull, skillConscience,
- *          skillPull, fluencies, resumeText, affinityMode }
+ *          skillPull, fluencies, resumeText, affinityMode, extensions }
  */
 function buildPrompt(kind, config, state) {
   var prompts = (config && config.prompts) || {};
+  // config.extensions (also on state.extensions from the engine) is pass-through
+  // only — generic assembly does not interpret it.
+
+  var stageCfg = prompts[kind] || {};
+  if (stageCfg.customTaskTemplate) {
+    return applyCustomTaskTemplate(
+      stageCfg.customTaskTemplate,
+      kind,
+      config,
+      state
+    );
+  }
+
   var copy = (config && config.copy) || {};
   var profileHeader = copy.profileHeader || "PROFILE";
   var profileLines = buildProfileLines(config, state);
@@ -441,6 +706,7 @@ function buildPrompt(kind, config, state) {
       .join("\n");
     var calibration = S.calibrationNotes || "";
     var guardrails = joinGuardrails(S.guardrails);
+    var responseShape = resolveScoringResponseShape(S);
     return (
       "You are a " +
       scorePersona +
@@ -451,7 +717,8 @@ function buildPrompt(kind, config, state) {
       "\n\nFor each skill return:\n- ai_replaceability: 0-10 (10 = AI is already doing this; 0 = deeply human / irreplaceable)\n- market_demand: 0-10 (10 = extremely high demand; 0 = declining)\n- rationale: one precise sentence calibrated to this specific profile" +
       (calibration ? "\n\nCRITICAL CALIBRATION:\n" + calibration : "") +
       (guardrails ? "\n\nSCORING GUARDRAILS:\n" + guardrails : "") +
-      '\n\nBe honest. Do not default to middle values.\n\nReturn ONLY valid JSON:\n{"scores":[{"id":"s0","name":"exact skill text","ai_replaceability":5,"market_demand":7,"interface_span":false,"rationale":"one sentence"}],"benchmark":{"percentile":65,"summary":"...","insights":["...","..."]}}'
+      "\n\nBe honest. Do not default to middle values.\n\nReturn ONLY valid JSON:\n" +
+      buildScoringReturnJsonExample(responseShape)
     );
   }
 
@@ -582,6 +849,7 @@ function promptStateFromEngine(opts) {
     fluencies: opts.fluencies,
     resumeText: opts.resumeText,
     affinityMode: opts.affinityMode,
+    extensions: opts.extensions,
   };
 }
 
@@ -813,6 +1081,7 @@ export default function EmployerEngine(props) {
       fluencies: fluencies,
       resumeText: getResumeText({ intakeValues: intakeValues }),
       affinityMode: affinityMode,
+      extensions: (config && config.extensions) || null,
     });
   }
 
@@ -917,10 +1186,20 @@ export default function EmployerEngine(props) {
     setLoading(true);
     setLoadingMsg("Scoring your Defensible Zone™…");
     setError(null);
+    var scoringCfg =
+      (config && config.prompts && config.prompts.scoring) || {};
+    var responseShape = resolveScoringResponseShape(scoringCfg);
     var prompt = buildPrompt("scoring", config, buildEnginePromptState());
     try {
       var parsed = await callGenerate(prompt, MAX_TOKENS_SCORING);
-      var scoredList = parsed.scores || parsed.skills || [];
+      var requiredKeys = responseShape.requiredKeys || [];
+      var missing = requiredKeys.filter(function (key) {
+        return parsed[key] == null;
+      });
+      if (missing.length) {
+        throw new Error("Missing required scoring keys: " + missing.join(", "));
+      }
+      var scoredList = extractScoredList(parsed, responseShape);
       if (!Array.isArray(scoredList) || scoredList.length === 0) {
         throw new Error("No scores in response");
       }
@@ -929,13 +1208,17 @@ export default function EmployerEngine(props) {
         skills: enriched,
         landscape: landscape,
       };
-      if (parsed.benchmark) {
-        resultsPayload.benchmark = parsed.benchmark;
-        setBenchmark(parsed.benchmark);
-      }
-      if (parsed.phase1_teaser) {
-        resultsPayload.phase1Teaser = parsed.phase1_teaser;
-      }
+      (responseShape.optionalKeys || []).forEach(function (key) {
+        if (parsed[key] == null) return;
+        if (key === "benchmark") {
+          resultsPayload.benchmark = parsed.benchmark;
+          setBenchmark(parsed.benchmark);
+        } else if (key === "phase1_teaser") {
+          resultsPayload.phase1Teaser = parsed.phase1_teaser;
+        } else {
+          resultsPayload[key] = parsed[key];
+        }
+      });
       setResults(resultsPayload);
       if (stepOrder.indexOf("results") !== -1) {
         setCurrentStep("results");
@@ -1427,4 +1710,10 @@ export {
   buildPrompt,
   buildPhaseInstructions,
   callGenerate,
+  resolveScoringResponseShape,
+  extractScoredList,
+  buildScoringReturnJsonExample,
+  applyCustomTaskTemplate,
+  buildCustomTemplatePlaceholders,
+  CUSTOM_TASK_TEMPLATE_PLACEHOLDERS,
 };
