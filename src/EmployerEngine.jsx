@@ -40,6 +40,15 @@ function shouldClearOnParentChange(field, changedParentId) {
 }
 
 /**
+ * pruneOnParentChange is a single boolean. When true on a multiSelect field,
+ * parent changes filter the current selection down to ids that remain in the
+ * newly available options — unlike clear, which wipes the value entirely.
+ */
+function shouldPruneOnParentChange(field) {
+  return field.pruneOnParentChange === true;
+}
+
+/**
  * Resolve available options for a dependent intake field.
  *
  * filterFn "subset": optionsSource maps parent value(s) → id[] used to filter
@@ -107,10 +116,18 @@ function lookupSource(source, parents, parentValues) {
 }
 
 /**
- * Apply clearOnParentChange after one or more parent fields change.
- * Cascades: clearing a field counts as a change for its dependents.
+ * Apply clearOnParentChange / pruneOnParentChange after one or more parent
+ * fields change. Cascades: a cleared or pruned field counts as a change for
+ * its dependents.
+ *
+ * Clear and prune are distinct:
+ *   clear — wipe value entirely ("" or [])
+ *   prune — multiSelect only; drop selections no longer in available options
+ *
+ * If both flags are set for the same field, clear wins (runs first; prune
+ * then sees an empty value and skips).
  */
-function applyParentChangeClears(intake, values, changedParentIds) {
+function applyParentChangeEffects(intake, values, changedParentIds) {
   var next = Object.assign({}, values);
   var queue = changedParentIds.slice();
 
@@ -118,9 +135,30 @@ function applyParentChangeClears(intake, values, changedParentIds) {
     var parentId = queue.shift();
     intake.forEach(function (field) {
       if (parentIdsOf(field).indexOf(parentId) === -1) return;
-      if (!shouldClearOnParentChange(field, parentId)) return;
-      if (isEmptyIntakeValue(next[field.id])) return;
-      next[field.id] = emptyValueForType(field.type);
+
+      // Prefer clear over prune when both are configured.
+      if (shouldClearOnParentChange(field, parentId)) {
+        if (isEmptyIntakeValue(next[field.id])) return;
+        next[field.id] = emptyValueForType(field.type);
+        queue.push(field.id);
+        return;
+      }
+
+      if (!shouldPruneOnParentChange(field)) return;
+      if (field.type !== "multiSelect") return;
+      var current = next[field.id];
+      if (!Array.isArray(current) || current.length === 0) return;
+
+      var available = resolveAvailableOptions(field, next);
+      var allowedKeys = {};
+      available.forEach(function (opt) {
+        allowedKeys[optionKey(opt)] = true;
+      });
+      var pruned = current.filter(function (id) {
+        return allowedKeys[String(id)] === true;
+      });
+      if (pruned.length === current.length) return;
+      next[field.id] = pruned;
       queue.push(field.id);
     });
   }
@@ -272,7 +310,7 @@ export default function EmployerEngine(props) {
   function setIntakeValue(fieldId, value) {
     setIntakeValues(function (prev) {
       var next = Object.assign({}, prev, { [fieldId]: value });
-      return applyParentChangeClears(intakeFields, next, [fieldId]);
+      return applyParentChangeEffects(intakeFields, next, [fieldId]);
     });
   }
 
@@ -667,8 +705,9 @@ export default function EmployerEngine(props) {
 // Named exports for unit tests / next-step wiring without mounting the shell.
 export {
   resolveAvailableOptions,
-  applyParentChangeClears,
+  applyParentChangeEffects,
   shouldClearOnParentChange,
+  shouldPruneOnParentChange,
   parentIdsOf,
   buildInitialIntakeValues,
 };

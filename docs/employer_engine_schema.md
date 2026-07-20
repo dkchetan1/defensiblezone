@@ -1,8 +1,25 @@
 # Employer Edition — Engine Config Schema (Draft for Review)
 
-Status: Draft. Verified against live files in Step 3 (2026-07-19) — one correction made (clearOnParentChange, see Section 6). Not yet implemented — EmployerEngine.jsx does not exist yet.
+Status: Draft. Verified against live files in Step 3 (2026-07-19) — one correction made (clearOnParentChange, see Section 6). EmployerEngine.jsx shell exists; role migrations pending.
 
 Purpose: define the shape of the per-role config object that EmployerEngine.jsx will consume. If this shape can represent all five roles' real behavior without a special case for any of them, the schema is sound. If any role needs an escape hatch, that's a sign the shape is wrong and needs revising before migration starts.
+
+### Resolution: localStorage save payload shape (permanent)
+
+The nested save payload written by EmployerEngine.jsx is the permanent standard going forward:
+
+```
+{
+  roleId, currentStep, savedAt,
+  intakeValues,          // { [fieldId]: value } — all intake fields live here
+  conscience, pull,
+  skillConscience?,      // only when affinity.mode === "perSkill"
+  skillPull?,
+  // …later: skills, results, etc.
+}
+```
+
+No backward-compatibility adapter will be built for the old flat-key save shape used by the live role files (top-level `devType`, `sector`, `workContexts`, etc.). No production users currently hold saved data in that format, so there is nothing to migrate. Do not add an adapter later assuming one is needed.
 
 ---
 
@@ -65,8 +82,17 @@ IntakeFieldConfig = {
                                       // Finance's companySize depends on [sector, firmType] but
                                       // ONLY clears on firmType change, not sector change:
                                       // { sector: false, firmType: true }
+  pruneOnParentChange: boolean,       // Distinct from clearOnParentChange — see below.
+                                      // Only meaningful for multiSelect fields.
 }
 ```
+
+`clearOnParentChange` vs `pruneOnParentChange` — two different reactions to a parent change:
+
+- **clear** — wipe the field's value entirely (select → `""`, multiSelect → `[]`). Used when the old answer is no longer meaningful under the new parent (e.g. Sales `seniority` clears when `roleTrack` changes; Finance `companySize` clears when `firmType` changes).
+- **prune** — for multiSelect only: keep selections that are still valid options under the new parent; drop only the ones that are not. Used when the field is a filtered chip list whose allowed set shrinks/shifts with the parent, but still-valid picks should survive (e.g. Engineer's `workContexts`: when `devType` changes from `frontend` to `backend`, prune to the intersection with `CONTEXT_MAP.backend` rather than clearing the whole selection — a user who had `api` + `realtime` + `wasm` selected keeps `api` and `realtime`, loses only `wasm`).
+
+A field should use one or the other for a given parent change, not both. If both flags are set, clear wins (full wipe; prune is a no-op on an empty value).
 
 Two filterFn modes cover every case found:
 - subset — parent value picks a subset of one fixed, shared options list (Engineer's devType → CONTEXT_MAP → subset of WORK_CONTEXTS; Sales/PM's context filters work the same way).
@@ -132,5 +158,6 @@ The shared prompt-builder function reads phaseModel and branches its output-JSON
 1. dependsOn multi-parent — RESOLVED: yes — dependsOn: string | string[]. Finance's companySize depends on ["sector", "firmType"]. Deliberately not simplified away.
 2. PM's missing post-score localStorage save — RESOLVED: yes, fix during PM's migration (Step 10), flagged explicitly in that step's changelog as an intentional behavior change, not a silent side effect of shared code.
 3. clearOnParentChange — RESOLVED, schema corrected: it's per-parent, not per-field, and NOT universal. Finance's companySize (depends on sector AND firmType) only clears on firmType change — sector change does NOT clear it. Meanwhile role/seniority (single-parent, depend only on sector) DO clear on sector change. Schema changed from clearOnParentChange: boolean to clearOnParentChange: boolean | { [parentFieldId]: boolean } to preserve this asymmetry. Confirmed via EmployerFinance.jsx lines 493-497 (useEffect clearing companySize only on [firmType] dependency) vs. lines 2825-2828 (sector click handler clearing role/seniority directly).
+4. pruneOnParentChange — RESOLVED (follow-up): multiSelect fields like Engineer/Sales `workContexts` do not clear on parent change; they prune to the intersection with the newly allowed options. Added as a distinct boolean alongside clearOnParentChange. Clear and prune are mutually exclusive intents; if both are set, clear wins.
 
 Step 3 verification results (all other points): Sections 2 (steps), 3 (affinity three-state), 4 (dependency mechanism generally), and 5 (phaseModel) all CONFIRMED against live code with no changes needed. Full findings logged in CHANGELOG.md.
