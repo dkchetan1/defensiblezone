@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { getSeed, compAff, calcDZ } from "./EmployerApp.jsx";
 
 // ── constants ───────────────────────────────────────────────────────────
@@ -7,6 +7,7 @@ var GENERATE_MODEL = "claude-sonnet-4-6";
 var MAX_TOKENS_LANDSCAPE = 1000;
 var MAX_TOKENS_SCORING = 2000;
 var MAX_TOKENS_RECS = 2000;
+var FILE_MAX_BYTES = 5 * 1024 * 1024;
 
 // ── helpers ─────────────────────────────────────────────────────────────
 
@@ -30,7 +31,37 @@ function parentIdsOf(field) {
 function isEmptyIntakeValue(value) {
   if (value == null || value === "") return true;
   if (Array.isArray(value) && value.length === 0) return true;
+  if (typeof value === "string" && value.trim() === "") return true;
   return false;
+}
+
+/**
+ * visibleWhen: field is shown only when another field's current value === equals.
+ * Absent/null → always visible.
+ */
+function isFieldVisible(field, intakeValues) {
+  if (!field || field.visibleWhen == null) return true;
+  var vw = field.visibleWhen;
+  if (!vw || vw.field == null) return true;
+  var current = (intakeValues || {})[vw.field];
+  return current === vw.equals;
+}
+
+/**
+ * Generic canProceed: every field that is currently visible AND required must
+ * have a non-empty value. Matches EmployerEngineer.jsx's real canProceed
+ * pattern (required fields + conditional visibleWhen fields).
+ */
+function computeCanProceed(intake, intakeValues) {
+  var fields = intake || [];
+  var values = intakeValues || {};
+  for (var i = 0; i < fields.length; i++) {
+    var field = fields[i];
+    if (!isFieldVisible(field, values)) continue;
+    if (field.required !== true) continue;
+    if (isEmptyIntakeValue(values[field.id])) return false;
+  }
+  return true;
 }
 
 /**
@@ -189,6 +220,17 @@ function optionLabel(opt) {
   return String(opt);
 }
 
+/**
+ * Option.note — supplementary text alongside label. Available as data for
+ * profile/prompt assembly; callers choose formatting (e.g. "label — note").
+ * Engine does not hardcode a separator.
+ */
+function optionNote(opt) {
+  if (opt == null || typeof opt === "string" || typeof opt === "number") return "";
+  if (opt.note != null && String(opt.note).length > 0) return String(opt.note);
+  return "";
+}
+
 function fieldDisplayLabel(field, config) {
   if (!field) return "";
   if (field.label) return field.label;
@@ -199,29 +241,170 @@ function fieldDisplayLabel(field, config) {
 }
 
 /**
+ * Resolve selected option(s) to { id, label, note } records. note is threaded
+ * through so profile/prompt builders can format "label — note" (or any other
+ * join) without the engine hardcoding a separator. Falls back to scanning
+ * field.options when a selected id is outside the currently available subset
+ * (e.g. after expandable reveal).
+ */
+function resolveSelectedOptions(field, value, intakeValues) {
+  if (field == null || isEmptyIntakeValue(value)) return [];
+  if (field.type === "text" || field.type === "file") {
+    return [{ id: null, label: String(value), note: "" }];
+  }
+
+  var available = resolveAvailableOptions(field, intakeValues || {});
+  var full = Array.isArray(field.options) ? field.options : [];
+  var pool = available.slice();
+  full.forEach(function (opt) {
+    var key = optionKey(opt);
+    if (
+      !pool.some(function (existing) {
+        return optionKey(existing) === key;
+      })
+    ) {
+      pool.push(opt);
+    }
+  });
+
+  function resolveOne(id) {
+    var found = pool.find(function (opt) {
+      return optionKey(opt) === String(id);
+    });
+    if (found) {
+      return { id: optionKey(found), label: optionLabel(found), note: optionNote(found) };
+    }
+    return { id: String(id), label: String(id), note: "" };
+  }
+
+  if (field.type === "multiSelect" && Array.isArray(value)) {
+    return value.map(resolveOne);
+  }
+  return [resolveOne(value)];
+}
+
+/**
  * Resolve a stored intake value to a human-readable label using the field's
- * available options (or the raw text for text fields).
+ * available options (or the raw text for text/file fields). Labels only —
+ * use resolveSelectedOptions when note data is needed.
  */
 function resolveIntakeDisplayValue(field, value, intakeValues) {
   if (field == null || isEmptyIntakeValue(value)) return "";
-  if (field.type === "text") return String(value);
-  if (field.type === "multiSelect" && Array.isArray(value)) {
-    var multiOpts = resolveAvailableOptions(field, intakeValues || {});
-    return value
-      .map(function (id) {
-        var found = multiOpts.find(function (opt) {
-          return optionKey(opt) === String(id);
-        });
-        return found ? optionLabel(found) : String(id);
-      })
-      .filter(Boolean)
-      .join(", ");
-  }
-  var opts = resolveAvailableOptions(field, intakeValues || {});
-  var match = opts.find(function (opt) {
-    return optionKey(opt) === String(value);
+  if (field.type === "text" || field.type === "file") return String(value);
+  return resolveSelectedOptions(field, value, intakeValues)
+    .map(function (part) {
+      return part.label;
+    })
+    .filter(Boolean)
+    .join(", ");
+}
+
+/**
+ * File → base64 payload for /api/parse-resume (matches EmployerEngineer.jsx).
+ */
+function fileToBase64(file) {
+  return new Promise(function (resolve, reject) {
+    var reader = new FileReader();
+    reader.onload = function () {
+      var result = reader.result;
+      var comma = typeof result === "string" ? result.indexOf(",") : -1;
+      resolve(comma !== -1 ? result.slice(comma + 1) : "");
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
   });
-  return match ? optionLabel(match) : String(value);
+}
+
+/**
+ * Parse an uploaded file to text via /api/parse-resume — same approach as
+ * EmployerEngineer.jsx / EmployerFinance.jsx / EmployerUX.jsx resume upload.
+ * Returns { text, fileName } on success; throws Error with a user-facing message.
+ */
+async function parseFileToText(file) {
+  var lowerName = (file.name || "").toLowerCase();
+  var validExt = lowerName.endsWith(".pdf") || lowerName.endsWith(".docx");
+  if (!validExt) {
+    throw new Error("Only PDF and DOCX files are supported.");
+  }
+  if (file.size > FILE_MAX_BYTES) {
+    throw new Error("File is too large. Please upload a file under 5MB.");
+  }
+  var fileData = await fileToBase64(file);
+  var res = await fetch("/api/parse-resume", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      fileName: file.name,
+      fileData: fileData,
+      mimeType: file.type,
+    }),
+  });
+  var data = await res.json();
+  if (!data || data.success !== true) {
+    throw new Error(
+      (data && data.error) ||
+        "Something went wrong reading this file — you can continue without it, or try again."
+    );
+  }
+  if (data.extractable === false || !data.text || !String(data.text).trim()) {
+    throw new Error(
+      "We couldn't read text from this file — you can continue without it, or try a different file."
+    );
+  }
+  return { text: data.text, fileName: file.name };
+}
+
+/**
+ * Options shown for a multiSelect with expandable config.
+ * Collapsed: dependency-filtered available set.
+ * Expanded: full field.options (fallback to available if options is null).
+ */
+function resolveDisplayOptions(field, intakeValues, isExpanded) {
+  var available = resolveAvailableOptions(field, intakeValues || {});
+  var exp = field && field.expandable;
+  if (
+    !exp ||
+    !exp.enabled ||
+    field.type !== "multiSelect" ||
+    !isExpanded
+  ) {
+    return available;
+  }
+  if (Array.isArray(field.options) && field.options.length > 0) {
+    return field.options;
+  }
+  return available;
+}
+
+function expandableHiddenCount(field, intakeValues) {
+  if (!field || !field.expandable || !field.expandable.enabled) return 0;
+  if (!Array.isArray(field.options) || field.options.length === 0) return 0;
+  var available = resolveAvailableOptions(field, intakeValues || {});
+  var availableKeys = {};
+  available.forEach(function (opt) {
+    availableKeys[optionKey(opt)] = true;
+  });
+  var hidden = 0;
+  field.options.forEach(function (opt) {
+    if (!availableKeys[optionKey(opt)]) hidden += 1;
+  });
+  return hidden;
+}
+
+function formatExpandableTriggerLabel(field, hiddenCount) {
+  var exp = field && field.expandable;
+  var raw =
+    exp && exp.triggerLabel
+      ? exp.triggerLabel
+      : exp && exp.mode === "toggle"
+        ? "Show all"
+        : "+ Show {count} more";
+  return String(raw).replace(/\{count\}/g, String(hiddenCount));
+}
+
+function formatExpandableCollapseLabel(field) {
+  var exp = field && field.expandable;
+  return (exp && exp.collapseLabel) || "Show fewer";
 }
 
 function buildProfileLines(config, state) {
@@ -229,9 +412,21 @@ function buildProfileLines(config, state) {
   var values = (state && state.intakeValues) || {};
   var lines = [];
   intake.forEach(function (field) {
-    // Resume text is injected as its own block, not a profile bullet.
-    if (field.id === "resumeText" || field.id === "resume") return;
-    var display = resolveIntakeDisplayValue(field, values[field.id], values);
+    // Resume / file text is injected as its own block, not a profile bullet.
+    if (field.id === "resumeText" || field.id === "resume" || field.type === "file") {
+      return;
+    }
+    if (!isFieldVisible(field, values)) return;
+    // Prefer structured resolve so Option.note is available to callers that
+    // format label + note themselves; generic summary uses label only.
+    var parts = resolveSelectedOptions(field, values[field.id], values);
+    if (!parts.length) return;
+    var display = parts
+      .map(function (p) {
+        return p.label;
+      })
+      .filter(Boolean)
+      .join(", ");
     if (!display) return;
     lines.push("- " + fieldDisplayLabel(field, config) + ": " + display);
   });
@@ -898,6 +1093,11 @@ export default function EmployerEngine(props) {
   var [error, setError] = useState(null);
   var [recsLoading, setRecsLoading] = useState(false);
   var [recsError, setRecsError] = useState(null);
+  // multiSelect expandable UI: { [fieldId]: true } once revealed (oneWay) or toggled.
+  var [expandedFields, setExpandedFields] = useState({});
+  // file-type upload UI meta: { [fieldId]: { uploading, error, fileName } }
+  var [fileUploadState, setFileUploadState] = useState({});
+  var fileInputRefs = useRef({});
 
   var stepIndex = stepOrder.indexOf(currentStep);
   var stepCount = stepOrder.length;
@@ -912,6 +1112,13 @@ export default function EmployerEngine(props) {
         map[field.id] = resolveAvailableOptions(field, intakeValues);
       });
       return map;
+    },
+    [intakeFields, intakeValues]
+  );
+
+  var canProceed = useMemo(
+    function () {
+      return computeCanProceed(intakeFields, intakeValues);
     },
     [intakeFields, intakeValues]
   );
@@ -1040,6 +1247,79 @@ export default function EmployerEngine(props) {
 
   function getAvailableOptions(fieldId) {
     return availableOptionsByField[fieldId] || [];
+  }
+
+  function setFieldExpanded(fieldId, expanded) {
+    setExpandedFields(function (prev) {
+      var next = Object.assign({}, prev);
+      if (expanded) next[fieldId] = true;
+      else delete next[fieldId];
+      return next;
+    });
+  }
+
+  function clearFileInput(fieldId) {
+    var input = fileInputRefs.current[fieldId];
+    if (input) input.value = "";
+  }
+
+  function removeFileField(fieldId) {
+    setIntakeValue(fieldId, "");
+    setFileUploadState(function (prev) {
+      var next = Object.assign({}, prev);
+      next[fieldId] = { uploading: false, error: "", fileName: "" };
+      return next;
+    });
+    clearFileInput(fieldId);
+  }
+
+  async function handleFileFieldSelect(field, e) {
+    var file = e.target.files && e.target.files[0];
+    if (!file) return;
+    var fieldId = field.id;
+    setFileUploadState(function (prev) {
+      var next = Object.assign({}, prev);
+      next[fieldId] = { uploading: true, error: "", fileName: "" };
+      return next;
+    });
+    try {
+      if (field.parseAs !== "text") {
+        throw new Error("Unsupported file parseAs — only \"text\" is implemented.");
+      }
+      var parsed = await parseFileToText(file);
+      setIntakeValue(fieldId, parsed.text);
+      setFileUploadState(function (prev) {
+        var next = Object.assign({}, prev);
+        next[fieldId] = {
+          uploading: false,
+          error: "",
+          fileName: parsed.fileName,
+        };
+        return next;
+      });
+      clearFileInput(fieldId);
+    } catch (err) {
+      setIntakeValue(fieldId, "");
+      setFileUploadState(function (prev) {
+        var next = Object.assign({}, prev);
+        next[fieldId] = {
+          uploading: false,
+          error: (err && err.message) || "Something went wrong reading this file.",
+          fileName: "",
+        };
+        return next;
+      });
+      clearFileInput(fieldId);
+    }
+  }
+
+  function selectOption(field, key) {
+    var current = intakeValues[field.id];
+    if (field.allowDeselect === true && String(current) === String(key)) {
+      setIntakeValue(field.id, "");
+      return;
+    }
+    setIntakeValue(field.id, key);
   }
 
   // ── step navigation (by position in config.steps.order) ───────────────
@@ -1405,22 +1685,98 @@ export default function EmployerEngine(props) {
             <div>
               <p style={{ margin: "0 0 12px", fontWeight: 600 }}>Intake (skeleton)</p>
               {intakeFields.map(function (field) {
-                var opts = getAvailableOptions(field.id);
+                if (!isFieldVisible(field, intakeValues)) return null;
+
+                var isExpanded = !!expandedFields[field.id];
+                var opts =
+                  field.type === "multiSelect"
+                    ? resolveDisplayOptions(field, intakeValues, isExpanded)
+                    : getAvailableOptions(field.id);
                 var val = intakeValues[field.id];
                 var dep = field.dependsOn
                   ? Array.isArray(field.dependsOn)
                     ? field.dependsOn.join(", ")
                     : field.dependsOn
                   : "—";
+                var hiddenCount = expandableHiddenCount(field, intakeValues);
+                var exp = field.expandable;
+                var showExpandTrigger =
+                  field.type === "multiSelect" &&
+                  exp &&
+                  exp.enabled &&
+                  hiddenCount > 0 &&
+                  (exp.mode === "toggle" || !isExpanded);
+                var fileMeta = fileUploadState[field.id] || {};
+
                 return (
                   <div key={field.id} style={{ marginBottom: 14, fontSize: 14 }}>
                     <div style={{ marginBottom: 4 }}>
                       <strong>{field.id}</strong>{" "}
                       <span style={{ color: "#6b6b6b" }}>
-                        ({field.type}) · dependsOn: {dep} · {opts.length} options
+                        ({field.type}
+                        {field.required ? " · required" : ""}
+                        {field.visibleWhen
+                          ? " · visibleWhen: " +
+                            field.visibleWhen.field +
+                            "=" +
+                            JSON.stringify(field.visibleWhen.equals)
+                          : ""}
+                        ) · dependsOn: {dep} · {opts.length} options
                       </span>
                     </div>
-                    {field.type === "text" ? (
+                    {field.type === "file" ? (
+                      <div>
+                        {!isEmptyIntakeValue(val) ? (
+                          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                            <span style={{ color: "#15803d", fontWeight: 600 }}>
+                              ✓ {fileMeta.fileName || "Uploaded file"}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={function () {
+                                removeFileField(field.id);
+                              }}
+                              style={{
+                                background: "none",
+                                border: "none",
+                                padding: 0,
+                                cursor: "pointer",
+                                fontSize: 12,
+                                color: "#6b6b6b",
+                                textDecoration: "underline",
+                              }}
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        ) : (
+                          <div>
+                            <input
+                              ref={function (el) {
+                                fileInputRefs.current[field.id] = el;
+                              }}
+                              type="file"
+                              accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                              onChange={function (e) {
+                                handleFileFieldSelect(field, e);
+                              }}
+                              disabled={!!fileMeta.uploading}
+                              style={{ width: "100%", padding: 8, boxSizing: "border-box" }}
+                            />
+                            {fileMeta.uploading ? (
+                              <p style={{ color: "#6b6b6b", fontSize: 13, margin: "8px 0 0" }}>
+                                Reading your file…
+                              </p>
+                            ) : null}
+                          </div>
+                        )}
+                        {fileMeta.error ? (
+                          <p style={{ color: "#6b6b6b", fontSize: 13, margin: "8px 0 0" }}>
+                            {fileMeta.error}
+                          </p>
+                        ) : null}
+                      </div>
+                    ) : field.type === "text" ? (
                       <input
                         type="text"
                         value={val || ""}
@@ -1430,24 +1786,87 @@ export default function EmployerEngine(props) {
                         style={{ width: "100%", padding: 8, boxSizing: "border-box" }}
                       />
                     ) : field.type === "multiSelect" ? (
+                      <div>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                          {opts.map(function (opt) {
+                            var key = optionKey(opt);
+                            var selected =
+                              Array.isArray(val) && val.indexOf(key) !== -1;
+                            var note = optionNote(opt);
+                            return (
+                              <button
+                                key={key}
+                                type="button"
+                                title={note || undefined}
+                                onClick={function () {
+                                  var prev = Array.isArray(val) ? val : [];
+                                  var next =
+                                    prev.indexOf(key) !== -1
+                                      ? prev.filter(function (x) {
+                                          return x !== key;
+                                        })
+                                      : prev.concat([key]);
+                                  setIntakeValue(field.id, next);
+                                }}
+                                style={{
+                                  padding: "4px 10px",
+                                  borderRadius: 4,
+                                  border: selected
+                                    ? "1px solid #b8860b"
+                                    : "1px solid #ddd",
+                                  background: selected ? "#b8860b22" : "#fafafa",
+                                  cursor: "pointer",
+                                  fontSize: 12,
+                                }}
+                              >
+                                {optionLabel(opt)}
+                              </button>
+                            );
+                          })}
+                          {opts.length === 0 ? (
+                            <span style={{ color: "#999" }}>No options yet</span>
+                          ) : null}
+                        </div>
+                        {showExpandTrigger ? (
+                          <button
+                            type="button"
+                            onClick={function () {
+                              if (exp.mode === "toggle" && isExpanded) {
+                                setFieldExpanded(field.id, false);
+                              } else {
+                                setFieldExpanded(field.id, true);
+                              }
+                            }}
+                            style={{
+                              marginTop: 8,
+                              background: "none",
+                              border: "1px dashed #ccc",
+                              borderRadius: 16,
+                              padding: "4px 12px",
+                              cursor: "pointer",
+                              fontSize: 12,
+                              color: "#6b6b6b",
+                            }}
+                          >
+                            {exp.mode === "toggle" && isExpanded
+                              ? formatExpandableCollapseLabel(field)
+                              : formatExpandableTriggerLabel(field, hiddenCount)}
+                          </button>
+                        ) : null}
+                      </div>
+                    ) : (
                       <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                         {opts.map(function (opt) {
                           var key = optionKey(opt);
-                          var selected =
-                            Array.isArray(val) && val.indexOf(key) !== -1;
+                          var selected = String(val) === String(key);
+                          var note = optionNote(opt);
                           return (
                             <button
                               key={key}
                               type="button"
+                              title={note || undefined}
                               onClick={function () {
-                                var prev = Array.isArray(val) ? val : [];
-                                var next =
-                                  prev.indexOf(key) !== -1
-                                    ? prev.filter(function (x) {
-                                        return x !== key;
-                                      })
-                                    : prev.concat([key]);
-                                setIntakeValue(field.id, next);
+                                selectOption(field, key);
                               }}
                               style={{
                                 padding: "4px 10px",
@@ -1458,9 +1877,15 @@ export default function EmployerEngine(props) {
                                 background: selected ? "#b8860b22" : "#fafafa",
                                 cursor: "pointer",
                                 fontSize: 12,
+                                textAlign: "left",
                               }}
                             >
                               {optionLabel(opt)}
+                              {note ? (
+                                <span style={{ display: "block", opacity: 0.55, marginTop: 2 }}>
+                                  {note}
+                                </span>
+                              ) : null}
                             </button>
                           );
                         })}
@@ -1468,28 +1893,13 @@ export default function EmployerEngine(props) {
                           <span style={{ color: "#999" }}>No options yet</span>
                         ) : null}
                       </div>
-                    ) : (
-                      <select
-                        value={val || ""}
-                        onChange={function (e) {
-                          setIntakeValue(field.id, e.target.value);
-                        }}
-                        style={{ width: "100%", padding: 8 }}
-                      >
-                        <option value="">— select —</option>
-                        {opts.map(function (opt) {
-                          var key = optionKey(opt);
-                          return (
-                            <option key={key} value={key}>
-                              {optionLabel(opt)}
-                            </option>
-                          );
-                        })}
-                      </select>
                     )}
                   </div>
                 );
               })}
+              <p style={{ margin: "12px 0 0", fontSize: 13, color: "#6b6b6b" }}>
+                canProceed: {canProceed ? "yes" : "no"}
+              </p>
             </div>
           ) : null}
 
@@ -1678,15 +2088,20 @@ export default function EmployerEngine(props) {
           <button
             type="button"
             onClick={goNext}
-            disabled={isLastStep}
+            disabled={isLastStep || (currentStep === "intake" && !canProceed)}
             style={{
               flex: 2,
               padding: "12px 0",
               borderRadius: 8,
               border: "1px solid #b8860b",
-              background: isLastStep ? "#eee" : "#b8860b",
-              color: isLastStep ? "#999" : "#fff",
-              cursor: isLastStep ? "not-allowed" : "pointer",
+              background:
+                isLastStep || (currentStep === "intake" && !canProceed) ? "#eee" : "#b8860b",
+              color:
+                isLastStep || (currentStep === "intake" && !canProceed) ? "#999" : "#fff",
+              cursor:
+                isLastStep || (currentStep === "intake" && !canProceed)
+                  ? "not-allowed"
+                  : "pointer",
               fontSize: 14,
               fontWeight: 600,
             }}
@@ -1716,4 +2131,13 @@ export {
   applyCustomTaskTemplate,
   buildCustomTemplatePlaceholders,
   CUSTOM_TASK_TEMPLATE_PLACEHOLDERS,
+  isFieldVisible,
+  computeCanProceed,
+  optionLabel,
+  optionNote,
+  resolveSelectedOptions,
+  resolveIntakeDisplayValue,
+  resolveDisplayOptions,
+  expandableHiddenCount,
+  parseFileToText,
 };

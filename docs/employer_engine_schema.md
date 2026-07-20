@@ -64,9 +64,29 @@ The engine drives navigation by position in order, not by raw numbers — so UX'
 "Flat vs. cascading" is not a binary. Every role has at least one dependent field. The difference is only how many dependency links exist (Engineer/PM: 1, Sales/UX: 2, Finance: 4). So there's one mechanism, used a different number of times per role.
 
 ```
+Option = {
+  id: string,
+  label: string,
+  note?: string,                     // Supplementary text alongside the label. Live prompts
+                                      // use this (e.g. Engineer's seniority: "label — note" in
+                                      // scoring/landscape prompts, not just label). Without
+                                      // note on Option the data has nowhere to live and would
+                                      // be silently dropped during migration. The engine makes
+                                      // note available as data; it does NOT hardcode a
+                                      // separator — role prompts / customTaskTemplate decide
+                                      // how to format label + note.
+}
+
 IntakeFieldConfig = {
   id: string,                        // e.g. "seniority"
-  type: "select" | "multiSelect" | "text",
+  type: "select" | "multiSelect" | "text" | "file",
+                                      // "file" = upload control. When type is "file", see
+                                      // parseAs below. Do not put full upload/parsing
+                                      // mechanism in config — only the type marker; actual
+                                      // parsing lives in engine code.
+  parseAs?: "text",                  // Only meaningful when type === "file". "text" means
+                                      // parse the uploaded file to text after upload
+                                      // (e.g. Engineer's resume PDF/DOCX → text for prompts).
   options: Option[] | null,          // null if options come only from dependency below
   dependsOn: string | string[] | null,  // id(s) of parent field(s); null if independent.
                                          // Array form exists because Finance's companySize
@@ -91,6 +111,38 @@ IntakeFieldConfig = {
                                       // { sector: false, firmType: true }
   pruneOnParentChange: boolean,       // Distinct from clearOnParentChange — see below.
                                       // Only meaningful for multiSelect fields.
+  visibleWhen?: { field: string, equals: any } | null,
+                                      // Field is only shown/required when another field equals
+                                      // a specific value. e.g. Engineer's devTypeOther is only
+                                      // visible when devType === "other". If null/absent,
+                                      // field is always visible.
+  required: boolean,                  // Whether the field must have a value before the user
+                                      // can proceed. Combined with visibleWhen, a generic
+                                      // canProceed check becomes: all fields where
+                                      // (visibleWhen is absent OR its condition is currently
+                                      // true) AND required must have a non-empty value.
+                                      // Verified against EmployerEngineer.jsx's real
+                                      // canProceed logic — it reduces to exactly this pattern.
+  allowDeselect: boolean,             // Whether a select-type field can be clicked again to
+                                      // clear its selection (vs. always requiring a different
+                                      // option to change it). e.g. Engineer's companyType
+                                      // allows click-to-deselect.
+  expandable?: {
+    enabled: boolean,
+    mode: "oneWay" | "toggle",
+    triggerLabel?: string,            // e.g. "+ Show {count} more" — {count} substituted
+    collapseLabel?: string,           // toggle mode only; e.g. "Show fewer areas"
+  },
+                                      // For multiSelect fields that reveal additional options
+                                      // beyond an initial filtered subset. This is per-field
+                                      // config, NOT an engine default — live roles vary:
+                                      //   Finance: no such pattern at all.
+                                      //   Engineer/Sales/PM: one-way reveal (click "+ Show N
+                                      //     more", stays expanded, no collapse) on workContexts.
+                                      //   UX: genuine two-way toggle ("Show all areas" /
+                                      //     "Show fewer areas") on workFocus (a different
+                                      //     field than the others use).
+                                      // That variance is why expandable lives on the field.
 }
 ```
 
