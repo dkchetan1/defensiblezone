@@ -2,6 +2,18 @@
 
 This file tracks notable changes to the Employer Edition and related app.defensiblezone.ai work. Newest entries at the top.
 
+## 2026-07-20 — Engine consolidation: Engineer RoleCopyConfig (Step 5 complete)
+
+Filled `EngineerConfig.js` `copy` (RoleCopyConfig) with verbatim UI-only strings from live `EmployerEngineer.jsx` — edition chrome, intake field labels / helpers / CTAs / nudges / resume errors, skills + affinity + gate + results headings/buttons/helpers, phase action-plan labels/framings, loading messages. Includes `profileHeader: "ENGINEER PROFILE"` and `fieldLabels` map (what EmployerEngine already reads). Schema still leaves RoleCopyConfig loosely defined; shape judged from engine needs + live UI. Completes Step 5 (Migrate Engineer — write EngineerConfig). Uncommitted pending review. Next: Step 6 (swap Engineer's live route to render through EmployerEngine).
+
+## 2026-07-20 — Engine consolidation: Engineer PromptConfig + maxSelections (Step 5b)
+
+Wrote `EngineerConfig.js` `prompts` with `customTaskTemplate` ×3 stages transcribed verbatim from live `EmployerEngineer.jsx` (`fetchLandscapeAndSkills` / `runAnalysis` / `fetchRecommendations`). Iterative exactness fixes added fine-grained placeholder tokens (`seniorityLabel`, `seniorityNote`, `devTypeLabel`, `workContextsText`, `companyLabel`, `companyTypeContextPhrase`) plus `{{#resumeText}}…{{/resumeText}}` conditional; schema + EmployerEngine substitution updated to match. Also set `phaseDefinition` (weekBucketed, 3 phases with blurbs, maxPerPhase 4, targetDistribution [3,3,2]) and scoring `responseShape` (requiredKeys: skills; optionalKeys: benchmark). Separately: added `maxSelections` to IntakeFieldConfig schema + EmployerEngine.jsx Finance-style click-limit disable (unselected options disabled at cap). Uncommitted pending review (builds on structural Step 5a `b8530e5`).
+
+## 2026-07-20 — Engine consolidation: EngineerConfig structural fields (Step 5a)
+
+Added `src/EngineerConfig.js` with Engineer RoleConfig structural fields only: `roleId`, `localStorageKey` (`dz_saved_report_engineer`), `steps` (intake → skills → affinity → gate → results), full `intake` (devType / devTypeOther / seniority / workContexts with CONTEXT_MAP subset + pruneOnParentChange / companyType / resumeText), `affinity.mode: "global"`. `prompts` and `copy` left as placeholders for later sub-steps. Nothing imports the file yet; live `EmployerEngineer.jsx` untouched. Committed as `b8530e5`.
+
 ## 2026-07-20 — Engine consolidation: customTaskTemplate placeholder substitution
 
 Follow-up to Step 4c. customTaskTemplate is no longer fully static: supported {{…}} tokens are string-substituted with live per-user data at request time; all other template text is preserved exactly (not a second generic-assembly pass). Tokens: {{profileSummary}}, {{skillsList}}, {{fluencyData}}, {{affinityData}}, {{resumeText}}. Unknown tokens left unchanged. Schema docs updated to match.

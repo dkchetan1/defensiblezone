@@ -143,6 +143,12 @@ IntakeFieldConfig = {
                                       //     "Show fewer areas") on workFocus (a different
                                       //     field than the others use).
                                       // That variance is why expandable lives on the field.
+  maxSelections?: number | null,      // For multiSelect fields, caps how many options can
+                                      // be actively selected at once (a click-time selection
+                                      // limit, separate from required/visibleWhen proceed
+                                      // checks). e.g. Finance and UX cap certain multiSelect
+                                      // fields at a max of 4 selections. null/absent means
+                                      // no cap.
 }
 ```
 
@@ -200,7 +206,25 @@ PromptConfig = {
       //                          names at scoring; scored summary at recommendations)
       //   {{fluencyData}}      — per-skill fluency scores (meaningful at scoring/recs)
       //   {{affinityData}}     — conscience/pull or skillConscience/skillPull
+      //                          (global + skills: per-skill lines with fluency +
+      //                          composite, matching live Engineer affinityList)
       //   {{resumeText}}       — truncated resume text when present (often landscape)
+      // Fine-grained intake tokens (same stages as profileSummary — after intake):
+      //   {{seniorityLabel}}   — selected seniority option label (e.g. "Senior")
+      //   {{seniorityNote}}    — selected seniority option note (Option.note), or ""
+      //   {{devTypeLabel}}     — selected devType label; when id is "other", the
+      //                          free-text other value (or "Engineer" if empty)
+      //   {{workContextsText}} — selected workContexts labels joined ", "
+      //                          (exact live Engineer join format)
+      //   {{companyLabel}}     — selected companyType label, or "not specified"
+      //                          when unset (live profile / recommendations fallback)
+      //   {{companyTypeContextPhrase}} — for live market_demand phrasing: selected
+      //                          companyType label when set (same plain label as
+      //                          companyLabel), or "this company type" when unset
+      // Conditional sections (optional):
+      //   {{#resumeText}}...{{/resumeText}} — entire block omitted when resumeText
+      //                          is empty (live omits resume framing, not just the
+      //                          body). Inner {{resumeText}} still substitutes.
       // If a role's template needs a placeholder not listed here, add it to this
       // list rather than inventing an unlisted token silently.
   },
@@ -244,7 +268,7 @@ PromptConfig = {
 
 The shared prompt-builder function reads phaseModel and branches its output-JSON-shape instructions accordingly — one function, three prompt shapes, not three functions. "none" means the builder omits phase instructions and the output schema entirely, matching Finance's real behavior instead of forcing a phase system on a role that never had one.
 
-`customTaskTemplate` is available independently on landscape, scoring, and recommendations. When set for a stage, that stage's generic assembly fields are ignored entirely (no merge). The template string is preserved exactly except for `{{…}}` placeholder tokens, which are string-substituted with live per-user data at request time. Unknown tokens are left unchanged.
+`customTaskTemplate` is available independently on landscape, scoring, and recommendations. When set for a stage, that stage's generic assembly fields are ignored entirely (no merge). The template string is preserved exactly except for `{{…}}` placeholder tokens, which are string-substituted with live per-user data at request time. Unknown tokens are left unchanged. Fine-grained tokens (`seniorityLabel`, `seniorityNote`, `devTypeLabel`, `workContextsText`, `companyLabel`, `companyTypeContextPhrase`) carry exact live intake values with no engine-side paraphrasing — use them for mid-sentence interpolations that `{{profileSummary}}` cannot reconstruct. `{{#resumeText}}…{{/resumeText}}` drops the whole section when no resume was uploaded.
 
 ## 6. Schema review outcomes (Step 3, verified against live files 2026-07-19)
 

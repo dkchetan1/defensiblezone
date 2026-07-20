@@ -458,7 +458,101 @@ var CUSTOM_TASK_TEMPLATE_PLACEHOLDERS = [
   "fluencyData",
   "affinityData",
   "resumeText",
+  "seniorityLabel",
+  "seniorityNote",
+  "devTypeLabel",
+  "workContextsText",
+  "companyLabel",
+  "companyTypeContextPhrase",
 ];
+
+function findIntakeField(config, fieldId) {
+  var intake = (config && config.intake) || [];
+  for (var i = 0; i < intake.length; i++) {
+    if (intake[i] && intake[i].id === fieldId) return intake[i];
+  }
+  return null;
+}
+
+/**
+ * Fine-grained intake tokens for mid-sentence interpolations.
+ * Exact live values — no engine-side reformatting beyond label lookup / join.
+ * Available after intake (same stages as profileSummary).
+ */
+function resolveFineGrainedIntakeTokens(config, state) {
+  var values = (state && state.intakeValues) || {};
+
+  var seniorityField = findIntakeField(config, "seniority");
+  var seniorityParts = seniorityField
+    ? resolveSelectedOptions(seniorityField, values.seniority, values)
+    : [];
+  var seniorityLabel =
+    seniorityParts.length && seniorityParts[0].label
+      ? seniorityParts[0].label
+      : values.seniority
+        ? String(values.seniority)
+        : "";
+  var seniorityNote =
+    seniorityParts.length && seniorityParts[0].note
+      ? seniorityParts[0].note
+      : "";
+
+  // Live EmployerEngineer: other → free-text (or "Engineer"), else option label.
+  var devTypeId = values.devType != null ? String(values.devType) : "";
+  var devTypeLabel = "";
+  if (devTypeId === "other") {
+    // Live: devTypeOther || "Engineer" (no trim)
+    var otherText =
+      values.devTypeOther != null ? String(values.devTypeOther) : "";
+    devTypeLabel = otherText || "Engineer";
+  } else if (devTypeId) {
+    var devTypeField = findIntakeField(config, "devType");
+    var devParts = devTypeField
+      ? resolveSelectedOptions(devTypeField, values.devType, values)
+      : [];
+    devTypeLabel =
+      devParts.length && devParts[0].label
+        ? devParts[0].label
+        : String(devTypeId);
+  }
+
+  // Live: workContextLabels.join(", ")
+  var workContextsField = findIntakeField(config, "workContexts");
+  var workParts = workContextsField
+    ? resolveSelectedOptions(workContextsField, values.workContexts, values)
+    : [];
+  var workContextsText = workParts
+    .map(function (p) {
+      return p.label;
+    })
+    .filter(Boolean)
+    .join(", ");
+
+  // Live profile/recs: companyLabel || "not specified"
+  // Live market_demand: companyLabel || "this company type" (same plain label
+  // when set — profile.companyLabel is ct.label, not a different phrasing)
+  var companyField = findIntakeField(config, "companyType");
+  var companyParts = companyField
+    ? resolveSelectedOptions(companyField, values.companyType, values)
+    : [];
+  var companyRaw =
+    companyParts.length && companyParts[0].label
+      ? companyParts[0].label
+      : values.companyType
+        ? String(values.companyType)
+        : "";
+  var companyLabel = companyRaw || "not specified";
+  var companyTypeContextPhrase = companyRaw || "this company type";
+
+  return {
+    seniorityLabel: seniorityLabel,
+    seniorityNote: seniorityNote,
+    devTypeLabel: devTypeLabel,
+    workContextsText: workContextsText,
+    companyLabel: companyLabel,
+    companyTypeContextPhrase: companyTypeContextPhrase,
+  };
+}
 
 function formatSkillsNamesList(skills) {
   if (!skills || !skills.length) return "";
@@ -469,38 +563,69 @@ function formatSkillsNamesList(skills) {
     .join("\n");
 }
 
-function formatScoredSkillsList(scoredSkills) {
-  if (!scoredSkills || !scoredSkills.length) return "";
-  return scoredSkills
-    .map(function (sk, i) {
+/**
+ * Recommendations skills list — match live EmployerEngineer.fetchRecommendations:
+ * iterate user skills in order, look up scores, no [id] / DZ suffix.
+ * "N. skill (AI Risk: X/10, Market Demand: Y/10)"
+ */
+function formatScoredSkillsList(skills, scoredSkills) {
+  var list = skills && skills.length ? skills : [];
+  var scored = scoredSkills || [];
+  if (!list.length && scored.length) {
+    // Fallback when skills state missing — still no [id]/DZ.
+    return scored
+      .map(function (sk, i) {
+        var aiR =
+          typeof sk.ai_replaceability === "number"
+            ? sk.ai_replaceability
+            : typeof sk.aiR === "number"
+              ? sk.aiR
+              : 5;
+        var market =
+          typeof sk.market_demand === "number"
+            ? sk.market_demand
+            : typeof sk.market === "number"
+              ? sk.market
+              : 7;
+        var name = sk.text || sk.name || "Skill " + (i + 1);
+        return (
+          i +
+          1 +
+          ". " +
+          name +
+          " (AI Risk: " +
+          aiR +
+          "/10, Market Demand: " +
+          market +
+          "/10)"
+        );
+      })
+      .join("\n");
+  }
+  if (!list.length) return "";
+  return list
+    .map(function (s, i) {
+      var scoredRow = scored.find(function (r) {
+        return r.id === s.id || r.name === s.text || r.text === s.text;
+      });
       var aiR =
-        typeof sk.ai_replaceability === "number"
-          ? sk.ai_replaceability
-          : typeof sk.aiR === "number"
-            ? sk.aiR
-            : 5;
+        scoredRow && typeof scoredRow.ai_replaceability === "number"
+          ? scoredRow.ai_replaceability
+          : 5;
       var market =
-        typeof sk.market_demand === "number"
-          ? sk.market_demand
-          : typeof sk.market === "number"
-            ? sk.market
-            : 7;
-      var name = sk.text || sk.name || "Skill " + (i + 1);
-      var dzPart = typeof sk.dz === "number" ? ", DZ: " + sk.dz : "";
+        scoredRow && typeof scoredRow.market_demand === "number"
+          ? scoredRow.market_demand
+          : 7;
       return (
         i +
         1 +
-        ". [" +
-        (sk.id || "s" + i) +
-        "] " +
-        name +
+        ". " +
+        (s.text || s.name || "Skill " + (i + 1)) +
         " (AI Risk: " +
         aiR +
         "/10, Market Demand: " +
         market +
-        "/10" +
-        dzPart +
-        ")"
+        "/10)"
       );
     })
     .join("\n");
@@ -525,10 +650,39 @@ function formatAffinityData(state) {
   var conscience = state && state.conscience != null ? state.conscience : 5;
   var pull = state && state.pull != null ? state.pull : 5;
   var isPerSkill = state && state.affinityMode === "perSkill";
-  if (!isPerSkill) {
-    return "conscience: " + conscience + "/10, pull: " + pull + "/10";
-  }
   var skills = (state && state.skills) || [];
+  var fluencies = (state && state.fluencies) || {};
+
+  // Global + skills: match live EmployerEngineer affinityList (per-skill lines
+  // with global conscience/pull, per-skill fluency, and compAff composite).
+  if (!isPerSkill) {
+    if (!skills.length) {
+      return "conscience: " + conscience + "/10, pull: " + pull + "/10";
+    }
+    return skills
+      .map(function (s) {
+        var fluencyVal =
+          fluencies[s.id] !== undefined
+            ? fluencies[s.id]
+            : getSeed(conscience, pull);
+        var w = compAff(conscience, pull, fluencyVal);
+        return (
+          '"' +
+          s.text +
+          '": conscience=' +
+          conscience +
+          "/10, pull=" +
+          pull +
+          "/10, fluency=" +
+          fluencyVal +
+          "/10, composite=" +
+          w +
+          "/10"
+        );
+      })
+      .join("\n");
+  }
+
   var skillConscience = (state && state.skillConscience) || {};
   var skillPull = (state && state.skillPull) || {};
   if (!skills.length) {
@@ -561,6 +715,7 @@ function buildCustomTemplatePlaceholders(kind, config, state) {
   var profileSummary = profileLines || "";
   var resumeRaw = getResumeText(state);
   var resumeText = resumeRaw ? truncateResume(resumeRaw) : "";
+  var fine = resolveFineGrainedIntakeTokens(config, state);
 
   var skillsList = "";
   if (kind === "landscape") {
@@ -573,7 +728,7 @@ function buildCustomTemplatePlaceholders(kind, config, state) {
       (state && state.results && state.results.skills) ||
       (state && Array.isArray(state.results) ? state.results : []) ||
       [];
-    skillsList = formatScoredSkillsList(scored);
+    skillsList = formatScoredSkillsList((state && state.skills) || [], scored);
     if (!skillsList) {
       skillsList = formatSkillsNamesList((state && state.skills) || []);
     }
@@ -592,6 +747,12 @@ function buildCustomTemplatePlaceholders(kind, config, state) {
     fluencyData: fluencyData,
     affinityData: affinityData,
     resumeText: resumeText,
+    seniorityLabel: fine.seniorityLabel,
+    seniorityNote: fine.seniorityNote,
+    devTypeLabel: fine.devTypeLabel,
+    workContextsText: fine.workContextsText,
+    companyLabel: fine.companyLabel,
+    companyTypeContextPhrase: fine.companyTypeContextPhrase,
   };
 }
 
@@ -599,11 +760,25 @@ function buildCustomTemplatePlaceholders(kind, config, state) {
  * Substitute {{token}} placeholders in a customTaskTemplate.
  * Only known tokens are replaced; everything else in the string is preserved
  * exactly (including unknown {{tokens}}, which are left as-is).
+ *
+ * Conditional blocks: {{#name}}...{{/name}} — when the named token is empty,
+ * the entire block is omitted (used for resume framing that live skips when
+ * no resume was uploaded).
  */
 function applyCustomTaskTemplate(template, kind, config, state) {
   if (!template) return template;
   var values = buildCustomTemplatePlaceholders(kind, config, state);
-  return String(template).replace(/\{\{(\w+)\}\}/g, function (_match, name) {
+  var out = String(template);
+  out = out.replace(
+    /\{\{#(\w+)\}\}([\s\S]*?)\{\{\/\1\}\}/g,
+    function (_match, name, inner) {
+      if (!Object.prototype.hasOwnProperty.call(values, name)) return _match;
+      var v = values[name];
+      if (v == null || String(v) === "") return "";
+      return inner;
+    }
+  );
+  return out.replace(/\{\{(\w+)\}\}/g, function (_match, name) {
     if (Object.prototype.hasOwnProperty.call(values, name)) {
       var v = values[name];
       return v == null ? "" : String(v);
@@ -783,7 +958,10 @@ function buildPhaseInstructions(recCfg) {
  * If config.prompts[kind].customTaskTemplate is set, that string is used with
  * {{placeholder}} substitution only — generic assembly fields for that stage
  * are ignored (no merge). Supported tokens: {{profileSummary}}, {{skillsList}},
- * {{fluencyData}}, {{affinityData}}, {{resumeText}}.
+ * {{fluencyData}}, {{affinityData}}, {{resumeText}}, {{seniorityLabel}},
+ * {{seniorityNote}}, {{devTypeLabel}}, {{workContextsText}}, {{companyLabel}},
+ * {{companyTypeContextPhrase}}.
+ * Conditional: {{#resumeText}}...{{/resumeText}} omitted when resume empty.
  *
  * config.extensions is pass-through data available here and on state.extensions
  * when called from the engine; the generic builder does not interpret it.
@@ -1793,20 +1971,42 @@ export default function EmployerEngine(props) {
                             var selected =
                               Array.isArray(val) && val.indexOf(key) !== -1;
                             var note = optionNote(opt);
+                            // maxSelections: Finance-style click cap — unselected options
+                            // go disabled (opacity + not-allowed) and clicks are ignored.
+                            var cap =
+                              field.maxSelections != null &&
+                              field.maxSelections > 0
+                                ? field.maxSelections
+                                : null;
+                            var atCap =
+                              cap != null &&
+                              Array.isArray(val) &&
+                              val.length >= cap;
+                            var cappedOut = !selected && atCap;
                             return (
                               <button
                                 key={key}
                                 type="button"
                                 title={note || undefined}
+                                disabled={cappedOut}
                                 onClick={function () {
                                   var prev = Array.isArray(val) ? val : [];
-                                  var next =
-                                    prev.indexOf(key) !== -1
-                                      ? prev.filter(function (x) {
-                                          return x !== key;
-                                        })
-                                      : prev.concat([key]);
-                                  setIntakeValue(field.id, next);
+                                  if (prev.indexOf(key) !== -1) {
+                                    setIntakeValue(
+                                      field.id,
+                                      prev.filter(function (x) {
+                                        return x !== key;
+                                      })
+                                    );
+                                    return;
+                                  }
+                                  if (
+                                    cap != null &&
+                                    prev.length >= cap
+                                  ) {
+                                    return;
+                                  }
+                                  setIntakeValue(field.id, prev.concat([key]));
                                 }}
                                 style={{
                                   padding: "4px 10px",
@@ -1815,7 +2015,10 @@ export default function EmployerEngine(props) {
                                     ? "1px solid #b8860b"
                                     : "1px solid #ddd",
                                   background: selected ? "#b8860b22" : "#fafafa",
-                                  cursor: "pointer",
+                                  cursor: cappedOut
+                                    ? "not-allowed"
+                                    : "pointer",
+                                  opacity: cappedOut ? 0.4 : 1,
                                   fontSize: 12,
                                 }}
                               >
