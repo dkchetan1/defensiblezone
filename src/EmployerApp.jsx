@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { grantEmployerAccess, isEmployerAccessGranted } from "./EmployerEdition.js";
-import EmployerEngineer from "./EmployerEngineer.jsx";
+import EmployerEngine from "./EmployerEngine.jsx";
+import EngineerConfig from "./EngineerConfig.js";
 import EmployerProductManager from "./EmployerProductManager.jsx";
 import EmployerSales from "./EmployerSales.jsx";
 import EmployerUX from "./EmployerUX.jsx";
@@ -126,7 +127,7 @@ export default function EmployerApp() {
       </div>
 
       {screen === "flow" && selectedRole === "Software Engineer" ? (
-        <EmployerEngineer />
+        <EmployerEngine config={EngineerConfig} />
       ) : screen === "flow" && selectedRole === "Product Manager" ? (
         <EmployerProductManager />
       ) : screen === "flow" && selectedRole === "Sales Professional" ? (

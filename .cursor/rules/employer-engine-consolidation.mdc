@@ -1,0 +1,31 @@
+---
+description: Employer Edition engine consolidation — scope, state, and constraints across migration sessions
+alwaysApply: true
+---
+
+# Employer Engine Consolidation
+
+## Scope boundary
+- Employer Edition only. Do **not** touch B2C role files (`Engineer.jsx`, `Sales.jsx`, etc.) or their API endpoints.
+- Migrate one role at a time. Do not change Sales, Finance, PM, or UX routes/files until that role’s migration step.
+
+## Architecture
+- Shared UI/logic: `src/EmployerEngine.jsx` (takes `config` prop).
+- Per-role config: `src/{Role}Config.js` (e.g. `EngineerConfig.js`).
+- Live role files (`EmployerEngineer.jsx`, etc.) stay on disk untouched after swap so revert is import/render-only.
+
+## Engineer mount points (both must stay in sync)
+1. `src/EmployerApp.jsx` — role picker flow when `selectedRole === "Software Engineer"`.
+2. `src/App.jsx` — direct route `/employer/engineer`.
+
+## Current state (Step 6)
+- Engineer live route swapped to `<EmployerEngine config={EngineerConfig} />` in both mount points.
+- `EmployerEngineer.jsx` left intact on disk (not imported by live routes).
+- Steps 5a–5c (EngineerConfig) and Step 6 may be uncommitted pending GitHub Desktop review — do **not** commit unless explicitly asked.
+
+## Next
+- Step 7: manual verification of Engineer flow through EmployerEngine.
+- Later: migrate remaining roles (Sales, Finance, PM, UX) the same way — config first, then import/render swap only.
+
+## Revert
+To restore old Engineer UI: revert only the import/render changes in `App.jsx` + `EmployerApp.jsx`; `EmployerEngineer.jsx` remains available unchanged.
