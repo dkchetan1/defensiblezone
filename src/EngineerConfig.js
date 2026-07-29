@@ -23,6 +23,7 @@ var EngineerConfig = {
     {
       id: "devType",
       type: "select",
+      required: true,
       options: [
         { id: "frontend", label: "Frontend", desc: "UI, browser, user-facing" },
         { id: "backend", label: "Backend", desc: "APIs, servers, databases" },
@@ -48,10 +49,11 @@ var EngineerConfig = {
     },
 
     // ── devTypeOther (text shown when devType === "other"; required then) ─
-    // Schema has no showWhen / visibleWhen — see report flags.
     {
       id: "devTypeOther",
       type: "text",
+      required: true,
+      visibleWhen: { field: "devType", equals: "other" },
       options: null,
       dependsOn: null,
       filterFn: null,
@@ -64,6 +66,7 @@ var EngineerConfig = {
     {
       id: "seniority",
       type: "select",
+      required: true,
       options: [
         { id: "junior", label: "Junior", sub: "0 – 2 yrs", note: "Execution, guided tasks" },
         { id: "mid", label: "Mid-level", sub: "2 – 5 yrs", note: "Owns features end-to-end" },
@@ -85,6 +88,12 @@ var EngineerConfig = {
     {
       id: "workContexts",
       type: "multiSelect",
+      required: true,
+      expandable: {
+        enabled: true,
+        mode: "oneWay",
+        triggerLabel: "+ Show {count} more contexts",
+      },
       options: [
         { id: "crud", label: "CRUD / Standard Web Apps" },
         { id: "distributed", label: "Distributed Systems & Microservices" },
@@ -131,6 +140,7 @@ var EngineerConfig = {
     {
       id: "companyType",
       type: "select",
+      allowDeselect: true,
       options: [
         { id: "early", label: "Early-stage Startup", sub: "< 50 people" },
         { id: "growth", label: "Growth Startup", sub: "50 – 500 people" },
@@ -147,12 +157,12 @@ var EngineerConfig = {
       pruneOnParentChange: false,
     },
 
-    // ── resumeText — optional; collected on intake step via file upload ──
-    // Stored as plain text after parse. Schema type is "text" only — UI is
-    // file upload (.pdf/.docx), not a text input. See report flags.
+    // ── resumeText — optional; collected on intake via PDF/DOCX upload ──
+    // Stored as plain text after /api/parse-resume.
     {
       id: "resumeText",
-      type: "text",
+      type: "file",
+      parseAs: "text",
       options: null,
       dependsOn: null,
       filterFn: null,

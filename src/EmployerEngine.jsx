@@ -1,5 +1,19 @@
 import { useState, useEffect, useMemo, useRef } from "react";
-import { getSeed, compAff, calcDZ } from "./EmployerApp.jsx";
+import {
+  S,
+  Card,
+  Label,
+  PrimaryBtn,
+  SelBtn,
+  Chip,
+  snapToStop,
+  AFFINITY_STOPS,
+  getSeed,
+  compAff,
+  calcDZ,
+  isValidEmail,
+} from "./EmployerApp.jsx";
+import { isEmployerAccessGranted } from "./EmployerEdition.js";
 
 // ── constants ───────────────────────────────────────────────────────────
 var SAVE_TTL_MS = 14 * 24 * 60 * 60 * 1000;
@@ -1226,6 +1240,185 @@ function promptStateFromEngine(opts) {
   };
 }
 
+// ── UI helpers (visual parity with EmployerEngineer.jsx) ──────────────────
+
+function optionSub(opt) {
+  if (opt == null || typeof opt === "string" || typeof opt === "number") return "";
+  return opt.sub != null ? String(opt.sub) : "";
+}
+
+function optionDesc(opt) {
+  if (opt == null || typeof opt === "string" || typeof opt === "number") return "";
+  return opt.desc != null ? String(opt.desc) : "";
+}
+
+/**
+ * {token} interpolation for copy strings (same convention as
+ * expandable.triggerLabel's {count}).
+ */
+function interpolateCopy(str, tokens) {
+  if (str == null) return "";
+  return String(str).replace(/\{(\w+)\}/g, function (fullMatch, key) {
+    return tokens && Object.prototype.hasOwnProperty.call(tokens, key)
+      ? String(tokens[key])
+      : fullMatch;
+  });
+}
+
+function getCopy(config) {
+  return (config && config.copy) || {};
+}
+
+/**
+ * `results` can be the engine's native { skills: [...] } shape or a raw
+ * scored array (legacy shape restored from an old localStorage save / gate
+ * token). Normalize once here rather than re-checking Array.isArray at every
+ * call site.
+ */
+function getScoredSkills(results) {
+  if (!results) return [];
+  if (Array.isArray(results)) return results;
+  if (results.skills && Array.isArray(results.skills)) return results.skills;
+  return [];
+}
+
+/**
+ * UI-facing profile summary, reusing the same intake field resolution as
+ * prompt building (resolveFineGrainedIntakeTokens) so header chips/eyebrows
+ * always agree with what the prompts saw.
+ */
+function buildUiProfile(config, intakeValues) {
+  var fine = resolveFineGrainedIntakeTokens(config, { intakeValues: intakeValues });
+  var workContextLabels = fine.workContextsText
+    ? fine.workContextsText.split(", ").filter(Boolean)
+    : [];
+  // JUDGMENT CALL: "Engineer" is hardcoded as the default role noun since
+  // only the Engineer role is wired through this shared UI today. A future
+  // role can override via config.copy.roleNoun without touching this file.
+  var roleNoun = (config && config.copy && config.copy.roleNoun) || "Engineer";
+  var companyLabel = fine.companyLabel === "not specified" ? "" : fine.companyLabel;
+  var summary =
+    fine.seniorityLabel +
+    " " +
+    fine.devTypeLabel +
+    " " +
+    roleNoun +
+    (companyLabel ? " · " + companyLabel : "");
+  return {
+    devLabel: fine.devTypeLabel,
+    seniorityLabel: fine.seniorityLabel,
+    companyLabel: companyLabel,
+    workContextLabels: workContextLabels,
+    summary: summary,
+    roleLabel: fine.devTypeLabel + " " + roleNoun,
+  };
+}
+
+/**
+ * Progressive reveal: every required + currently-visible field *before*
+ * fieldIndex must be filled. This reproduces EmployerEngineer's
+ * devTypeReady / seniorityReady / contextsReady chain generically, since
+ * visibleWhen already makes e.g. devTypeOther "skip" when not applicable.
+ */
+function precedingRequiredFilled(intakeFields, intakeValues, fieldIndex) {
+  for (var i = 0; i < fieldIndex; i++) {
+    var field = intakeFields[i];
+    if (!isFieldVisible(field, intakeValues)) continue;
+    if (field.required !== true) continue;
+    if (isEmptyIntakeValue(intakeValues[field.id])) return false;
+  }
+  return true;
+}
+
+function nudgeCopyKeyFor(fieldId) {
+  return "nudge" + fieldId.charAt(0).toUpperCase() + fieldId.slice(1);
+}
+
+/**
+ * Live layout quirk: a text field that is visibleWhen another (select) field
+ * equals a specific value (e.g. devTypeOther when devType === "other") is
+ * rendered *inside* that field's card, not as its own top-level card.
+ */
+function nestedTextFieldFor(intakeFields, field) {
+  return (
+    (intakeFields || []).find(function (f) {
+      return f.type === "text" && f.visibleWhen && f.visibleWhen.field === field.id;
+    }) || null
+  );
+}
+
+function isNestedTextField(intakeFields, field) {
+  if (field.type !== "text" || !field.visibleWhen) return false;
+  return (intakeFields || []).some(function (f) {
+    return f.id === field.visibleWhen.field;
+  });
+}
+
+/**
+ * gate_token restore supports both the engine's nested { intakeValues }
+ * shape and a legacy flat shape (top-level devType/seniority/... keys, as
+ * saved by the pre-migration EmployerEngineer.jsx).
+ */
+function extractIntakeValuesFromSaved(saved, intakeFields) {
+  if (saved && saved.intakeValues && typeof saved.intakeValues === "object") {
+    return saved.intakeValues;
+  }
+  var values = {};
+  (intakeFields || []).forEach(function (field) {
+    if (saved && Object.prototype.hasOwnProperty.call(saved, field.id)) {
+      values[field.id] = saved[field.id];
+    }
+  });
+  return values;
+}
+
+/**
+ * Hero headline formatting: renders "Find Your" + italic serif
+ * "Defensible Zone™" (with a superscript trademark) when the configured
+ * headline contains that phrase; otherwise renders the headline plain.
+ */
+function renderHeroHeadline(headline) {
+  var text = headline || "";
+  var marker = "Defensible Zone™";
+  var idx = text.indexOf(marker);
+  var headlineStyle = { fontFamily: S.serif, fontSize: 40, color: S.text, margin: "0 0 12px", lineHeight: 1.1 };
+  if (idx === -1) {
+    return <h1 style={headlineStyle}>{text}</h1>;
+  }
+  var prefix = text.slice(0, idx).replace(/\s+$/, "");
+  var suffix = text.slice(idx + marker.length);
+  return (
+    <h1 style={headlineStyle}>
+      {prefix}
+      <br />
+      <em>
+        Defensible Zone
+        <sup style={{ fontSize: "0.45em", verticalAlign: "super", fontStyle: "normal" }}>™</sup>
+      </em>
+      {suffix}
+    </h1>
+  );
+}
+
+var inputStyle = {
+  width: "100%",
+  background: "#f2f4f8",
+  border: "1px solid " + S.border,
+  borderRadius: 8,
+  padding: "12px 16px",
+  color: S.text,
+  fontSize: 16,
+  fontFamily: S.font,
+  outline: "none",
+  boxSizing: "border-box",
+};
+
+var DZ_SLIDER_CSS =
+  "input[type=range].dz-slider{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:3px;outline:none;cursor:pointer;border:none} input[type=range].dz-slider::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;border-radius:50%;border:3px solid white;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.18)} input[type=range].dz-slider::-moz-range-thumb{width:24px;height:24px;border-radius:50%;border:3px solid white;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.18)} input[type=range].conscience-sl::-webkit-slider-thumb{background:#7c3aed} input[type=range].conscience-sl::-moz-range-thumb{background:#7c3aed} input[type=range].pull-sl::-webkit-slider-thumb{background:#0891b2} input[type=range].pull-sl::-moz-range-thumb{background:#0891b2} input[type=range].fluency-sl::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:#d97706;border:2px solid white;cursor:pointer} input[type=range].fluency-sl::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:#d97706;border:2px solid white;cursor:pointer}";
+
+var FADE_SLIDE_CSS =
+  "@keyframes fadeSlide{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}} .reveal{animation:fadeSlide 0.25s ease-out both;}";
+
 // ── component ───────────────────────────────────────────────────────────
 
 /**
@@ -1277,10 +1470,39 @@ export default function EmployerEngine(props) {
   var [fileUploadState, setFileUploadState] = useState({});
   var fileInputRefs = useRef({});
 
+  // Skills editing / fluency-adjustment tracking (adjustedSkillsRef mirrors
+  // adjustedSkills synchronously so the reseed effect below can check it
+  // without waiting on a re-render).
+  var [adjustedSkills, setAdjustedSkills] = useState(function () {
+    return new Set();
+  });
+  var adjustedSkillsRef = useRef(new Set());
+  var freeEmailSentRef = useRef(false);
+  var paidEmailSentRef = useRef(false);
+
+  // Email gate flow
+  var [gateEmail, setGateEmail] = useState("");
+  var [gateSent, setGateSent] = useState(false);
+  var [gateVerified, setGateVerified] = useState(false);
+  var [gateError, setGateError] = useState("");
+  var [gateLoading, setGateLoading] = useState(false);
+  var [showResend, setShowResend] = useState(false);
+  var [gateOnDifferentDevice, setGateOnDifferentDevice] = useState(false);
+  var [gateInputFocused, setGateInputFocused] = useState(false);
+  var effectivelyVerified = gateVerified || isEmployerAccessGranted();
+
+  // Manual "email me a copy" on the results step
+  var [manualEmailSent, setManualEmailSent] = useState(false);
+  var [manualEmailInput, setManualEmailInput] = useState("");
+  var [manualEmailError, setManualEmailError] = useState("");
+  var [manualEmailLoading, setManualEmailLoading] = useState(false);
+
   var stepIndex = stepOrder.indexOf(currentStep);
-  var stepCount = stepOrder.length;
-  var isFirstStep = stepIndex <= 0;
-  var isLastStep = stepIndex < 0 || stepIndex >= stepCount - 1;
+
+  function markAdjusted(skillId) {
+    adjustedSkillsRef.current.add(skillId);
+    setAdjustedSkills(new Set(adjustedSkillsRef.current));
+  }
 
   // Available options per intake field, derived from current intakeValues.
   var availableOptionsByField = useMemo(
@@ -1324,10 +1546,23 @@ export default function EmployerEngine(props) {
         if (saved.skillPull) setSkillPull(saved.skillPull);
       }
       if (typeof saved.landscape === "string") setLandscape(saved.landscape);
-      if (Array.isArray(saved.skills)) setSkills(saved.skills);
+      if (Array.isArray(saved.skills)) {
+        setSkills(saved.skills);
+        // Mark restored skills as "adjusted" so the fluency-reseed effect
+        // below doesn't immediately overwrite restored fluency values.
+        var restoredIds = saved.skills.map(function (sk) {
+          return sk.id;
+        });
+        adjustedSkillsRef.current = new Set(restoredIds);
+        setAdjustedSkills(new Set(restoredIds));
+      }
       if (saved.fluencies && typeof saved.fluencies === "object") {
         setFluencies(saved.fluencies);
       }
+      if (typeof saved.skillsGroundedInResume === "boolean") {
+        setSkillsGroundedInResume(saved.skillsGroundedInResume);
+      }
+      if (saved.gateEmail) setGateEmail(saved.gateEmail);
       if (saved.results) setResults(saved.results);
       if (saved.recommendations) setRecommendations(saved.recommendations);
       if (saved.benchmark) setBenchmark(saved.benchmark);
@@ -1354,8 +1589,13 @@ export default function EmployerEngine(props) {
         intakeValues: intakeValues,
         conscience: conscience,
         pull: pull,
+        landscape: landscape,
+        skills: skills,
+        fluencies: fluencies,
+        skillsGroundedInResume: skillsGroundedInResume,
         savedAt: Date.now(),
       };
+      if (gateEmail && gateEmail.trim()) payload.gateEmail = gateEmail.trim();
       if (isPerSkill) {
         payload.skillConscience = skillConscience || {};
         payload.skillPull = skillPull || {};
@@ -1390,6 +1630,7 @@ export default function EmployerEngine(props) {
         benchmark: extra && extra.benchmark != null ? extra.benchmark : benchmark,
         savedAt: Date.now(),
       };
+      if (gateEmail && gateEmail.trim()) payload.gateEmail = gateEmail.trim();
       if (isPerSkill) {
         payload.skillConscience = skillConscience || {};
         payload.skillPull = skillPull || {};
@@ -1420,6 +1661,13 @@ export default function EmployerEngine(props) {
     setIntakeValues(function (prev) {
       var next = Object.assign({}, prev, { [fieldId]: value });
       return applyParentChangeEffects(intakeFields, next, [fieldId]);
+    });
+    // Optional UX nicety: collapse any expandable field whose parent just
+    // changed, mirroring live EmployerEngineer's showAllCtx reset on devType change.
+    intakeFields.forEach(function (f) {
+      if (f.expandable && parentIdsOf(f).indexOf(fieldId) !== -1) {
+        setFieldExpanded(f.id, false);
+      }
     });
   }
 
@@ -1502,27 +1750,175 @@ export default function EmployerEngine(props) {
 
   // ── step navigation (by position in config.steps.order) ───────────────
 
-  function goNext() {
-    if (stepIndex < 0 || stepIndex >= stepCount - 1) return;
-    var nextName = stepOrder[stepIndex + 1];
-    // Save point after intake+affinity, before scoring / gate flow.
-    if (nextName === "gate") {
-      saveBeforeGate();
-    }
-    setCurrentStep(nextName);
-  }
-
   function goBack() {
     if (stepIndex <= 0) return;
     setCurrentStep(stepOrder[stepIndex - 1]);
   }
 
-  function goToStep(stepName) {
-    if (stepOrder.indexOf(stepName) === -1) return;
-    if (stepName === "gate" && currentStep !== "gate") {
-      saveBeforeGate();
+  function goToAffinityFromSkills() {
+    setCurrentStep("affinity");
+  }
+
+  function goToGateFromAffinity() {
+    saveBeforeGate();
+    setCurrentStep("gate");
+  }
+
+  // ── skills editing ────────────────────────────────────────────────────
+
+  function startEditing(id) {
+    setSkills(function (p) {
+      return p.map(function (s) {
+        return s.id === id ? Object.assign({}, s, { editing: true }) : s;
+      });
+    });
+  }
+
+  function updateText(id, text) {
+    setSkills(function (p) {
+      return p.map(function (s) {
+        return s.id === id ? Object.assign({}, s, { text: text }) : s;
+      });
+    });
+  }
+
+  function commitEdit(id) {
+    setSkills(function (p) {
+      return p.map(function (s) {
+        return s.id === id ? Object.assign({}, s, { editing: false }) : s;
+      });
+    });
+  }
+
+  function removeSkill(id) {
+    setSkills(function (p) {
+      return p.filter(function (s) {
+        return s.id !== id;
+      });
+    });
+    setFluencies(function (p) {
+      var n = Object.assign({}, p);
+      delete n[id];
+      return n;
+    });
+    adjustedSkillsRef.current.delete(id);
+    setAdjustedSkills(new Set(adjustedSkillsRef.current));
+  }
+
+  // ── reset ─────────────────────────────────────────────────────────────
+
+  function resetAll() {
+    setCurrentStep(startAt);
+    setIntakeValues(buildInitialIntakeValues(intakeFields));
+    setConscience(5);
+    setPull(5);
+    if (isPerSkill) {
+      setSkillConscience({});
+      setSkillPull({});
     }
-    setCurrentStep(stepName);
+    setLandscape("");
+    setSkills([]);
+    setFluencies({});
+    setAdjustedSkills(new Set());
+    adjustedSkillsRef.current = new Set();
+    setResults(null);
+    setBenchmark(null);
+    setRecommendations(null);
+    setRecsLoading(false);
+    setRecsError(null);
+    setSkillsGroundedInResume(false);
+    setError(null);
+    setExpandedFields({});
+    setFileUploadState({});
+    setGateEmail("");
+    setGateSent(false);
+    setGateVerified(false);
+    setGateError("");
+    setGateLoading(false);
+    setShowResend(false);
+    setGateOnDifferentDevice(false);
+    setGateInputFocused(false);
+    setManualEmailSent(false);
+    setManualEmailInput("");
+    setManualEmailError("");
+    setManualEmailLoading(false);
+    freeEmailSentRef.current = false;
+    paidEmailSentRef.current = false;
+    if (storageKey) {
+      try {
+        localStorage.removeItem(storageKey);
+      } catch (_e) {}
+    }
+  }
+
+  // ── email gate handlers ───────────────────────────────────────────────
+
+  async function handleGateSubmit() {
+    var trimmed = gateEmail.trim();
+    if (!isValidEmail(trimmed)) {
+      setGateError("Please enter a valid email address.");
+      return;
+    }
+    setGateError("");
+    setGateLoading(true);
+    try {
+      var res = await fetch("/api/send-gate-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: trimmed, product: config.roleId }),
+      });
+      var data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Request failed");
+      setGateSent(true);
+    } catch (e) {
+      var gateCopySafe = (getCopy(config).gate) || {};
+      setGateError(gateCopySafe.genericError || "Something went wrong. Please try again.");
+    } finally {
+      setGateLoading(false);
+    }
+  }
+
+  async function handleManualEmailCopy() {
+    if (!recommendations) {
+      setManualEmailError(
+        "Your full report is still being prepared — please try again in a few seconds."
+      );
+      return;
+    }
+    var trimmed = manualEmailInput.trim();
+    if (!isValidEmail(trimmed)) {
+      setManualEmailError("Please enter a valid email address.");
+      return;
+    }
+    setManualEmailError("");
+    setManualEmailLoading(true);
+    try {
+      var profile = buildUiProfile(config, intakeValues);
+      var res = await fetch("/api/send-results-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: trimmed,
+          product: config.roleId,
+          type: "paid",
+          results: {
+            profile: { roleLabel: profile.roleLabel, seniorityLabel: profile.seniorityLabel },
+            landscape: landscape,
+            skills: results,
+            recommendations: recommendations,
+          },
+        }),
+      });
+      var data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Request failed");
+      setGateEmail(trimmed);
+      freeEmailSentRef.current = true;
+      setManualEmailSent(true);
+    } catch (e) {
+      setManualEmailError("Something went wrong. Please try again.");
+    } finally {
+      setManualEmailLoading(false);
+    }
   }
 
   // ── AI fetch layer ────────────────────────────────────────────────────
@@ -1605,8 +2001,9 @@ export default function EmployerEngine(props) {
   }
 
   async function fetchLandscapeAndSkills() {
+    var loadingCopy = (config.copy && config.copy.loading) || {};
     setLoading(true);
-    setLoadingMsg("Reading your landscape…");
+    setLoadingMsg(loadingCopy.landscapeMsg || "Reading your landscape…");
     setError(null);
     var prompt = buildPrompt("landscape", config, buildEnginePromptState());
     var usedResume = !!getResumeText({ intakeValues: intakeValues });
@@ -1633,7 +2030,7 @@ export default function EmployerEngine(props) {
         setCurrentStep("skills");
       }
     } catch (_e) {
-      setError("Something went wrong — please try again in a moment.");
+      setError(loadingCopy.landscapeError || "Something went wrong — please try again in a moment.");
     } finally {
       setLoading(false);
     }
@@ -1641,8 +2038,9 @@ export default function EmployerEngine(props) {
 
   async function fetchScores() {
     if (!skills || skills.length === 0) return;
+    var loadingCopy = (config.copy && config.copy.loading) || {};
     setLoading(true);
-    setLoadingMsg("Scoring your Defensible Zone™…");
+    setLoadingMsg(loadingCopy.scoringMsg || "Scoring your Defensible Zone™…");
     setError(null);
     var scoringCfg =
       (config && config.prompts && config.prompts.scoring) || {};
@@ -1682,7 +2080,7 @@ export default function EmployerEngine(props) {
         setCurrentStep("results");
       }
     } catch (_e) {
-      setError("Analysis failed — please try again in a moment.");
+      setError(loadingCopy.scoringError || "Analysis failed — please try again in a moment.");
     } finally {
       setLoading(false);
     }
@@ -1731,6 +2129,228 @@ export default function EmployerEngine(props) {
     }
   }
 
+  // ── effects (visual parity with EmployerEngineer.jsx) ──────────────────
+
+  // Reseed fluencies from conscience/pull whenever either changes, skipping
+  // any skill the user has manually adjusted.
+  useEffect(
+    function () {
+      setFluencies(function (prev) {
+        var next = Object.assign({}, prev);
+        skills.forEach(function (s) {
+          if (!adjustedSkillsRef.current.has(s.id)) {
+            next[s.id] = getSeed(conscience, pull);
+          }
+        });
+        return next;
+      });
+    },
+    [conscience, pull, skills]
+  );
+
+  // Serif display font + page background (mount-only, mirrors live).
+  useEffect(function () {
+    var link = document.createElement("link");
+    link.href = "https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;1,400&display=swap";
+    link.rel = "stylesheet";
+    document.head.appendChild(link);
+    document.body.style.background = S.bg;
+    return function () {
+      document.body.style.background = "";
+    };
+  }, []);
+
+  useEffect(
+    function () {
+      window.scrollTo(0, 0);
+    },
+    [currentStep]
+  );
+
+  // gate_token URL verification (mount-only) — restores saved progress
+  // (nested intakeValues OR legacy flat shape) and jumps straight to the
+  // verified gate step, matching live EmployerEngineer's magic-link flow.
+  useEffect(function () {
+    var params = new URLSearchParams(window.location.search);
+    var gateToken = params.get("gate_token");
+    if (!gateToken) return;
+    window.history.replaceState({}, "", window.location.pathname);
+    setGateLoading(true);
+    (async function () {
+      try {
+        var res = await fetch("/api/verify-gate-token", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token: gateToken, product: config.roleId }),
+        });
+        var data = await res.json();
+        if (data && data.valid === true) {
+          var savedRaw = null;
+          try {
+            savedRaw = storageKey ? localStorage.getItem(storageKey) : null;
+          } catch (_e) {}
+          if (savedRaw) {
+            var expired = false;
+            try {
+              var s = JSON.parse(savedRaw);
+              if (!s.savedAt || Date.now() - s.savedAt > SAVE_TTL_MS) {
+                if (storageKey) localStorage.removeItem(storageKey);
+                expired = true;
+              } else {
+                var restoredValues = extractIntakeValuesFromSaved(s, intakeFields);
+                setIntakeValues(function (prev) {
+                  return Object.assign({}, prev, restoredValues);
+                });
+                if (Array.isArray(s.skills)) {
+                  setSkills(s.skills);
+                  var adj = new Set(
+                    s.skills.map(function (sk) {
+                      return sk.id;
+                    })
+                  );
+                  adjustedSkillsRef.current = adj;
+                  setAdjustedSkills(new Set(adj));
+                }
+                if (s.fluencies) setFluencies(s.fluencies);
+                if (s.conscience !== undefined) setConscience(s.conscience);
+                if (s.pull !== undefined) setPull(s.pull);
+                if (isPerSkill) {
+                  if (s.skillConscience) setSkillConscience(s.skillConscience);
+                  if (s.skillPull) setSkillPull(s.skillPull);
+                }
+                if (typeof s.landscape === "string") setLandscape(s.landscape);
+                if (typeof s.skillsGroundedInResume === "boolean") {
+                  setSkillsGroundedInResume(s.skillsGroundedInResume);
+                }
+                if (s.results) setResults(s.results);
+                if (s.recommendations) setRecommendations(s.recommendations);
+                if (s.benchmark) setBenchmark(s.benchmark);
+              }
+            } catch (_e) {}
+            if (expired) {
+              setCurrentStep(startAt);
+              setGateOnDifferentDevice(true);
+            } else {
+              if (data.email) setGateEmail(data.email);
+              setGateVerified(true);
+              if (stepOrder.indexOf("gate") !== -1) setCurrentStep("gate");
+            }
+          } else {
+            setCurrentStep(startAt);
+            setGateOnDifferentDevice(true);
+          }
+          setGateLoading(false);
+          return;
+        }
+        if (data && data.valid === false && data.reason === "expired") {
+          setGateError("expired");
+        } else {
+          setGateError("invalid");
+        }
+        if (stepOrder.indexOf("gate") !== -1) setCurrentStep("gate");
+        setGateLoading(false);
+      } catch (_e) {
+        setGateError("invalid");
+        if (stepOrder.indexOf("gate") !== -1) setCurrentStep("gate");
+        setGateLoading(false);
+      }
+    })();
+    // Mount-only URL check (mirrors live gate_token handling).
+  }, []);
+
+  // Once verified on the gate step with skills ready, score automatically.
+  useEffect(
+    function () {
+      if (currentStep === "gate" && effectivelyVerified && skills.length > 0 && !results) {
+        fetchScores();
+      }
+    },
+    [currentStep, effectivelyVerified, skills, results]
+  );
+
+  // Once scores land, kick off recommendations automatically.
+  useEffect(
+    function () {
+      if (results && !recommendations && !recsLoading) {
+        fetchRecommendations(getScoredSkills(results));
+      }
+    },
+    [results, recommendations, recsLoading]
+  );
+
+  // Free results email — fires once when a verified user with a known email
+  // lands on results with scores but before recommendations exist.
+  useEffect(
+    function () {
+      if (currentStep !== "results" || !results) return;
+      if (!gateEmail || !gateEmail.trim()) return;
+      if (freeEmailSentRef.current) return;
+      freeEmailSentRef.current = true;
+      var profile = buildUiProfile(config, intakeValues);
+      fetch("/api/send-results-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: gateEmail.trim(),
+          product: config.roleId,
+          type: "free",
+          results: {
+            profile: { roleLabel: profile.roleLabel, seniorityLabel: profile.seniorityLabel },
+            landscape: landscape,
+            skills: results,
+          },
+        }),
+      }).catch(function () {});
+    },
+    [currentStep, results]
+  );
+
+  // Paid (full report) results email — fires once when recommendations land.
+  useEffect(
+    function () {
+      if (!recommendations) return;
+      if (!results) return;
+      if (!gateEmail || !gateEmail.trim()) return;
+      if (paidEmailSentRef.current) return;
+      paidEmailSentRef.current = true;
+      var profile = buildUiProfile(config, intakeValues);
+      fetch("/api/send-results-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: gateEmail.trim(),
+          product: config.roleId,
+          type: "paid",
+          results: {
+            profile: { roleLabel: profile.roleLabel, seniorityLabel: profile.seniorityLabel },
+            landscape: landscape,
+            skills: results,
+            recommendations: recommendations,
+          },
+        }),
+      }).catch(function () {});
+    },
+    [recommendations]
+  );
+
+  // "Resend the link" appears 20s after the gate email is sent.
+  useEffect(
+    function () {
+      if (!gateSent) {
+        setShowResend(false);
+        return;
+      }
+      setShowResend(false);
+      var t = setTimeout(function () {
+        setShowResend(true);
+      }, 20000);
+      return function () {
+        clearTimeout(t);
+      };
+    },
+    [gateSent]
+  );
+
   // ── JSX shell ─────────────────────────────────────────────────────────
 
   if (!config) {
@@ -1741,580 +2361,906 @@ export default function EmployerEngine(props) {
     );
   }
 
+  var copy = getCopy(config);
+  var intakeCopy = copy.intake || {};
+  var skillsCopy = copy.skills || {};
+  var affinityCopy = copy.affinity || {};
+  var gateCopy = copy.gate || {};
+  var resultsCopy = copy.results || {};
+  var loadingCopyForRender = copy.loading || {};
+  var editionLine = copy.editionLine || "";
+  var uiProfile = buildUiProfile(config, intakeValues);
+
   if (loading) {
+    var loadingSub =
+      currentStep === "intake"
+        ? loadingCopyForRender.landscapeSub || ""
+        : loadingCopyForRender.scoringSub || "";
     return (
-      <div
-        style={{
-          minHeight: "100vh",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontFamily: "system-ui, sans-serif",
-          background: "#f7f5f0",
-          padding: 24,
-          boxSizing: "border-box",
-        }}
-      >
-        <div style={{ textAlign: "center", maxWidth: 400 }}>
-          <p
-            style={{
-              fontSize: 12,
-              letterSpacing: "0.08em",
-              textTransform: "uppercase",
-              color: "#6b6b6b",
-              margin: "0 0 12px",
-            }}
-          >
-            EmployerEngine · {config.roleId || "unknown-role"}
-          </p>
-          <p style={{ fontSize: 20, margin: 0, fontStyle: "italic" }}>
-            {loadingMsg || "Working…"}
-          </p>
+      <div style={{ background: S.bg, minHeight: "100vh", display: "flex", flexDirection: "column", fontFamily: S.font, padding: "32px 20px", boxSizing: "border-box" }}>
+        <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <style dangerouslySetInnerHTML={{ __html: "@keyframes spin{to{transform:rotate(360deg)}}" }} />
+          <div style={{ textAlign: "center", maxWidth: 400, padding: "0 20px" }}>
+            <div style={{ width: 52, height: 52, border: "3px solid " + S.border, borderTop: "3px solid " + S.gold, borderRadius: "50%", margin: "0 auto 28px", animation: "spin 0.85s linear infinite" }} />
+            <p style={{ fontFamily: S.mono, fontSize: 12, color: S.muted, margin: "0 0 10px", letterSpacing: "0.08em" }}>{editionLine}</p>
+            <p style={{ fontFamily: S.serif, fontSize: 22, color: S.text, fontStyle: "italic", margin: "0 0 10px" }}>{loadingMsg}</p>
+            <p style={{ fontFamily: S.mono, fontSize: 12, color: S.muted, margin: 0, letterSpacing: "0.08em" }}>{loadingSub}</p>
+          </div>
         </div>
       </div>
     );
   }
 
-  var phaseModel =
-    config.prompts &&
-    config.prompts.recommendations &&
-    config.prompts.recommendations.phaseModel;
-
-  return (
-    <div
-      style={{
-        minHeight: "100vh",
-        padding: "32px 20px",
-        boxSizing: "border-box",
-        fontFamily: "system-ui, sans-serif",
-        color: "#1a1a1a",
-        background: "#f7f5f0",
-      }}
-    >
-      <div style={{ maxWidth: 720, margin: "0 auto" }}>
-        <p
-          style={{
-            fontSize: 12,
-            letterSpacing: "0.08em",
-            textTransform: "uppercase",
-            color: "#6b6b6b",
-            margin: "0 0 8px",
-          }}
-        >
-          EmployerEngine shell · {config.roleId || "unknown-role"}
-          {isPerSkill ? " · affinity: perSkill" : " · affinity: global"}
-        </p>
-
-        {/* Step indicator */}
-        <div
-          style={{
-            display: "flex",
-            flexWrap: "wrap",
-            gap: 8,
-            marginBottom: 24,
-          }}
-        >
-          {stepOrder.map(function (name, i) {
-            var active = name === currentStep;
-            return (
-              <button
-                key={name}
-                type="button"
-                onClick={function () {
-                  goToStep(name);
-                }}
-                style={{
-                  padding: "6px 12px",
-                  borderRadius: 6,
-                  border: active ? "1px solid #b8860b" : "1px solid #d0d0d0",
-                  background: active ? "#b8860b18" : "#fff",
-                  color: active ? "#1a1a1a" : "#6b6b6b",
-                  fontSize: 13,
-                  cursor: "pointer",
-                }}
-              >
-                {i + 1}. {name}
-              </button>
-            );
-          })}
+  if (gateLoading) {
+    return (
+      <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font, display: "flex", flexDirection: "column", padding: "32px 20px", boxSizing: "border-box" }}>
+        <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <style dangerouslySetInnerHTML={{ __html: "@keyframes dzGateDots{0%,100%{opacity:0.25}50%{opacity:1}}" }} />
+          <div style={{ textAlign: "center", maxWidth: 420 }}>
+            <div style={{ fontFamily: S.mono, fontSize: 12, color: S.gold, letterSpacing: "0.12em", marginBottom: 24, fontWeight: 600 }}>{editionLine}</div>
+            <div style={{ fontFamily: S.serif, fontSize: 24, fontStyle: "italic", color: S.text, lineHeight: 1.45 }}>{gateCopy.verifyingEmail}</div>
+            <div style={{ display: "flex", justifyContent: "center", gap: 6, marginTop: 18, fontFamily: S.mono, fontSize: 22, color: S.dim, lineHeight: 1 }}>
+              <span style={{ animation: "dzGateDots 1s ease-in-out infinite" }}>.</span>
+              <span style={{ animation: "dzGateDots 1s ease-in-out 0.2s infinite" }}>.</span>
+              <span style={{ animation: "dzGateDots 1s ease-in-out 0.4s infinite" }}>.</span>
+            </div>
+          </div>
         </div>
+      </div>
+    );
+  }
 
-        <h1 style={{ fontSize: 28, margin: "0 0 8px", fontWeight: 600 }}>
-          Step: {currentStep}
-        </h1>
-        <p style={{ margin: "0 0 24px", color: "#6b6b6b", fontSize: 14 }}>
-          Position {stepIndex + 1} of {stepCount}
-          {config.steps && config.steps.startAt
-            ? " (startAt: " + config.steps.startAt + ")"
-            : ""}
-        </p>
+  // ── INTAKE ──────────────────────────────────────────────────────────
+  if (currentStep === "intake") {
+    function renderSelectCard(field, isReveal) {
+      var value = intakeValues[field.id];
+      var opts = getAvailableOptions(field.id);
+      var label = fieldDisplayLabel(field, config);
+      var nested = nestedTextFieldFor(intakeFields, field);
+      var nestedVisible = !!(nested && isFieldVisible(nested, intakeValues));
+      var displayValue = value ? resolveIntakeDisplayValue(field, value, intakeValues) : "";
+      if (nestedVisible && intakeValues[nested.id]) {
+        displayValue = intakeValues[nested.id];
+      }
+      return (
+        <Card key={field.id} style={{ marginBottom: 12 }} className={isReveal ? "reveal" : undefined}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+            <Label style={{ marginBottom: 0 }}>
+              {label}
+              {field.id === "companyType" && intakeCopy.companyOptionalSuffix ? (
+                <span style={{ color: S.dim, fontWeight: 400, textTransform: "none" }}>
+                  {" "}
+                  {intakeCopy.companyOptionalSuffix}
+                </span>
+              ) : null}
+            </Label>
+            {value ? (
+              <span style={{ fontFamily: S.mono, fontSize: 12, color: S.green, fontWeight: 700 }}>✓ {displayValue}</span>
+            ) : null}
+          </div>
+          {field.id === "companyType" && intakeCopy.companyHelper ? (
+            <p style={{ color: S.muted, fontSize: 16, margin: "0 0 12px", lineHeight: 1.6 }}>{intakeCopy.companyHelper}</p>
+          ) : null}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(195px,1fr))", gap: 8 }}>
+            {opts.map(function (opt) {
+              var key = optionKey(opt);
+              var active = String(value) === String(key);
+              var desc = optionDesc(opt);
+              var sub = optionSub(opt);
+              var note = optionNote(opt);
+              return (
+                <SelBtn key={key} active={active} onClick={function () { selectOption(field, key); }}>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: 16, marginBottom: sub ? 2 : 0 }}>{optionLabel(opt)}</div>
+                    {desc ? <div style={{ fontSize: 15, opacity: 0.75, marginTop: 1 }}>{desc}</div> : null}
+                    {sub ? <div style={{ fontSize: 15, opacity: 0.75 }}>{sub}</div> : null}
+                    {note ? <div style={{ fontSize: 14, opacity: 0.6, marginTop: 2 }}>{note}</div> : null}
+                  </div>
+                </SelBtn>
+              );
+            })}
+          </div>
+          {nested && nestedVisible ? (
+            <div style={{ marginTop: 12 }} className="reveal">
+              <input
+                autoFocus
+                value={intakeValues[nested.id] || ""}
+                onChange={function (e) { setIntakeValue(nested.id, e.target.value); }}
+                placeholder={intakeCopy[nested.id + "Placeholder"] || ""}
+                style={inputStyle}
+              />
+            </div>
+          ) : null}
+        </Card>
+      );
+    }
 
-        {/* Per-step placeholder content */}
-        <div
-          style={{
-            border: "1px dashed #c8c8c8",
-            borderRadius: 8,
-            padding: 20,
-            marginBottom: 24,
-            background: "#fff",
-          }}
-        >
-          {currentStep === "intake" ? (
+    function renderMultiSelectCard(field) {
+      var value = Array.isArray(intakeValues[field.id]) ? intakeValues[field.id] : [];
+      var isExpanded = !!expandedFields[field.id];
+      var opts = resolveDisplayOptions(field, intakeValues, isExpanded);
+      var hiddenCount = expandableHiddenCount(field, intakeValues);
+      var label = fieldDisplayLabel(field, config);
+      var showFilteredHint = hiddenCount > 0 && !isExpanded;
+      var parents = parentIdsOf(field);
+      var parentLabel = "";
+      if (parents.length) {
+        var parentField = findIntakeField(config, parents[0]);
+        if (parentField) {
+          var parentParts = resolveSelectedOptions(parentField, intakeValues[parents[0]], intakeValues);
+          parentLabel = parentParts.length && parentParts[0].label ? parentParts[0].label : "";
+        }
+      }
+      var exp = field.expandable;
+      var showExpandTrigger = exp && exp.enabled && hiddenCount > 0 && (exp.mode === "toggle" || !isExpanded);
+      return (
+        <Card key={field.id} style={{ marginBottom: 12 }} className="reveal">
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
+            <Label style={{ marginBottom: 0 }}>{label}</Label>
+            <span style={{ fontFamily: S.mono, fontSize: 12, color: value.length > 0 ? S.gold : S.dim, fontWeight: 700 }}>
+              {value.length > 0
+                ? interpolateCopy(intakeCopy.workContextsSelectedHint, { count: value.length })
+                : intakeCopy.workContextsSelectHint}
+            </span>
+          </div>
+          <p style={{ color: S.muted, fontSize: 16, margin: "0 0 14px", lineHeight: 1.7 }}>
+            {intakeCopy.workContextsHelper}
+            {showFilteredHint ? (
+              <span style={{ color: S.dim }}>
+                {interpolateCopy(intakeCopy.workContextsFilteredHint, { count: opts.length, devTypeLabel: parentLabel })}
+              </span>
+            ) : null}
+          </p>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
+            {opts.map(function (opt) {
+              var key = optionKey(opt);
+              var active = value.indexOf(key) !== -1;
+              var cap =
+                field.maxSelections != null && field.maxSelections > 0
+                  ? field.maxSelections
+                  : null;
+              var atCap = cap != null && value.length >= cap;
+              var cappedOut = !active && atCap;
+              return (
+                <span key={key} style={{ opacity: cappedOut ? 0.4 : 1, pointerEvents: cappedOut ? "none" : "auto" }}>
+                  <Chip
+                    label={optionLabel(opt)}
+                    active={active}
+                    onClick={function () {
+                      if (active) {
+                        setIntakeValue(field.id, value.filter(function (x) { return x !== key; }));
+                        return;
+                      }
+                      if (cap != null && value.length >= cap) return;
+                      setIntakeValue(field.id, value.concat([key]));
+                    }}
+                  />
+                </span>
+              );
+            })}
+          </div>
+          {showExpandTrigger ? (
+            <button
+              type="button"
+              onClick={function () {
+                if (exp.mode === "toggle" && isExpanded) setFieldExpanded(field.id, false);
+                else setFieldExpanded(field.id, true);
+              }}
+              style={{ background: "none", border: "1px dashed " + S.border, borderRadius: 20, padding: "5px 14px", cursor: "pointer", fontFamily: S.mono, fontSize: 12, color: S.dim, marginBottom: 12 }}
+            >
+              {exp.mode === "toggle" && isExpanded ? formatExpandableCollapseLabel(field) : formatExpandableTriggerLabel(field, hiddenCount)}
+            </button>
+          ) : null}
+        </Card>
+      );
+    }
+
+    function renderFileCard(field) {
+      var value = intakeValues[field.id];
+      var fileMeta = fileUploadState[field.id] || {};
+      var label = fieldDisplayLabel(field, config);
+      return (
+        <Card key={field.id} style={{ marginBottom: 12 }} className="reveal">
+          <Label style={{ marginBottom: 8 }}>
+            {label} <span style={{ color: S.dim, fontWeight: 400, textTransform: "none" }}>{intakeCopy.resumeOptionalSuffix || ""}</span>
+          </Label>
+          {!isEmptyIntakeValue(value) ? (
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <span style={{ fontFamily: S.mono, fontSize: 12, color: S.green, fontWeight: 700 }}>✓ {fileMeta.fileName || "Uploaded file"}</span>
+              <button
+                type="button"
+                onClick={function () { removeFileField(field.id); }}
+                style={{ background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: S.mono, fontSize: 12, color: S.dim, textDecoration: "underline" }}
+              >
+                {intakeCopy.resumeRemove || "Remove"}
+              </button>
+            </div>
+          ) : (
             <div>
-              <p style={{ margin: "0 0 12px", fontWeight: 600 }}>Intake (skeleton)</p>
-              {intakeFields.map(function (field) {
-                if (!isFieldVisible(field, intakeValues)) return null;
+              <input
+                ref={function (el) { fileInputRefs.current[field.id] = el; }}
+                type="file"
+                accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                onChange={function (e) { handleFileFieldSelect(field, e); }}
+                disabled={!!fileMeta.uploading}
+                style={Object.assign({}, inputStyle, { padding: "10px 12px", fontSize: 14 })}
+              />
+              {fileMeta.uploading ? (
+                <p style={{ color: S.muted, fontSize: 14, margin: "8px 0 0", fontFamily: S.mono }}>{intakeCopy.resumeReading || "Reading your resume…"}</p>
+              ) : null}
+            </div>
+          )}
+          {fileMeta.error ? <p style={{ color: S.muted, fontSize: 14, margin: "8px 0 0", lineHeight: 1.5 }}>{fileMeta.error}</p> : null}
+        </Card>
+      );
+    }
 
-                var isExpanded = !!expandedFields[field.id];
-                var opts =
-                  field.type === "multiSelect"
-                    ? resolveDisplayOptions(field, intakeValues, isExpanded)
-                    : getAvailableOptions(field.id);
-                var val = intakeValues[field.id];
-                var dep = field.dependsOn
-                  ? Array.isArray(field.dependsOn)
-                    ? field.dependsOn.join(", ")
-                    : field.dependsOn
-                  : "—";
-                var hiddenCount = expandableHiddenCount(field, intakeValues);
-                var exp = field.expandable;
-                var showExpandTrigger =
-                  field.type === "multiSelect" &&
-                  exp &&
-                  exp.enabled &&
-                  hiddenCount > 0 &&
-                  (exp.mode === "toggle" || !isExpanded);
-                var fileMeta = fileUploadState[field.id] || {};
+    function renderTextCard(field) {
+      var label = fieldDisplayLabel(field, config);
+      return (
+        <Card key={field.id} style={{ marginBottom: 12 }} className="reveal">
+          <Label style={{ marginBottom: 8 }}>{label}</Label>
+          <input value={intakeValues[field.id] || ""} onChange={function (e) { setIntakeValue(field.id, e.target.value); }} style={inputStyle} />
+        </Card>
+      );
+    }
 
+    function renderIntakeFieldCard(field, isFirst) {
+      if (field.type === "select") return renderSelectCard(field, !isFirst);
+      if (field.type === "multiSelect") return renderMultiSelectCard(field);
+      if (field.type === "file") return renderFileCard(field);
+      return renderTextCard(field);
+    }
+
+    function renderNudge() {
+      for (var i = 0; i < intakeFields.length; i++) {
+        var field = intakeFields[i];
+        if (isNestedTextField(intakeFields, field)) continue;
+        if (!isFieldVisible(field, intakeValues)) continue;
+        if (field.required !== true) continue;
+        if (!isEmptyIntakeValue(intakeValues[field.id])) continue;
+        var msg = intakeCopy[nudgeCopyKeyFor(field.id)];
+        if (!msg) return null;
+        return (
+          <p style={{ color: S.dim, fontSize: 14, fontFamily: S.mono, textAlign: "center", marginTop: 8 }}>{msg}</p>
+        );
+      }
+      return null;
+    }
+
+    var firstVisibleFieldId = null;
+    for (var fi = 0; fi < intakeFields.length; fi++) {
+      if (isNestedTextField(intakeFields, intakeFields[fi])) continue;
+      firstVisibleFieldId = intakeFields[fi].id;
+      break;
+    }
+
+    return (
+      <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font, padding: "40px 20px" }}>
+        <style dangerouslySetInnerHTML={{ __html: FADE_SLIDE_CSS }} />
+        <div style={{ maxWidth: 740, margin: "0 auto" }}>
+          <div style={{ marginBottom: 32 }}>
+            <div style={{ fontFamily: S.mono, fontSize: 12, color: S.gold, letterSpacing: "0.12em", marginBottom: 10, fontWeight: 600 }}>
+              {copy.heroEyebrow || editionLine}
+            </div>
+            {renderHeroHeadline(intakeCopy.heroHeadline)}
+            <p style={{ color: S.muted, fontSize: 16, lineHeight: 1.75, margin: 0, maxWidth: 540 }}>{intakeCopy.heroBody}</p>
+          </div>
+
+          {intakeFields.map(function (field, index) {
+            if (isNestedTextField(intakeFields, field)) return null;
+            if (!isFieldVisible(field, intakeValues)) return null;
+            if (!precedingRequiredFilled(intakeFields, intakeValues, index)) return null;
+            return renderIntakeFieldCard(field, field.id === firstVisibleFieldId);
+          })}
+
+          {canProceed ? (
+            <div className="reveal">
+              {error ? (
+                <p style={{ color: S.red, fontSize: 14, fontFamily: S.mono, fontWeight: 600, marginBottom: 12, textAlign: "center" }}>{error}</p>
+              ) : null}
+              <PrimaryBtn onClick={fetchLandscapeAndSkills} disabled={!canProceed}>{intakeCopy.generateButton}</PrimaryBtn>
+              <p style={{ color: S.dim, fontSize: 14, textAlign: "center", marginTop: 12, fontFamily: S.mono }}>{intakeCopy.ctaHelper}</p>
+            </div>
+          ) : null}
+
+          {renderNudge()}
+        </div>
+      </div>
+    );
+  }
+
+  // ── SKILLS ──────────────────────────────────────────────────────────
+  if (currentStep === "skills") {
+    var profileSummaryUpper = uiProfile.summary.toUpperCase();
+    return (
+      <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font, padding: "32px 20px" }}>
+        <div style={{ maxWidth: 680, margin: "0 auto" }}>
+          <div style={{ marginBottom: 22 }}>
+            <div style={{ fontFamily: S.mono, fontSize: 12, color: S.gold, letterSpacing: "0.1em", marginBottom: 6, fontWeight: 600 }}>
+              {interpolateCopy(skillsCopy.stepEyebrow, { profileSummary: profileSummaryUpper })}
+            </div>
+            <h2 style={{ fontFamily: S.serif, fontSize: 30, color: S.text, margin: "0 0 6px" }}>{skillsCopy.heading}</h2>
+          </div>
+          <div style={{ background: "linear-gradient(135deg,rgba(26,29,46,.97),rgba(26,29,46,.92))", borderRadius: 14, padding: 22, marginBottom: 18, position: "relative", overflow: "hidden" }}>
+            <div style={{ position: "absolute", top: 0, right: 0, width: 160, height: 160, background: "radial-gradient(circle,rgba(217,119,6,.15) 0%,transparent 70%)", pointerEvents: "none" }} />
+            <div style={{ fontFamily: S.mono, fontSize: 12, color: "rgba(217,119,6,.8)", letterSpacing: "0.1em", marginBottom: 8, fontWeight: 600 }}>
+              {interpolateCopy(skillsCopy.landscapeEyebrow, { devTypeLabel: uiProfile.devLabel.toUpperCase(), seniorityLabel: uiProfile.seniorityLabel.toUpperCase() })}
+            </div>
+            <p style={{ color: "rgba(240,242,248,.9)", fontSize: 16, lineHeight: 1.75, margin: 0, fontStyle: "italic" }}>{landscape}</p>
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 18 }}>
+            {uiProfile.workContextLabels.map(function (wc) {
+              return (
+                <span key={wc} style={{ fontFamily: S.mono, fontSize: 12, color: S.gold, background: "rgba(217,119,6,0.1)", border: "1px solid rgba(217,119,6,0.3)", borderRadius: 12, padding: "3px 10px", fontWeight: 600 }}>
+                  {wc}
+                </span>
+              );
+            })}
+          </div>
+          <Card style={{ marginBottom: 14 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
+              <Label style={{ marginBottom: 0 }}>{skillsCopy.skillsLabel}</Label>
+              <div style={{ fontFamily: S.mono, fontSize: 12, color: skills.length >= 8 ? S.red : S.dim, fontWeight: 700 }}>{skills.length} / 8</div>
+            </div>
+            <p style={{ color: S.muted, fontSize: 16, margin: "0 0 16px", lineHeight: 1.6 }}>{skillsCopy.skillsHelper}</p>
+            {skillsGroundedInResume ? (
+              <div style={{ fontSize: 15, color: S.green, lineHeight: 1.6, margin: "-8px 0 16px" }}>{skillsCopy.skillsGroundedInResume}</div>
+            ) : null}
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {skills.map(function (s, i) {
                 return (
-                  <div key={field.id} style={{ marginBottom: 14, fontSize: 14 }}>
-                    <div style={{ marginBottom: 4 }}>
-                      <strong>{field.id}</strong>{" "}
-                      <span style={{ color: "#6b6b6b" }}>
-                        ({field.type}
-                        {field.required ? " · required" : ""}
-                        {field.visibleWhen
-                          ? " · visibleWhen: " +
-                            field.visibleWhen.field +
-                            "=" +
-                            JSON.stringify(field.visibleWhen.equals)
-                          : ""}
-                        ) · dependsOn: {dep} · {opts.length} options
-                      </span>
+                  <div key={s.id} style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                    <div style={{ width: 26, height: 26, borderRadius: "50%", background: S.accent, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: s.editing ? 9 : 10 }}>
+                      <span style={{ color: "white", fontSize: 12, fontFamily: S.mono, fontWeight: 700 }}>{i + 1}</span>
                     </div>
-                    {field.type === "file" ? (
-                      <div>
-                        {!isEmptyIntakeValue(val) ? (
-                          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                            <span style={{ color: "#15803d", fontWeight: 600 }}>
-                              ✓ {fileMeta.fileName || "Uploaded file"}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={function () {
-                                removeFileField(field.id);
-                              }}
-                              style={{
-                                background: "none",
-                                border: "none",
-                                padding: 0,
-                                cursor: "pointer",
-                                fontSize: 12,
-                                color: "#6b6b6b",
-                                textDecoration: "underline",
-                              }}
-                            >
-                              Remove
-                            </button>
-                          </div>
-                        ) : (
-                          <div>
-                            <input
-                              ref={function (el) {
-                                fileInputRefs.current[field.id] = el;
-                              }}
-                              type="file"
-                              accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                              onChange={function (e) {
-                                handleFileFieldSelect(field, e);
-                              }}
-                              disabled={!!fileMeta.uploading}
-                              style={{ width: "100%", padding: 8, boxSizing: "border-box" }}
-                            />
-                            {fileMeta.uploading ? (
-                              <p style={{ color: "#6b6b6b", fontSize: 13, margin: "8px 0 0" }}>
-                                Reading your file…
-                              </p>
-                            ) : null}
-                          </div>
-                        )}
-                        {fileMeta.error ? (
-                          <p style={{ color: "#6b6b6b", fontSize: 13, margin: "8px 0 0" }}>
-                            {fileMeta.error}
-                          </p>
-                        ) : null}
-                      </div>
-                    ) : field.type === "text" ? (
-                      <input
-                        type="text"
-                        value={val || ""}
-                        onChange={function (e) {
-                          setIntakeValue(field.id, e.target.value);
-                        }}
-                        style={{ width: "100%", padding: 8, boxSizing: "border-box" }}
-                      />
-                    ) : field.type === "multiSelect" ? (
-                      <div>
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                          {opts.map(function (opt) {
-                            var key = optionKey(opt);
-                            var selected =
-                              Array.isArray(val) && val.indexOf(key) !== -1;
-                            var note = optionNote(opt);
-                            // maxSelections: Finance-style click cap — unselected options
-                            // go disabled (opacity + not-allowed) and clicks are ignored.
-                            var cap =
-                              field.maxSelections != null &&
-                              field.maxSelections > 0
-                                ? field.maxSelections
-                                : null;
-                            var atCap =
-                              cap != null &&
-                              Array.isArray(val) &&
-                              val.length >= cap;
-                            var cappedOut = !selected && atCap;
-                            return (
-                              <button
-                                key={key}
-                                type="button"
-                                title={note || undefined}
-                                disabled={cappedOut}
-                                onClick={function () {
-                                  var prev = Array.isArray(val) ? val : [];
-                                  if (prev.indexOf(key) !== -1) {
-                                    setIntakeValue(
-                                      field.id,
-                                      prev.filter(function (x) {
-                                        return x !== key;
-                                      })
-                                    );
-                                    return;
-                                  }
-                                  if (
-                                    cap != null &&
-                                    prev.length >= cap
-                                  ) {
-                                    return;
-                                  }
-                                  setIntakeValue(field.id, prev.concat([key]));
-                                }}
-                                style={{
-                                  padding: "4px 10px",
-                                  borderRadius: 4,
-                                  border: selected
-                                    ? "1px solid #b8860b"
-                                    : "1px solid #ddd",
-                                  background: selected ? "#b8860b22" : "#fafafa",
-                                  cursor: cappedOut
-                                    ? "not-allowed"
-                                    : "pointer",
-                                  opacity: cappedOut ? 0.4 : 1,
-                                  fontSize: 12,
-                                }}
-                              >
-                                {optionLabel(opt)}
-                              </button>
-                            );
-                          })}
-                          {opts.length === 0 ? (
-                            <span style={{ color: "#999" }}>No options yet</span>
-                          ) : null}
+                    <div style={{ flex: 1 }}>
+                      {s.editing ? (
+                        <div style={{ display: "flex", gap: 8 }}>
+                          <input
+                            autoFocus
+                            value={s.text}
+                            onChange={function (e) { updateText(s.id, e.target.value); }}
+                            onKeyDown={function (e) { if (e.key === "Enter" || e.key === "Escape") commitEdit(s.id); }}
+                            style={Object.assign({}, inputStyle, { flex: 1 })}
+                          />
+                          <button onClick={function () { commitEdit(s.id); }} style={{ background: S.accent, border: "none", color: "white", padding: "12px 16px", borderRadius: 8, cursor: "pointer", fontFamily: S.mono, fontSize: 14, fontWeight: 700 }}>✓</button>
                         </div>
-                        {showExpandTrigger ? (
-                          <button
-                            type="button"
-                            onClick={function () {
-                              if (exp.mode === "toggle" && isExpanded) {
-                                setFieldExpanded(field.id, false);
-                              } else {
-                                setFieldExpanded(field.id, true);
-                              }
-                            }}
-                            style={{
-                              marginTop: 8,
-                              background: "none",
-                              border: "1px dashed #ccc",
-                              borderRadius: 16,
-                              padding: "4px 12px",
-                              cursor: "pointer",
-                              fontSize: 12,
-                              color: "#6b6b6b",
-                            }}
-                          >
-                            {exp.mode === "toggle" && isExpanded
-                              ? formatExpandableCollapseLabel(field)
-                              : formatExpandableTriggerLabel(field, hiddenCount)}
+                      ) : (
+                        <div style={{ display: "flex", alignItems: "center", background: "#f2f4f8", border: "1px solid " + S.border, borderRadius: 10, padding: "10px 14px", gap: 10, minHeight: 46 }}>
+                          <span style={{ color: S.text, fontSize: 16, flex: 1, fontWeight: 500, lineHeight: 1.4 }}>{s.text}</span>
+                          <button onClick={function () { startEditing(s.id); }} style={{ background: "none", border: "1px solid " + S.border, color: S.muted, cursor: "pointer", fontSize: 12, padding: "4px 9px", borderRadius: 6, fontFamily: S.mono, whiteSpace: "nowrap" }}>
+                            {skillsCopy.editButton}
                           </button>
-                        ) : null}
-                      </div>
-                    ) : (
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                        {opts.map(function (opt) {
-                          var key = optionKey(opt);
-                          var selected = String(val) === String(key);
-                          var note = optionNote(opt);
-                          return (
-                            <button
-                              key={key}
-                              type="button"
-                              title={note || undefined}
-                              onClick={function () {
-                                selectOption(field, key);
-                              }}
-                              style={{
-                                padding: "4px 10px",
-                                borderRadius: 4,
-                                border: selected
-                                  ? "1px solid #b8860b"
-                                  : "1px solid #ddd",
-                                background: selected ? "#b8860b22" : "#fafafa",
-                                cursor: "pointer",
-                                fontSize: 12,
-                                textAlign: "left",
-                              }}
-                            >
-                              {optionLabel(opt)}
-                              {note ? (
-                                <span style={{ display: "block", opacity: 0.55, marginTop: 2 }}>
-                                  {note}
-                                </span>
-                              ) : null}
-                            </button>
-                          );
-                        })}
-                        {opts.length === 0 ? (
-                          <span style={{ color: "#999" }}>No options yet</span>
-                        ) : null}
-                      </div>
-                    )}
+                          <button onClick={function () { removeSkill(s.id); }} style={{ background: "none", border: "none", color: S.dim, cursor: "pointer", fontSize: 18, lineHeight: 1, padding: 0, flexShrink: 0 }}>×</button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 );
               })}
-              <p style={{ margin: "12px 0 0", fontSize: 13, color: "#6b6b6b" }}>
-                canProceed: {canProceed ? "yes" : "no"}
-              </p>
             </div>
+          </Card>
+
+          {/* AI Usage card intentionally skipped for this migration pass (task instruction: SKIP the AI Usage card on skills step). */}
+
+          {error ? (
+            <p style={{ color: S.red, fontSize: 14, fontFamily: S.mono, fontWeight: 600, marginBottom: 12, textAlign: "center" }}>{error}</p>
           ) : null}
 
-          {currentStep === "skills" ? (
-            <div>
-              <p style={{ margin: "0 0 12px", fontWeight: 600 }}>
-                Skills / landscape
-              </p>
-              {error ? (
-                <p style={{ color: "#b91c1c", fontSize: 14 }}>{error}</p>
-              ) : null}
-              {landscape ? (
-                <p style={{ fontSize: 14, margin: "0 0 12px", lineHeight: 1.5 }}>
-                  {landscape}
-                </p>
-              ) : (
-                <p style={{ margin: "0 0 12px", color: "#6b6b6b", fontSize: 14 }}>
-                  No landscape yet — run generate.
-                </p>
-              )}
-              {skills.length > 0 ? (
-                <ol style={{ margin: "0 0 12px", paddingLeft: 20, fontSize: 14 }}>
-                  {skills.map(function (s) {
-                    return <li key={s.id}>{s.text}</li>;
-                  })}
-                </ol>
-              ) : null}
-              {skillsGroundedInResume ? (
-                <p style={{ fontSize: 12, color: "#6b6b6b", margin: "0 0 12px" }}>
-                  Skills grounded in resume text.
-                </p>
-              ) : null}
-              <button type="button" onClick={fetchLandscapeAndSkills}>
-                Run fetchLandscapeAndSkills
-              </button>
-            </div>
-          ) : null}
+          <div style={{ display: "flex", gap: 12 }}>
+            <button onClick={goBack} style={{ flex: 1, background: "transparent", border: "1px solid " + S.border, color: S.muted, borderRadius: 12, padding: "15px 0", fontSize: 14, fontFamily: S.mono, cursor: "pointer", letterSpacing: "0.06em", fontWeight: 600 }}>
+              {skillsCopy.backButton}
+            </button>
+            <PrimaryBtn onClick={goToAffinityFromSkills} disabled={skills.length === 0} style={{ flex: 3 }}>
+              {skills.length === 0 ? skillsCopy.nextEmpty : skillsCopy.nextReady}
+            </PrimaryBtn>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-          {currentStep === "affinity" ? (
-            <div>
-              <p style={{ margin: "0 0 12px", fontWeight: 600 }}>Affinity (skeleton)</p>
-              <label style={{ display: "block", marginBottom: 8, fontSize: 14 }}>
-                conscience: {conscience}
-                <input
-                  type="range"
-                  min={0}
-                  max={10}
-                  value={conscience}
-                  onChange={function (e) {
-                    setConscience(Number(e.target.value));
-                  }}
-                  style={{ display: "block", width: "100%" }}
-                />
-              </label>
-              <label style={{ display: "block", marginBottom: 8, fontSize: 14 }}>
-                pull: {pull}
-                <input
-                  type="range"
-                  min={0}
-                  max={10}
-                  value={pull}
-                  onChange={function (e) {
-                    setPull(Number(e.target.value));
-                  }}
-                  style={{ display: "block", width: "100%" }}
-                />
-              </label>
-              {isPerSkill ? (
-                <div>
-                  <p style={{ margin: "0 0 8px", fontSize: 13, color: "#6b6b6b" }}>
-                    perSkill maps ready (skillConscience keys:{" "}
-                    {Object.keys(skillConscience || {}).length}, skillPull keys:{" "}
-                    {Object.keys(skillPull || {}).length}). Real per-skill UI
-                    lands with scoring; seed below verifies state wiring.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={function () {
-                      setSkillConscience(function (prev) {
-                        return Object.assign({}, prev, { _demo: conscience });
-                      });
-                      setSkillPull(function (prev) {
-                        return Object.assign({}, prev, { _demo: pull });
-                      });
+  // ── AFFINITY ────────────────────────────────────────────────────────
+  if (currentStep === "affinity") {
+    var conscienceLabelTexts = affinityCopy.conscienceStops || [];
+    var pullLabelTexts = affinityCopy.pullStops || [];
+    return (
+      <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font, padding: "32px 20px" }}>
+        <style dangerouslySetInnerHTML={{ __html: DZ_SLIDER_CSS }} />
+        <div style={{ maxWidth: 680, margin: "0 auto" }}>
+          <div style={{ marginBottom: 24 }}>
+            <div style={{ fontFamily: S.mono, fontSize: 12, color: S.purple, letterSpacing: "0.1em", marginBottom: 8, fontWeight: 600 }}>{affinityCopy.stepEyebrow}</div>
+            <h2 style={{ fontFamily: S.serif, fontSize: 30, color: S.text, margin: "0 0 8px" }}>{affinityCopy.heading}</h2>
+            <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
+              <span style={{ fontFamily: S.mono, fontSize: 12, color: S.gold, background: "rgba(217,119,6,0.1)", border: "1px solid rgba(217,119,6,0.3)", borderRadius: 12, padding: "3px 10px", fontWeight: 600 }}>{uiProfile.roleLabel}</span>
+              <span style={{ fontFamily: S.mono, fontSize: 12, color: S.muted, background: S.card2, border: "1px solid " + S.border, borderRadius: 12, padding: "3px 10px", fontWeight: 600 }}>{uiProfile.seniorityLabel}</span>
+            </div>
+            <p style={{ fontSize: 16, color: "#6b7280", lineHeight: 1.7, margin: 0 }}>{affinityCopy.intro}</p>
+          </div>
+          <div style={{ fontFamily: S.mono, fontSize: 12, textTransform: "uppercase", color: "#7a88a8", marginBottom: 6 }}>{affinityCopy.part1Label}</div>
+          <div style={{ fontSize: 15, color: "#7a88a8", marginBottom: 24 }}>{affinityCopy.part1Helper}</div>
+
+          <div style={{ background: S.card, border: "1px solid #d0d7e8", borderRadius: 14, padding: "24px 28px", marginBottom: 16 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+              <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#7c3aed", flexShrink: 0 }} />
+              <span style={{ fontFamily: S.mono, fontSize: 12, fontWeight: 700, color: "#7c3aed", letterSpacing: "0.08em" }}>{affinityCopy.craftConscienceLabel}</span>
+            </div>
+            <p style={{ fontSize: 16, fontStyle: "italic", color: "#3d4a6b", lineHeight: 1.6, marginBottom: 6, marginTop: 0 }}>{affinityCopy.craftConscienceQuestion}</p>
+            <p style={{ fontSize: 14, color: "#7a88a8", lineHeight: 1.5, marginBottom: 20, marginTop: 0 }}>{affinityCopy.craftConscienceHelper}</p>
+            <input
+              className="dz-slider conscience-sl"
+              type="range"
+              min={0}
+              max={10}
+              step={1}
+              value={conscience}
+              onChange={function (e) { setConscience(snapToStop(Number(e.target.value))); }}
+              style={{ background: "linear-gradient(to right, #7c3aed " + (conscience / 10) * 100 + "%, #d0d7e8 " + (conscience / 10) * 100 + "%)" }}
+            />
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10 }}>
+              {AFFINITY_STOPS.map(function (stopValue, idx) {
+                return (
+                  <div key={stopValue} style={{ width: "20%", textAlign: "center", fontSize: 12, color: "#7c3aed", opacity: Math.abs(conscience - stopValue) <= 1 ? 1 : 0.25, fontWeight: Math.abs(conscience - stopValue) <= 1 ? 700 : 400 }}>
+                    {conscienceLabelTexts[idx]}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div style={{ background: S.card, border: "1px solid #d0d7e8", borderRadius: 14, padding: "24px 28px", marginBottom: 16 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+              <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#0891b2", flexShrink: 0 }} />
+              <span style={{ fontFamily: S.mono, fontSize: 12, fontWeight: 700, color: "#0891b2", letterSpacing: "0.08em" }}>{affinityCopy.intrinsicPullLabel}</span>
+            </div>
+            <p style={{ fontSize: 16, fontStyle: "italic", color: "#3d4a6b", lineHeight: 1.6, marginBottom: 6, marginTop: 0 }}>{affinityCopy.intrinsicPullQuestion}</p>
+            <p style={{ fontSize: 14, color: "#7a88a8", lineHeight: 1.5, marginBottom: 20, marginTop: 0 }}>{affinityCopy.intrinsicPullHelper}</p>
+            <input
+              className="dz-slider pull-sl"
+              type="range"
+              min={0}
+              max={10}
+              step={1}
+              value={pull}
+              onChange={function (e) { setPull(snapToStop(Number(e.target.value))); }}
+              style={{ background: "linear-gradient(to right, #0891b2 " + (pull / 10) * 100 + "%, #d0d7e8 " + (pull / 10) * 100 + "%)" }}
+            />
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10 }}>
+              {AFFINITY_STOPS.map(function (stopValue, idx) {
+                return (
+                  <div key={stopValue} style={{ width: "20%", textAlign: "center", fontSize: 12, color: "#0891b2", opacity: Math.abs(pull - stopValue) <= 1 ? 1 : 0.25, fontWeight: Math.abs(pull - stopValue) <= 1 ? 700 : 400 }}>
+                    {pullLabelTexts[idx]}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <hr style={{ border: "none", borderTop: "1px solid #d0d7e8", margin: "32px 0" }} />
+          <div style={{ fontFamily: S.mono, fontSize: 12, textTransform: "uppercase", color: "#7a88a8", marginBottom: 6 }}>{affinityCopy.part2Label}</div>
+          <div style={{ fontSize: 15, color: "#7a88a8", lineHeight: 1.6, marginBottom: 8 }}>{affinityCopy.part2Helper}</div>
+          <div style={{ fontSize: 14, color: "#9ca3af", marginBottom: 24 }}>{affinityCopy.part2Hint}</div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 20 }}>
+            {skills.map(function (s) {
+              var fluencyVal = fluencies[s.id] !== undefined ? fluencies[s.id] : getSeed(conscience, pull);
+              var affinityScore = compAff(conscience, pull, fluencyVal);
+              var affinityColor = affinityScore >= 7 ? S.green : affinityScore >= 5 ? S.gold : S.red;
+              return (
+                <div key={s.id} style={{ background: S.card, border: "1px solid #d0d7e8", borderRadius: 12, padding: "18px 22px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
+                    <div style={{ flex: 1, paddingRight: 12 }}>
+                      <div style={{ fontSize: 16, fontWeight: 600, color: S.text }}>{s.text}</div>
+                    </div>
+                    <span style={{ fontSize: 12, padding: "2px 8px", borderRadius: 10, fontFamily: S.mono, flexShrink: 0, background: adjustedSkills.has(s.id) ? "rgba(217,119,6,0.12)" : "rgba(5,150,105,0.10)", color: adjustedSkills.has(s.id) ? "#d97706" : "#059669" }}>
+                      {adjustedSkills.has(s.id) ? affinityCopy.adjustedBadge : affinityCopy.preSeededBadge}
+                    </span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                    <span style={{ fontFamily: S.mono, fontSize: 12, color: "#7a88a8" }}>{affinityCopy.feltFluencyLabel}</span>
+                    <span style={{ fontFamily: S.mono, fontSize: 12, fontWeight: 700, color: "#d97706" }}>{fluencyVal}/10</span>
+                  </div>
+                  <input
+                    className="dz-slider fluency-sl"
+                    type="range"
+                    min={0}
+                    max={10}
+                    step={1}
+                    value={fluencyVal}
+                    onChange={function (e) {
+                      var val = Number(e.target.value);
+                      setFluencies(function (prev) { return Object.assign({}, prev, { [s.id]: val }); });
+                      markAdjusted(s.id);
                     }}
-                  >
-                    Seed demo skillConscience/skillPull from global
-                  </button>
+                    style={{ background: "linear-gradient(to right, #d97706 " + (fluencyVal / 10) * 100 + "%, #d0d7e8 " + (fluencyVal / 10) * 100 + "%)" }}
+                  />
+                  <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}>
+                    <span style={{ fontSize: 12, color: "#9ca3af" }}>{affinityCopy.fluencyLow}</span>
+                    <span style={{ fontSize: 12, color: "#9ca3af" }}>{affinityCopy.fluencyHigh}</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 14, paddingTop: 12, borderTop: "1px solid #f0f0f0" }}>
+                    <span style={{ fontFamily: S.mono, fontSize: 12, color: "#7a88a8" }}>{affinityCopy.affinityScoreLabel}</span>
+                    <span style={{ fontSize: 22, fontWeight: 700, color: affinityColor }}>{affinityScore}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div style={{ display: "flex", gap: 12, marginBottom: 12 }}>
+            <button onClick={goBack} style={{ flex: 1, background: "transparent", border: "1px solid " + S.border, color: S.muted, borderRadius: 12, padding: "15px 0", fontSize: 14, fontFamily: S.mono, cursor: "pointer", letterSpacing: "0.06em", fontWeight: 600 }}>
+              {affinityCopy.backButton}
+            </button>
+            <PrimaryBtn onClick={goToGateFromAffinity} disabled={skills.length === 0} style={{ flex: 3 }}>{affinityCopy.analyzeButton}</PrimaryBtn>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── GATE ────────────────────────────────────────────────────────────
+  if (currentStep === "gate") {
+    var fullScreenCenter = { background: S.bg, minHeight: "100vh", fontFamily: S.font, display: "flex", flexDirection: "column", padding: "32px 20px", boxSizing: "border-box" };
+    var gateTryAgainBtn = { width: "100%", marginTop: 20, background: S.accent, color: "#ffffff", border: "none", borderRadius: 10, padding: 16, fontSize: 16, fontWeight: 600, fontFamily: S.mono, letterSpacing: "0.06em", cursor: "pointer" };
+
+    if (effectivelyVerified) {
+      return (
+        <div style={fullScreenCenter}>
+          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <style dangerouslySetInnerHTML={{ __html: "@keyframes dzGateDots{0%,100%{opacity:0.25}50%{opacity:1}}" }} />
+            <div style={{ textAlign: "center", maxWidth: 420 }}>
+              <div style={{ fontFamily: S.mono, fontSize: 12, color: S.gold, letterSpacing: "0.12em", marginBottom: 24, fontWeight: 600 }}>{editionLine}</div>
+              {error ? (
+                <div>
+                  <div style={{ color: S.red, fontSize: 15, margin: "0 0 20px", lineHeight: 1.5 }}>{error}</div>
+                  <button type="button" onClick={fetchScores} style={Object.assign({}, gateTryAgainBtn, { marginTop: 0, width: "auto", minWidth: 200 })}>{gateCopy.tryAgain}</button>
                 </div>
               ) : (
-                <p style={{ margin: 0, fontSize: 13, color: "#6b6b6b" }}>
-                  Global affinity only (mode: {affinityMode}).
-                </p>
+                <div style={{ fontFamily: S.serif, fontSize: 24, fontStyle: "italic", color: S.text, lineHeight: 1.45 }}>{gateCopy.scoring}</div>
               )}
-            </div>
-          ) : null}
-
-          {currentStep === "gate" ? (
-            <div>
-              <p style={{ margin: "0 0 8px" }}>
-                Gate step placeholder — navigating here from a prior step triggers{" "}
-                <code>saveBeforeGate</code> into <code>{storageKey || "(no key)"}</code>.
-              </p>
-              <button
-                type="button"
-                onClick={function () {
-                  console.log("[EmployerEngine] loadSavedState", loadSavedState());
-                }}
-              >
-                Log loadSavedState()
-              </button>
-            </div>
-          ) : null}
-
-          {currentStep === "results" ? (
-            <div>
-              <p style={{ margin: "0 0 12px", fontWeight: 600 }}>
-                Results{" "}
-                <span style={{ fontWeight: 400, color: "#6b6b6b", fontSize: 13 }}>
-                  (phaseModel: {phaseModel || "—"})
-                </span>
-              </p>
-              {error ? (
-                <p style={{ color: "#b91c1c", fontSize: 14 }}>{error}</p>
-              ) : null}
-              {recsError ? (
-                <p style={{ color: "#b91c1c", fontSize: 14 }}>{recsError}</p>
-              ) : null}
-              {results && results.skills ? (
-                <p style={{ fontSize: 13, color: "#6b6b6b", margin: "0 0 8px" }}>
-                  {results.skills.length} scored skills
-                  {recommendations && recommendations.recommendations
-                    ? " · " +
-                      recommendations.recommendations.length +
-                      " recommendations"
-                    : ""}
-                  {recsLoading ? " · loading recommendations…" : ""}
-                </p>
-              ) : (
-                <p style={{ fontSize: 14, color: "#6b6b6b", margin: "0 0 12px" }}>
-                  No scores yet.
-                </p>
-              )}
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                <button type="button" onClick={fetchScores} disabled={skills.length === 0}>
-                  Run fetchScores
-                </button>
-                <button
-                  type="button"
-                  onClick={function () {
-                    fetchRecommendations();
-                  }}
-                  disabled={!results || !results.skills || results.skills.length === 0}
-                >
-                  Run fetchRecommendations
-                </button>
+              <div style={{ display: "flex", justifyContent: "center", gap: 6, marginTop: 18, fontFamily: S.mono, fontSize: 22, color: S.dim, lineHeight: 1 }}>
+                <span style={{ animation: "dzGateDots 1s ease-in-out infinite" }}>.</span>
+                <span style={{ animation: "dzGateDots 1s ease-in-out 0.2s infinite" }}>.</span>
+                <span style={{ animation: "dzGateDots 1s ease-in-out 0.4s infinite" }}>.</span>
               </div>
             </div>
-          ) : null}
-
-          {["intake", "skills", "affinity", "gate", "results"].indexOf(currentStep) ===
-          -1 ? (
-            <p style={{ margin: 0 }}>
-              Custom step <code>{currentStep}</code> — no dedicated placeholder.
-            </p>
-          ) : null}
+          </div>
         </div>
+      );
+    }
 
-        <div style={{ display: "flex", gap: 12 }}>
+    var formShell = { background: S.bg, minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "32px 20px", boxSizing: "border-box", fontFamily: S.font };
+    var gateCard = { maxWidth: 480, width: "100%", margin: "0 auto", textAlign: "center" };
+
+    if (gateSent) {
+      return (
+        <div style={formShell}>
+          <div style={gateCard}>
+            <div style={{ fontFamily: S.mono, fontSize: 12, color: S.gold, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 24, fontWeight: 600 }}>{gateCopy.checkInboxEyebrow}</div>
+            <div style={{ fontFamily: S.serif, fontSize: 34, fontStyle: "italic", color: S.text, marginBottom: 10, lineHeight: 1.15 }}>{gateCopy.sentHeading}</div>
+            <div style={{ fontSize: 16, color: S.dim, lineHeight: 1.75, marginBottom: 20 }}>{gateCopy.sentBody}</div>
+            <div style={{ display: "inline-block", padding: "4px 14px", borderRadius: 20, background: S.card2, border: "1px solid " + S.border, fontFamily: S.mono, fontSize: 13, color: S.muted, marginBottom: 28 }}>{gateEmail}</div>
+            {showResend ? (
+              <button
+                type="button"
+                onClick={function () { setShowResend(false); handleGateSubmit(); }}
+                style={{ background: "transparent", border: "1px solid " + S.border, borderRadius: 10, padding: "10px 20px", fontFamily: S.mono, fontSize: 12, color: S.muted, cursor: "pointer" }}
+              >
+                {gateCopy.resendLink}
+              </button>
+            ) : null}
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={function () {
+                setGateEmail(""); setGateSent(false); setGateError(""); setGateVerified(false);
+                setGateLoading(false); setShowResend(false); setCurrentStep(startAt);
+              }}
+              onKeyDown={function (e) {
+                if (e.key !== "Enter" && e.key !== " ") return;
+                setGateEmail(""); setGateSent(false); setGateError(""); setGateVerified(false);
+                setGateLoading(false); setShowResend(false); setCurrentStep(startAt);
+              }}
+              style={{ fontFamily: S.mono, fontSize: 12, color: S.dim, cursor: "pointer", marginTop: 24 }}
+            >
+              {gateCopy.startOver}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    var showExpiredInvalid = gateError === "expired" || gateError === "invalid";
+    return (
+      <div style={formShell}>
+        <div style={gateCard}>
+          <div style={{ fontFamily: S.mono, fontSize: 12, color: S.gold, letterSpacing: "0.12em", marginBottom: 24, fontWeight: 600 }}>{editionLine}</div>
+          <div style={{ fontFamily: S.serif, fontSize: 34, fontStyle: "italic", color: S.text, marginBottom: 10, lineHeight: 1.15 }}>{gateCopy.readyHeading}</div>
+          <div style={{ fontSize: 16, color: S.dim, lineHeight: 1.75, marginBottom: 28 }}>{gateCopy.readyBody}</div>
+          {gateError === "expired" ? <div style={{ color: S.red, fontSize: 14, marginBottom: 12 }}>{gateCopy.expiredError}</div> : null}
+          {gateError === "invalid" ? <div style={{ color: S.red, fontSize: 14, marginBottom: 12 }}>{gateCopy.invalidError}</div> : null}
+          <input
+            type="email"
+            placeholder={gateCopy.emailPlaceholder}
+            value={gateEmail}
+            disabled={gateLoading}
+            onFocus={function () { setGateInputFocused(true); }}
+            onBlur={function () { setGateInputFocused(false); }}
+            onChange={function (e) { setGateEmail(e.target.value); if (showExpiredInvalid) setGateError(""); }}
+            style={{ width: "100%", padding: "14px 16px", fontSize: 16, fontFamily: S.font, border: gateInputFocused ? "1px solid " + S.gold : "1px solid " + S.border, borderRadius: 10, outline: "none", boxSizing: "border-box", background: "#ffffff", color: S.text }}
+          />
+          {gateError && !showExpiredInvalid ? <div style={{ color: S.red, fontSize: 13, marginTop: 8 }}>{gateError}</div> : null}
           <button
             type="button"
-            onClick={goBack}
-            disabled={isFirstStep}
-            style={{
-              flex: 1,
-              padding: "12px 0",
-              borderRadius: 8,
-              border: "1px solid #d0d0d0",
-              background: isFirstStep ? "#eee" : "#fff",
-              cursor: isFirstStep ? "not-allowed" : "pointer",
-              fontSize: 14,
-            }}
+            onClick={handleGateSubmit}
+            disabled={gateLoading}
+            style={{ width: "100%", padding: 14, fontSize: 16, fontWeight: 600, fontFamily: S.font, background: gateLoading ? "#e5a820" : S.gold, color: "#ffffff", border: "none", borderRadius: 10, cursor: gateLoading ? "not-allowed" : "pointer", marginTop: 12 }}
           >
-            ← Back
-          </button>
-          <button
-            type="button"
-            onClick={goNext}
-            disabled={isLastStep || (currentStep === "intake" && !canProceed)}
-            style={{
-              flex: 2,
-              padding: "12px 0",
-              borderRadius: 8,
-              border: "1px solid #b8860b",
-              background:
-                isLastStep || (currentStep === "intake" && !canProceed) ? "#eee" : "#b8860b",
-              color:
-                isLastStep || (currentStep === "intake" && !canProceed) ? "#999" : "#fff",
-              cursor:
-                isLastStep || (currentStep === "intake" && !canProceed)
-                  ? "not-allowed"
-                  : "pointer",
-              fontSize: 14,
-              fontWeight: 600,
-            }}
-          >
-            Next →
+            {gateCopy.submitButton}
           </button>
         </div>
       </div>
-    </div>
-  );
+    );
+  }
+
+  // ── RESULTS ─────────────────────────────────────────────────────────
+  if (currentStep === "results" && results && getScoredSkills(results).length > 0) {
+    var scoredSkills = getScoredSkills(results);
+    var totalDZ = Math.round(
+      scoredSkills.reduce(function (sum, s) { return sum + (s.dz || 0); }, 0) / scoredSkills.length
+    );
+    var dzLabels = resultsCopy.dzLabels || {};
+    var dzLabelColor = totalDZ >= 70 ? S.green : totalDZ >= 50 ? S.gold : totalDZ >= 30 ? S.orange : S.red;
+    var dzLabelText = totalDZ >= 70 ? dzLabels.high : totalDZ >= 50 ? dzLabels.moderate : totalDZ >= 30 ? dzLabels.mixed : dzLabels.low;
+    var dzBarColor = function (score) {
+      if (score >= 65) return S.green;
+      if (score >= 40) return S.gold;
+      return S.red;
+    };
+    var sortedDZ = scoredSkills.slice().sort(function (a, b) { return (b.dz || 0) - (a.dz || 0); });
+    var topSkills = sortedDZ.slice(0, 3);
+    var atRisk = sortedDZ.slice(-3);
+    var phasesCopy = resultsCopy.phases || [];
+    var PHASE_META = phasesCopy.map(function (p, i) { return { phase: i + 1, label: p.label, framing: p.framing }; });
+
+    var rawRecs = recommendations && recommendations.recommendations ? recommendations.recommendations.slice() : [];
+    var byId = {};
+    rawRecs.forEach(function (r) { byId[r.id] = r; });
+    scoredSkills.forEach(function (s) {
+      if (rawRecs.length < scoredSkills.length && !byId[s.id]) {
+        rawRecs.push({ id: s.id, headline: "", action: "", why: "" });
+        byId[s.id] = rawRecs[rawRecs.length - 1];
+      }
+    });
+    var recList = rawRecs.slice(0, scoredSkills.length);
+    var groupedByPhase = PHASE_META.map(function (meta) {
+      return { meta: meta, recs: recList.filter(function (r) { return r.phase === meta.phase; }) };
+    }).filter(function (g) { return g.recs.length > 0; });
+    var hasPhases = groupedByPhase.length > 1;
+
+    return (
+      <div style={{ background: S.bg, minHeight: "100vh", fontFamily: S.font, padding: "32px 20px" }}>
+        <div style={{ maxWidth: 680, margin: "0 auto" }}>
+          <div style={{ fontFamily: S.mono, fontSize: 12, color: S.gold, letterSpacing: "0.12em", marginBottom: 20, fontWeight: 600 }}>{editionLine}</div>
+          <h1 style={{ fontFamily: S.serif, fontSize: 34, color: S.text, margin: "0 0 6px", lineHeight: 1.15, fontWeight: 600 }}>{resultsCopy.heading}</h1>
+          <p style={{ color: "#6b7280", fontSize: 16, lineHeight: 1.6, margin: "0 0 32px" }}>{uiProfile.summary}</p>
+
+          <div style={{ background: "#ffffff", border: "1px solid #d0d7e8", borderRadius: 16, padding: 28, marginBottom: 24, display: "flex", alignItems: "center", gap: 28 }}>
+            <div style={{ width: 96, height: 96, borderRadius: "50%", border: "4px solid " + dzLabelColor, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <span style={{ fontSize: 32, fontWeight: 700, color: dzLabelColor, lineHeight: 1, fontFamily: S.mono }}>{totalDZ}</span>
+              <span style={{ fontSize: 12, color: "#9ca3af", fontFamily: S.mono, marginTop: 2 }}>/ 100</span>
+            </div>
+            <div>
+              <div style={{ fontFamily: S.mono, fontSize: 12, color: "#9ca3af", letterSpacing: "0.08em", marginBottom: 6 }}>{resultsCopy.overallLabel}</div>
+              <div style={{ fontSize: 22, fontWeight: 700, color: dzLabelColor, marginBottom: 6, fontFamily: S.serif }}>{dzLabelText}</div>
+              <p style={{ fontSize: 15, color: "#6b7280", lineHeight: 1.55, margin: 0 }}>{resultsCopy.overallHelper}</p>
+            </div>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 28 }}>
+            <div style={{ background: "#ffffff", border: "1px solid #d0d7e8", borderRadius: 14, padding: "20px 18px" }}>
+              <div style={{ fontFamily: S.mono, fontSize: 12, color: S.green, letterSpacing: "0.1em", marginBottom: 14, fontWeight: 700 }}>{resultsCopy.mostDefensible}</div>
+              {topSkills.map(function (s) {
+                return (
+                  <div key={s.id} style={{ marginBottom: 12 }}>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: S.text, lineHeight: 1.35, marginBottom: 4 }}>{s.text}</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <div style={{ flex: 1, height: 6, background: "#f0f0f0", borderRadius: 3, overflow: "hidden" }}>
+                        <div style={{ width: s.dz + "%", height: "100%", background: S.green, borderRadius: 3 }} />
+                      </div>
+                      <span style={{ fontFamily: S.mono, fontSize: 12, color: S.green, fontWeight: 700, minWidth: 28, textAlign: "right" }}>{s.dz}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{ background: "#ffffff", border: "1px solid #d0d7e8", borderRadius: 14, padding: "20px 18px" }}>
+              <div style={{ fontFamily: S.mono, fontSize: 12, color: S.red, letterSpacing: "0.1em", marginBottom: 14, fontWeight: 700 }}>{resultsCopy.mostExposed}</div>
+              {atRisk.map(function (s) {
+                return (
+                  <div key={s.id} style={{ marginBottom: 12 }}>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: S.text, lineHeight: 1.35, marginBottom: 4 }}>{s.text}</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <div style={{ flex: 1, height: 6, background: "#f0f0f0", borderRadius: 3, overflow: "hidden" }}>
+                        <div style={{ width: s.dz + "%", height: "100%", background: dzBarColor(s.dz), borderRadius: 3 }} />
+                      </div>
+                      <span style={{ fontFamily: S.mono, fontSize: 12, color: dzBarColor(s.dz), fontWeight: 700, minWidth: 28, textAlign: "right" }}>{s.dz}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div>
+            <div style={{ fontFamily: S.mono, fontSize: 12, textTransform: "uppercase", letterSpacing: "0.06em", color: S.dim, marginBottom: 14 }}>{resultsCopy.fullBreakdown}</div>
+            {scoredSkills.map(function (s) {
+              var col = dzBarColor(s.dz);
+              return (
+                <div key={s.id} style={{ background: "#ffffff", border: "1px solid #d0d7e8", borderRadius: 12, padding: "16px 18px", marginBottom: 8 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+                    <div style={{ fontSize: 16, fontWeight: 600, color: S.text, flex: 1, paddingRight: 12, lineHeight: 1.35 }}>{s.text}</div>
+                    <div style={{ fontFamily: S.mono, fontSize: 22, fontWeight: 700, color: col, flexShrink: 0, lineHeight: 1 }}>{s.dz}</div>
+                  </div>
+                  <div style={{ height: 8, background: "#f0f0f0", borderRadius: 4, overflow: "hidden", marginBottom: 10 }}>
+                    <div style={{ width: s.dz + "%", height: "100%", background: col, borderRadius: 4 }} />
+                  </div>
+                  <div style={{ display: "flex", gap: 18, marginBottom: s.rationale ? 10 : 0 }}>
+                    <div>
+                      <div style={{ fontFamily: S.mono, fontSize: 11, color: "#9ca3af", letterSpacing: "0.06em" }}>{resultsCopy.affinityCol}</div>
+                      <div style={{ fontFamily: S.mono, fontSize: 12, fontWeight: 700, color: "#7c3aed" }}>{s.affinity}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontFamily: S.mono, fontSize: 11, color: "#9ca3af", letterSpacing: "0.06em" }}>{resultsCopy.aiRiskCol}</div>
+                      <div style={{ fontFamily: S.mono, fontSize: 12, fontWeight: 700, color: s.ai_replaceability >= 7 ? S.red : s.ai_replaceability >= 5 ? S.gold : S.green }}>{s.ai_replaceability}/10</div>
+                    </div>
+                    <div>
+                      <div style={{ fontFamily: S.mono, fontSize: 11, color: "#9ca3af", letterSpacing: "0.06em" }}>{resultsCopy.demandCol}</div>
+                      <div style={{ fontFamily: S.mono, fontSize: 12, fontWeight: 700, color: S.blue }}>{s.market_demand}/10</div>
+                    </div>
+                  </div>
+                  {s.rationale ? (
+                    <div style={{ fontSize: 14, color: "#6b7280", lineHeight: 1.5, borderTop: "1px solid #f0f0f0", paddingTop: 8 }}>{s.rationale}</div>
+                  ) : null}
+                </div>
+              );
+            })}
+
+            <div style={{ background: "#f2f4f8", borderRadius: 12, padding: "16px 20px", marginTop: 8, marginBottom: 28 }}>
+              <div style={{ fontFamily: S.mono, fontSize: 12, textTransform: "uppercase", color: S.dim, letterSpacing: "0.06em", marginBottom: 10, fontWeight: 700 }}>{resultsCopy.howCalculatedHeading}</div>
+              <p style={{ fontSize: 16, lineHeight: 1.75, color: "#3d4a6b", margin: "0 0 12px" }}>{resultsCopy.howCalculatedBody}</p>
+              <p style={{ fontSize: 14, color: "#9ca3af", fontStyle: "italic", margin: 0, lineHeight: 1.65 }}>{resultsCopy.howCalculatedFootnote}</p>
+            </div>
+
+            {recsLoading ? (
+              <div style={{ background: "#f8f9fc", minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "40px 20px", fontFamily: S.font }}>
+                <style dangerouslySetInnerHTML={{ __html: "@keyframes dzRecsDots{0%,100%{opacity:0.25}50%{opacity:1}}" }} />
+                <div style={{ fontFamily: S.mono, fontSize: 12, letterSpacing: "0.12em", color: S.gold, marginBottom: 32 }}>{editionLine}</div>
+                <h2 style={{ fontFamily: S.serif, fontSize: 28, color: S.text, margin: 0, lineHeight: 1.2 }}>{resultsCopy.recsLoadingHeading}</h2>
+                <p style={{ fontSize: 16, lineHeight: 1.7, color: "#6b7280", maxWidth: 380, textAlign: "center", marginTop: 12, marginBottom: 0 }}>{resultsCopy.recsLoadingBody}</p>
+                <div style={{ display: "flex", gap: 10, marginTop: 32, alignItems: "center", justifyContent: "center" }}>
+                  <span style={{ fontSize: 36, color: S.gold, animation: "dzRecsDots 1s ease-in-out infinite" }}>.</span>
+                  <span style={{ fontSize: 36, color: S.gold, animation: "dzRecsDots 1s ease-in-out 0.2s infinite" }}>.</span>
+                  <span style={{ fontSize: 36, color: S.gold, animation: "dzRecsDots 1s ease-in-out 0.4s infinite" }}>.</span>
+                </div>
+                <div style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: "center", marginTop: 40 }}>
+                  {(resultsCopy.recsLoadingChips || []).map(function (chip) {
+                    return (
+                      <span key={chip} style={{ background: "white", border: "1px solid #d0d7e8", borderRadius: 20, padding: "8px 16px", fontSize: 13, color: "#6b7280", fontFamily: S.font }}>{chip}</span>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : recsError ? (
+              <div style={{ textAlign: "center", maxWidth: 400, margin: "24px auto 28px" }}>
+                <p style={{ color: S.red, fontSize: 16, margin: "0 0 20px" }}>{recsError}</p>
+                <button
+                  type="button"
+                  onClick={function () { fetchRecommendations(scoredSkills); }}
+                  style={{ background: "#D97706", color: "#fff", border: "none", borderRadius: 12, padding: "14px 32px", fontSize: 16, fontFamily: S.font, fontWeight: 600, cursor: "pointer" }}
+                >
+                  {resultsCopy.tryAgain}
+                </button>
+              </div>
+            ) : (
+              <div style={{ marginTop: 24 }}>
+                <div style={{ marginBottom: 28 }}>
+                  <h2 style={{ fontFamily: S.serif, fontSize: 28, fontWeight: 600, color: S.text, margin: "0 0 10px", lineHeight: 1.2 }}>{resultsCopy.actionPlanHeading}</h2>
+                  <p style={{ fontSize: 16, color: "#6b7280", lineHeight: 1.6, margin: 0 }}>
+                    {interpolateCopy(resultsCopy.actionPlanHelper, { seniorityLabel: uiProfile.seniorityLabel, devTypeLabel: uiProfile.devLabel })}
+                  </p>
+                </div>
+                <div style={{ marginBottom: 28 }}>
+                  {(hasPhases ? groupedByPhase : [{ meta: null, recs: recList }]).map(function (group, groupIdx) {
+                    return (
+                      <div key={groupIdx}>
+                        {group.meta ? (
+                          <div style={{ marginBottom: 20, marginTop: groupIdx === 0 ? 0 : 48, background: "linear-gradient(135deg, #1a1d2e 0%, #2d1f6e 100%)", borderRadius: 14, padding: "22px 24px" }}>
+                            <div style={{ fontFamily: S.mono, fontSize: 11, fontWeight: 700, letterSpacing: "0.14em", color: "rgba(255,255,255,0.55)", textTransform: "uppercase", marginBottom: 8 }}>
+                              {group.meta.label.split("—")[0].trim()}
+                            </div>
+                            <div style={{ fontFamily: S.serif, fontSize: 22, fontWeight: 700, color: "#ffffff", lineHeight: 1.2, marginBottom: 10 }}>
+                              {group.meta.label.split("—").slice(1).join("—").trim()}
+                            </div>
+                            <div style={{ fontSize: 14, color: "rgba(255,255,255,0.7)", lineHeight: 1.65, borderTop: "1px solid rgba(255,255,255,0.15)", paddingTop: 10, fontStyle: "italic" }}>
+                              {group.meta.framing}
+                            </div>
+                          </div>
+                        ) : null}
+                        {group.recs.map(function (rec, idx) {
+                          var globalIdx = recList.indexOf(rec);
+                          var skillRow = scoredSkills.find(function (sd) { return sd.id === rec.id; });
+                          var skillName = skillRow ? skillRow.text : rec.id;
+                          var dzForBar = skillRow ? skillRow.dz : 0;
+                          var barColor = dzBarColor(dzForBar);
+                          return (
+                            <div key={rec.id + "-" + globalIdx} style={{ display: "flex", background: "#ffffff", border: "1px solid #d0d7e8", borderRadius: 12, marginBottom: 12, overflow: "hidden" }}>
+                              <div style={{ width: 4, background: barColor, flexShrink: 0 }} />
+                              <div style={{ padding: "20px 22px", flex: 1, minWidth: 0 }}>
+                                <div style={{ fontFamily: S.mono, fontSize: 12, textTransform: "uppercase", letterSpacing: "0.06em", color: "#6b7280", marginBottom: 8 }}>{skillName}</div>
+                                <div style={{ fontFamily: S.serif, fontSize: 20, fontWeight: 600, color: S.text, lineHeight: 1.3, marginBottom: 10 }}>{rec.headline || "—"}</div>
+                                <div style={{ fontSize: 16, color: S.text, lineHeight: 1.6, marginBottom: 10 }}>{rec.action}</div>
+                                <div style={{ fontSize: 14, color: "#6b7280", fontStyle: "italic", lineHeight: 1.55 }}>{rec.why}</div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <button
+            onClick={resetAll}
+            style={{ width: "100%", background: "transparent", border: "1px solid " + S.border, color: S.muted, borderRadius: 12, padding: "15px 0", fontSize: 14, fontFamily: S.mono, cursor: "pointer", letterSpacing: "0.08em", fontWeight: 600, marginBottom: 28 }}
+          >
+            {resultsCopy.startOver}
+          </button>
+
+          <div style={{ background: "#fef9ec", border: "1px solid #f0c060", borderRadius: 12, padding: "16px 20px", marginBottom: 16, textAlign: "center" }}>
+            <div style={{ fontFamily: S.mono, fontSize: 12, color: "#92400e", fontWeight: 700, marginBottom: 4, letterSpacing: "0.06em" }}>{resultsCopy.disclaimerHeading}</div>
+            <div style={{ fontFamily: S.mono, fontSize: 12, color: "#78350f", lineHeight: 1.7 }}>{resultsCopy.disclaimerBody}</div>
+          </div>
+
+          {manualEmailSent || !gateEmail || !gateEmail.trim() ? (
+            <div style={{ background: "#ffffff", border: "1px solid #d0d7e8", borderRadius: 14, padding: "24px 22px", marginBottom: 28 }}>
+              {manualEmailSent ? (
+                <div style={{ fontSize: 15, color: S.green, lineHeight: 1.6, textAlign: "center" }}>{resultsCopy.emailCopySent}</div>
+              ) : (
+                <div>
+                  <div style={{ fontFamily: S.serif, fontSize: 22, fontWeight: 600, color: S.text, marginBottom: 10, lineHeight: 1.25 }}>{resultsCopy.emailCopyHeading}</div>
+                  <p style={{ fontSize: 15, color: "#6b7280", lineHeight: 1.65, margin: "0 0 18px" }}>{resultsCopy.emailCopyBody}</p>
+                  <input
+                    type="email"
+                    placeholder={gateCopy.emailPlaceholder}
+                    value={manualEmailInput}
+                    disabled={manualEmailLoading}
+                    onChange={function (e) { setManualEmailInput(e.target.value); if (manualEmailError) setManualEmailError(""); }}
+                    style={{ width: "100%", padding: "14px 16px", fontSize: 16, fontFamily: S.font, border: "1px solid " + S.border, borderRadius: 10, outline: "none", boxSizing: "border-box", background: "#ffffff", color: S.text }}
+                  />
+                  {manualEmailError ? <div style={{ color: S.red, fontSize: 13, marginTop: 8 }}>{manualEmailError}</div> : null}
+                  <button
+                    type="button"
+                    onClick={handleManualEmailCopy}
+                    disabled={manualEmailLoading}
+                    style={{ width: "100%", padding: 14, fontSize: 16, fontWeight: 600, fontFamily: S.font, background: manualEmailLoading ? "#e5a820" : S.gold, color: "#ffffff", border: "none", borderRadius: 10, cursor: manualEmailLoading ? "not-allowed" : "pointer", marginTop: 12 }}
+                  >
+                    {manualEmailLoading ? resultsCopy.emailCopySending : resultsCopy.emailCopyButton}
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : null}
+        </div>
+      </div>
+    );
+  }
+
+  return null;
 }
 
 // Named exports for unit tests / next-step wiring without mounting the shell.
