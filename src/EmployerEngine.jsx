@@ -1400,18 +1400,9 @@ function renderHeroHeadline(headline) {
   );
 }
 
-var inputStyle = {
-  width: "100%",
-  background: "#f2f4f8",
-  border: "1px solid " + S.border,
-  borderRadius: 8,
-  padding: "12px 16px",
-  color: S.text,
-  fontSize: 16,
-  fontFamily: S.font,
-  outline: "none",
-  boxSizing: "border-box",
-};
+// Do not read S (or other EmployerApp.jsx exports) at module top level —
+// EmployerApp imports this file, so those bindings are still undefined during
+// evaluation (blank-screen crash: S.border). Read them at call/render time.
 
 var DZ_SLIDER_CSS =
   "input[type=range].dz-slider{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:3px;outline:none;cursor:pointer;border:none} input[type=range].dz-slider::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;border-radius:50%;border:3px solid white;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.18)} input[type=range].dz-slider::-moz-range-thumb{width:24px;height:24px;border-radius:50%;border:3px solid white;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.18)} input[type=range].conscience-sl::-webkit-slider-thumb{background:#7c3aed} input[type=range].conscience-sl::-moz-range-thumb{background:#7c3aed} input[type=range].pull-sl::-webkit-slider-thumb{background:#0891b2} input[type=range].pull-sl::-moz-range-thumb{background:#0891b2} input[type=range].fluency-sl::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:#d97706;border:2px solid white;cursor:pointer} input[type=range].fluency-sl::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:#d97706;border:2px solid white;cursor:pointer}";
@@ -2370,6 +2361,18 @@ export default function EmployerEngine(props) {
   var loadingCopyForRender = copy.loading || {};
   var editionLine = copy.editionLine || "";
   var uiProfile = buildUiProfile(config, intakeValues);
+  var inputStyle = {
+    width: "100%",
+    background: "#f2f4f8",
+    border: "1px solid " + S.border,
+    borderRadius: 8,
+    padding: "12px 16px",
+    color: S.text,
+    fontSize: 16,
+    fontFamily: S.font,
+    outline: "none",
+    boxSizing: "border-box",
+  };
 
   if (loading) {
     var loadingSub =
