@@ -2,6 +2,26 @@
 
 This file tracks notable changes to the Employer Edition and related app.defensiblezone.ai work. Newest entries at the top.
 
+## 2026-07-29 — Engine consolidation: Step 7 Engineer verification complete
+
+Product owner manually walked Engineer end-to-end on the live production site through EmployerEngine: intake (devType filtering, expandable contexts, conditional Other field, company deselect, resume upload), skills generation, affinity, scoring, recommendations (3 phases, correct distribution/caps), the new email gate flow, and localStorage persistence across refresh — all confirmed working. One follow-up (not a blocker): confirm resume content is actually threaded into the `/api/generate` prompt payload via browser Network tab. Step 7 marked complete in STAGE_TRACKER; Step 8 (Migrate Sales) is next. Uncommitted pending review.
+
+## 2026-07-29 — Engine consolidation: circular-import crash fix (S.border)
+
+Bug found and fixed after the production UI swap: circular import between `EmployerApp.jsx` and `EmployerEngine.jsx` caused a module-level read of an undefined style constant (`S.border`), crashing the live page with a blank screen. Root cause: `inputStyle` was defined at module top level and read `S` before EmployerApp's exports were available due to circular-import timing. Fixed by moving `inputStyle` inside the component function body (matching the pattern `EmployerEngineer.jsx` already used). Verified fixed via live browser testing, not just build checks. Uncommitted pending review.
+
+## 2026-07-29 — Engine consolidation: email gate flow + AI Usage card deferred
+
+Full email gate flow implemented in `EmployerEngine.jsx` (email input, send-link, token verification), matching `EmployerEngineer.jsx`'s live gate behavior — previously the gate step was a placeholder and this path was missing entirely. Separately: the AI Usage card is deliberately deferred — not yet in `EngineerConfig.js` or `EmployerEngine.jsx`; flagged as a known follow-up, not an oversight. Uncommitted pending review.
+
+## 2026-07-29 — Engine consolidation: EmployerEngine production UI (Step 6)
+
+Replaced the Step 4a debug/skeleton render in `EmployerEngine.jsx` (plain step chips, debug field info) with the real production UI matching `EmployerEngineer.jsx`'s actual styling and layout, using `config.copy` (RoleCopyConfig) for all user-facing text. Live Engineer routes already render through EmployerEngine (`App.jsx` `/employer/engineer` + `EmployerApp.jsx` role picker); `EmployerEngineer.jsx` left intact on disk for revert. Completes Step 6 (route swap + production UI). Uncommitted pending review.
+
+## 2026-07-29 — Engine consolidation: EngineerConfig gating field fixes
+
+`EngineerConfig.js` intake gating fields brought in line with live `EmployerEngineer.jsx`: added `required`, `visibleWhen` (`devTypeOther` conditional on `devType === "other"`), `expandable` (oneWay mode on `workContexts`, matching live's "+ Show N more contexts"), `allowDeselect` (`companyType`), and changed `resumeText` from type `"text"` to type `"file"` with `parseAs: "text"` (matching live's PDF/DOCX upload). Uncommitted pending review.
+
 ## 2026-07-20 — Engine consolidation: Engineer RoleCopyConfig (Step 5 complete)
 
 Filled `EngineerConfig.js` `copy` (RoleCopyConfig) with verbatim UI-only strings from live `EmployerEngineer.jsx` — edition chrome, intake field labels / helpers / CTAs / nudges / resume errors, skills + affinity + gate + results headings/buttons/helpers, phase action-plan labels/framings, loading messages. Includes `profileHeader: "ENGINEER PROFILE"` and `fieldLabels` map (what EmployerEngine already reads). Schema still leaves RoleCopyConfig loosely defined; shape judged from engine needs + live UI. Completes Step 5 (Migrate Engineer — write EngineerConfig). Uncommitted pending review. Next: Step 6 (swap Engineer's live route to render through EmployerEngine).

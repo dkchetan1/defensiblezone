@@ -15,9 +15,10 @@ Tracks progress on the Employer Edition engine consolidation effort. Updated aft
   - [x] 5a: Structural fields (steps, intake, affinity) — committed `b8530e5`
   - [x] 5b: PromptConfig — customTaskTemplate ×3 stages verbatim from live EmployerEngineer.jsx; fine-grained tokens (seniorityLabel, seniorityNote, devTypeLabel, workContextsText, companyLabel, companyTypeContextPhrase) + `{{#resumeText}}` conditional; phaseDefinition (weekBucketed, blurbs, max 4/phase, target 3/3/2); responseShape (skills + optional benchmark). Also maxSelections on schema + EmployerEngine (Finance-style click-limit disable). Uncommitted pending review.
   - [x] 5c: RoleCopyConfig — UI-only copy filled verbatim from live EmployerEngineer.jsx (fieldLabels, profileHeader, intake/skills/affinity/gate/results/loading strings). Completes EngineerConfig.js. Uncommitted pending review.
-- [ ] Step 6: Migrate Engineer — swap live route to render through EmployerEngine ← **NEXT**
-- [ ] Step 7: Migrate Engineer — verify byte-for-byte against current live behavior
-- [ ] Step 8: Migrate Sales (config + swap + verify)
+  - [x] Follow-up: Intake gating field fixes — `required`, `visibleWhen` (devTypeOther), `expandable` (workContexts oneWay), `allowDeselect` (companyType), `resumeText` type `"file"` + `parseAs: "text"` (2026-07-29; uncommitted pending review)
+- [x] Step 6: Migrate Engineer — swap live route to render through EmployerEngine + replace debug/skeleton with production UI (config.copy-driven); full email gate flow; circular-import `S.border` crash fixed (inputStyle moved into component body). AI Usage card deliberately deferred. (2026-07-29; uncommitted pending review)
+- [x] Step 7: Migrate Engineer — verify against live behavior — **COMPLETE** (2026-07-29). Product owner walked intake → skills → affinity → scoring → recommendations → email gate → localStorage refresh on live production; all confirmed. Follow-up (not a blocker): confirm resume content is threaded into `/api/generate` prompt payload via Network tab.
+- [ ] Step 8: Migrate Sales (config + swap + verify) ← **NEXT**
 - [ ] Step 9: Migrate Finance (config + swap + verify)
 - [ ] Step 10: Migrate PM (config + swap + verify — includes intentional fix of missing post-score localStorage save)
 - [ ] Step 11: Migrate UX (config + swap + verify)
